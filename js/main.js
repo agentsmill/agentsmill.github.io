@@ -248,9 +248,12 @@
       { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · Claude Code + Codex` },
       { n: TOKENS.grandOutput, label: "tokenów napisanych przez AI", sub: "kod, testy, analizy, rozmowy" },
       { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${nf.format(TOKENS.sessions)} plikach sesji` },
+      { money: TOKENS.apiCost, label: "tyle kosztowałby sam Claude Code", sub: "w cenniku API, gdyby nie abonament" },
     ];
     host.innerHTML = figures.map((f) => {
-      const b = big(f.n);
+      const b = f.money
+        ? { v: "$" + nf.format(f.money).replace(/ /g, " "), u: "" }
+        : big(f.n);
       return `<div class="figure reveal">
         <b>${b.v}<span class="unit">${b.u}</span></b>
         <span class="figure-label">${f.label}</span>

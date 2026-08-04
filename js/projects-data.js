@@ -111,6 +111,12 @@ const PROJECTS = [
     links: { repo: "https://github.com/agentsmill/GreenSolver_Final" }
   },
   {
+    id: "mistrz-gry-wiedzmin", title: "Mistrz gry w świecie Wiedźmina", date: "2025-08", era: 3,
+    cat: ["gry", "aiml"], approxDate: true,
+    desc: "Narracyjny mistrz gry RPG osadzony w uniwersum Wiedźmina — model prowadził sesję i reagował na decyzje gracza. Wdrożony na Vercelu. Powstał przed styczniem 2026, więc kod ani wdrożenie nie zachowały się lokalnie; data przybliżona.",
+    tech: ["Vercel", "LLM"], access: "wdrożenie wygasło", links: {}
+  },
+  {
     id: "korpolajf", title: "KorpoLajf RPG", date: "2025-08", era: 3,
     cat: ["gry"],
     desc: "Pixel-artowa satyra biurowa: zbierasz dane, pijesz kawę, zarządzasz stresem i zdążasz z raportem na zarząd o 17:30.",
@@ -207,7 +213,7 @@ const PROJECTS = [
     tech: ["Python", "MCTS"], badge: "kaggle", links: {}
   },
   {
-    id: "naszwhisper", title: "NaszWhisper", date: "2026-06", era: 5, featured: true,
+    id: "naszwhisper", title: "NaszWhisper", date: "2026-06", era: 5, featured: true, shot: false,
     cat: ["produkty"],
     desc: "Natywna apka macOS do dyktowania po polsku — w pełni lokalnie, na Apple Neural Engine (Parakeet 0.6B). Tapnięcie ⌘, mówisz, tekst wkleja się tam, gdzie kursor.",
     tech: ["Swift", "Core ML", "Parakeet"],
@@ -544,6 +550,9 @@ const TOKENS = {
   get grandOutput(){ return this.claude.output + this.codex.output; },
   get grandFresh() { return this.claude.fresh + this.codex.fresh; },
   get grandCache() { return this.claude.cacheRead + this.codex.cacheRead; },
+  // Ile kosztowałaby ta sama praca w cenniku API (Claude Code, VI–VIII 2026).
+  // Policzone per model: input, output, zapis cache (1,25×) i odczyt cache (0,1×).
+  apiCost: 6733,
   models: [
     { name: "Claude Sonnet 5", tokens: 2330000000 },
     { name: "Claude Opus 4.8", tokens: 2230000000 },
