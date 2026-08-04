@@ -356,18 +356,56 @@ const EXHIBIT_BUILDERS = {
   "naszwhisper": exWhisper, "anatomy": exAnatomy,
 };
 
+/* Oprawiony zrzut ekranu — ładowany asynchronicznie, znika jeśli pliku brak. */
+const texLoader = new THREE.TextureLoader();
+function framedShot(p, w = 2.2) {
+  const g = new THREE.Group();
+  const file = p.shot || `${p.id}.jpeg`;
+  texLoader.load(
+    `assets/shots/${file}`,
+    (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      const ar = (tex.image?.width || 16) / (tex.image?.height || 10);
+      const h = w / ar;
+      const frame = bx(w + 0.12, h + 0.12, 0.05, M.body(0x0a0e16));
+      const edge = bx(w + 0.16, h + 0.16, 0.02, M.glow(0x2a3550, 1));
+      edge.position.z = -0.02;
+      const pic = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+      );
+      pic.position.z = 0.031;
+      g.add(edge, frame, pic);
+      // delikatna poświata pod obrazem
+      const halo = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.7, h + 0.7),
+        M.add(0xf2c46d, 0.05));
+      halo.position.z = -0.05;
+      g.add(halo);
+    },
+    undefined,
+    () => {}          // brak pliku — po prostu nic nie dodajemy
+  );
+  return g;
+}
+
 /* Postument z hologramem dla pozostałych projektów */
 function plinth(p, hex) {
   const g = new THREE.Group();
   const ped = bx(0.7, 0.9, 0.7, M.body(0x1a2438)); ped.position.y = 0.45; g.add(ped);
   const edge = bx(0.74, 0.03, 0.74, M.glow(hex, 0.8)); edge.position.y = 0.92; g.add(edge);
+  const shot = framedShot(p, 1.5);
+  shot.position.y = 2.05; g.add(shot);
   const label = textSprite(p.title, { font: "600 30px 'Schibsted Grotesk'", color: "#E9EDF5" });
   label.position.y = 1.45; g.add(label);
   const date = textSprite(fmtDate(p.date), { font: "400 22px 'IBM Plex Mono'", color: "#8C95A8" });
   date.position.y = 1.14; g.add(date);
   return {
     group: g,
-    tick(t) { label.position.y = 1.45 + Math.sin(t * 0.8 + g.position.z) * 0.03; },
+    tick(t) {
+      label.position.y = 1.45 + Math.sin(t * 0.8 + g.position.z) * 0.03;
+      shot.position.y = 2.05 + Math.sin(t * 0.6 + g.position.z) * 0.04;
+    },
     activate() {},
   };
 }
@@ -434,6 +472,11 @@ function buildCorridor() {
         const lab = textSprite(p.title, { font: "700 34px Syne", color: "#E9EDF5" });
         lab.position.set(side * 4.4, 3.1, -zCursor);
         scene.add(lab);
+        // obraz w ramie na ścianie za eksponatem
+        const wall = framedShot(p, 2.6);
+        wall.position.set(side * 7.6, 2.5, -zCursor);
+        wall.rotation.y = -side * Math.PI / 2.6;
+        scene.add(wall);
         if (ex.tick) tickers.push(ex.tick);
         addHit(p, ex.group, 2.3, side, 4.6).userData.exhibit = ex;
         zCursor += 6.5;

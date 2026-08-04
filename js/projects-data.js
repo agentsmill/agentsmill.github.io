@@ -221,7 +221,7 @@ const PROJECTS = [
     links: { live: "https://locavi.fly.dev" }
   },
   {
-    id: "aog-game", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
+    id: "aog-game", shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
     cat: ["gry", "aiml"],
     desc: "Turowe 4X uczące projektowania systemów agentowych (pamięć, narzędzia, MCP, subagenci jako drzewko technologii) — z pivotem do Token Golf: platformera prompt-golfa z fine-tunowanym Qwen3 0.6B liczącym wynik w przeglądarce przez WebGPU.",
     tech: ["TypeScript", "Qwen3 ONNX", "WebGPU"], badge: "fly",
@@ -266,7 +266,7 @@ const PROJECTS = [
     tech: ["Gemini", "NotebookLM"], access: "materiały dla klienta", links: {}
   },
   {
-    id: "aule-v2", title: "Aule Energy", date: "2026-04", era: 5,
+    id: "aule-v2", shot: "aule-energy.jpeg", title: "Aule Energy", date: "2026-04", era: 5,
     cat: ["produkty"],
     desc: "Chat-first asystent doboru ofert energii dla domów i mikrofirm: analiza faktur OCR, pełny rachunek roczny, deterministyczny silnik obliczeń („LLM nigdy nie liczy”). 236 commitów.",
     tech: ["Next.js", "Supabase", "OpenRouter"],
@@ -282,7 +282,7 @@ const PROJECTS = [
     links: { live: "https://slyd.fly.dev/", repo: "https://github.com/agentsmill/slyd" }
   },
   {
-    id: "wdrozenie-slownik", title: "wdrozenie.ai — strona-słownik", date: "2026-07", era: 6,
+    id: "wdrozenie-slownik", shot: "wdrozenie-ai.jpeg", title: "wdrozenie.ai — strona-słownik", date: "2026-07", era: 6,
     cat: ["sztuka", "produkty"],
     desc: "Strona studia zbudowana jak hasło słownikowe odmienione przez wszystkie 7 przypadków: Mianownik to hero, Dopełniacz — zasady, Celownik — odbiorcy. Dwujęzyczna, z esejami.",
     tech: ["HTML", "Cloudflare Pages"], badge: "cf",

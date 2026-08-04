@@ -87,6 +87,16 @@
     return out.length ? `<div class="card-links">${out.join("")}</div>` : "";
   }
 
+  /* Zrzut ekranu projektu; jeśli pliku nie ma, kafelek znika bez śladu. */
+  function shotHTML(p) {
+    if (p.shot === false) return "";
+    const file = p.shot || `${p.id}.jpeg`;
+    return `<span class="shot">
+      <img src="assets/shots/${file}" alt="Zrzut ekranu: ${p.title}" loading="lazy" decoding="async"
+           onerror="this.closest('.shot').remove()">
+    </span>`;
+  }
+
   /* ── Wyróżnione ──────────────────────────────────────────────────────── */
   const FEATURED_ORDER = ["age-of-agents", "empowerher", "reverie", "ekspres-leona",
     "token-drag-race", "lastbox", "naszwhisper", "anatomy"];
@@ -99,6 +109,7 @@
       const p = byId[id];
       if (!p) return "";
       return `<article class="fcard reveal" style="--cat:${catColor(p)}">
+        ${shotHTML(p)}
         <div class="fdate">${fmtDate(p.date)} · ${p.cat.map((c) => CATEGORIES[c].label).join(" · ")}</div>
         <h3>${p.title}</h3>
         <p class="fdesc">${p.desc}</p>
