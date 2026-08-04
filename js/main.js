@@ -296,10 +296,10 @@
     if (!host || typeof TOKENS === "undefined") return;
 
     const figures = [
-      { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · Claude Code + Codex` },
+      { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · cztery narzędzia, jeden komputer` },
       { n: TOKENS.grandOutput, label: "tokenów napisanych przez AI", sub: "kod, testy, analizy, rozmowy" },
       { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${nf.format(TOKENS.sessions)} plikach sesji` },
-      { money: TOKENS.apiCost, label: "tyle kosztowałby sam Claude Code", sub: "w cenniku API, gdyby nie abonament" },
+      { money: TOKENS.apiCost, label: "tyle kosztowałyby modele Anthropic", sub: "w cenniku API, gdyby nie abonament" },
     ];
     host.innerHTML = figures.map((f) => {
       const b = f.money
@@ -334,6 +334,7 @@
         </div>`;
       }).join("");
     };
+    barList(document.getElementById("bill-sources"), TOKENS.sources);
     barList(document.getElementById("bill-top"), TOKENS.top);
     barList(document.getElementById("bill-models"), TOKENS.models);
 
@@ -342,7 +343,10 @@
       `Dokładnie ${nf.format(TOKENS.grand)} tokenów, deduplikowanych po identyfikatorze wiadomości. ` +
       `Do tego zachował się osobny ślad z <b>${a.window}</b> — lokalny cache statystyk pamięta ` +
       `${big(a.total).v} ${big(a.total).u} tokenów w ${a.sessions} sesjach, choć same transkrypty ` +
-      `dawno skasowano. Reszty pierwszego roku nie da się już odtworzyć: powstawała na innym komputerze.`;
+      `dawno skasowano. Każde narzędzie trzyma sesje w innym miejscu, więc pierwsza wersja tego ` +
+      `rachunku zaniżała wynik o ponad trzy miliardy — brakowało trybu agentowego Claude Desktop ` +
+      `i Kimi CLI. Skrypt liczący jest w repozytorium: da się go uruchomić na dowolnym komputerze ` +
+      `i dodać wynik do tej sumy.`;
   }
 
   /* ── Scroll reveal ───────────────────────────────────────────────────── */

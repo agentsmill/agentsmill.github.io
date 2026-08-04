@@ -545,26 +545,34 @@ const THREADS = [
 // UWAGA: przetrwały tylko sesje od czerwca 2026 — wcześniejsze zostały wyczyszczone.
 const TOKENS = {
   window: "VI – VIII 2026",
-  sessions: 1948,         // 1898 plików sesji Claude Code (z subagentami) + 50 sesji Codex
-  messages: 40331,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
-  claude:  { total: 7179446402, output: 25459774, cacheRead: 6859223248, fresh: 320223154 },
-  codex:   { total: 1335642388, output: 5435809, cacheRead: 1285237504, fresh: 50405000 },
+  sessions: 2121,         // pliki sesji ze wszystkich narzędzi na tym komputerze
+  messages: 54209,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
+  total: 11926685667,
+  output: 44329003,
+  cacheRead: 11368885424,
+  // Rozbicie na narzędzia — każde trzyma sesje gdzie indziej.
+  sources: [
+    { name: "Claude Code w terminalu", tokens: 7280000000, files: 1749 },
+    { name: "Claude Desktop, tryb agentowy", tokens: 2440000000, files: 89 },
+    { name: "Codex (GPT-5.5)", tokens: 1370000000, files: 57 },
+    { name: "Kimi CLI", tokens: 832300000, files: 28 },
+  ],
   // Osobny ślad: lokalny cache statystyk z I–II 2026 (transkrypty źródłowe już usunięte)
   archive: { window: "I – II 2026", total: 371758777, output: 633899, sessions: 40, messages: 7639 },
-  get grand()      { return this.claude.total + this.codex.total; },
-  get grandOutput(){ return this.claude.output + this.codex.output; },
-  get grandFresh() { return this.claude.fresh + this.codex.fresh; },
-  get grandCache() { return this.claude.cacheRead + this.codex.cacheRead; },
-  // Ile kosztowałaby ta sama praca w cenniku API (Claude Code, VI–VIII 2026).
+  get grand()      { return this.total; },
+  get grandOutput(){ return this.output; },
+  get grandCache() { return this.cacheRead; },
+  // Ile kosztowałaby ta sama praca w cenniku API (modele Anthropic, bez Codeksa).
   // Policzone per model: input, output, zapis cache (1,25×) i odczyt cache (0,1×).
-  apiCost: 6733,
+  apiCost: 7997,
   models: [
-    { name: "Claude Sonnet 5", tokens: 2330000000 },
-    { name: "Claude Opus 4.8", tokens: 2230000000 },
-    { name: "Claude Fable 5", tokens: 2060000000 },
-    { name: "GPT-5.5 (Codex)", tokens: 1335642388 },
-    { name: "Claude Opus 5", tokens: 443700000 },
-    { name: "Claude Haiku 4.5", tokens: 95300000 },
+    { name: "Claude Opus 4.8", tokens: 2530000000 },
+    { name: "Claude Sonnet 5", tokens: 2370000000 },
+    { name: "Claude Fable 5", tokens: 2180000000 },
+    { name: "GPT-5.5 (Codex)", tokens: 1370000000 },
+    { name: "Claude Opus 5", tokens: 583200000 },
+    { name: "Claude Opus 4.6", tokens: 560800000 },
+    { name: "Claude Haiku 4.5", tokens: 104000000 },
   ],
   top: [   // worktree scalone z projektem macierzystym
     { name: "Wspólnik", tokens: 1423400000 },

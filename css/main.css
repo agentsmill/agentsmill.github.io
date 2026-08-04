@@ -394,6 +394,11 @@ h2 {
 .bar-track { grid-column: 1 / -1; grid-row: 2; height: 5px; background: var(--line-soft); border-radius: 99px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--pulse-dim), var(--pulse)); border-radius: 99px; }
 .bill-note { font-size: 0.8rem; color: var(--ink-faint); margin-top: 2.4rem; max-width: 680px; }
+.bill-floor {
+  border-left: 2px solid var(--pulse-dim); padding-left: 1rem;
+  margin-top: -1.2rem; margin-bottom: 2.2rem;
+}
+.bill-floor b { color: var(--ink); }
 
 /* ── Leon ── */
 .leon {
