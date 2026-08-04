@@ -78,10 +78,12 @@
       const flyNote = p.badge === "fly" ? ` title="Aplikacja na Fly.io — może wybudzać się kilka sekund"` : "";
       out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener"${flyNote}>Zobacz ↗</a>`);
     }
+    if (p.links.tg) out.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Bot na Telegramie ↗</a>`);
     if (p.links.repo) out.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
     if (p.links.npm) out.push(`<a href="${p.links.npm}" target="_blank" rel="noopener">npm</a>`);
     if (p.badge) out.push(`<span class="badge">${p.badge}</span>`);
     if (p.stars) out.push(`<span class="stars">★ ${p.stars}</span>`);
+    if (p.access) out.push(`<span class="access">${p.access}</span>`);
     return out.length ? `<div class="card-links">${out.join("")}</div>` : "";
   }
 
@@ -173,12 +175,16 @@
   function buildArchive() {
     const host = document.getElementById("archive-list");
     if (!host) return;
-    host.innerHTML = ARCHIVE.map((a) =>
-      `<div class="arch-row reveal">
+    host.innerHTML = ARCHIVE.map((a) => {
+      const title = a.url
+        ? `<a class="a-title a-link" href="${a.url}" target="_blank" rel="noopener">${a.title} ↗</a>`
+        : `<span class="a-title">${a.title}</span>`;
+      return `<div class="arch-row reveal">
         <span class="a-date">${fmtDate(a.date)}</span>
-        <span class="a-title">${a.title}</span>
+        ${title}
         <span class="a-note"> — ${a.note}</span>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
 
   /* ── Rodziny projektów ───────────────────────────────────────────────── */

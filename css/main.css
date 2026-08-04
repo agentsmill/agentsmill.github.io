@@ -190,6 +190,10 @@ h2 {
   border: 1px solid var(--line); border-radius: 99px; padding: 0.1rem 0.5rem;
 }
 .stars { color: var(--pulse); font-family: var(--font-mono); font-size: 0.72rem; }
+.access {
+  font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint);
+  letter-spacing: 0.05em; font-style: italic;
+}
 
 /* ── Filtry ── */
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2.4rem; }
@@ -371,6 +375,7 @@ h2 {
   text-decoration: none; border-bottom: 1px solid transparent;
 }
 .leon-links a:hover { border-color: var(--c-leon); }
+.leon-access { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); font-style: italic; }
 
 /* ── Archiwum ── */
 .archive-list {
@@ -383,6 +388,8 @@ h2 {
 }
 .arch-row .a-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); letter-spacing: 0.08em; margin-right: 0.7rem; }
 .arch-row .a-title { color: var(--ink); font-weight: 500; }
+.arch-row .a-link { text-decoration: none; border-bottom: 1px solid var(--line); }
+.arch-row .a-link:hover { color: var(--pulse); border-color: var(--pulse); }
 .arch-row .a-note { color: var(--ink-faint); }
 
 /* ── Stopka ── */

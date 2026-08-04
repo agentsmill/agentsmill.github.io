@@ -528,9 +528,11 @@ function openPlaque(hit) {
   document.getElementById("plaque-tech").textContent = p.tech.join(" · ");
   const links = [];
   if (p.links.live) links.push(`<a href="${p.links.live}" target="_blank" rel="noopener">Zobacz na żywo ↗</a>`);
+  if (p.links.tg) links.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Telegram ↗</a>`);
   if (p.links.repo) links.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
   if (p.links.npm) links.push(`<a href="${p.links.npm}" target="_blank" rel="noopener">npm</a>`);
-  document.getElementById("plaque-links").innerHTML = links.join("") || `<span style="color:var(--ink-faint)">projekt prywatny / offline</span>`;
+  document.getElementById("plaque-links").innerHTML =
+    links.join("") || `<span style="color:var(--ink-faint)">${p.access || "projekt niepubliczny"}</span>`;
   plaque.hidden = false;
 }
 
