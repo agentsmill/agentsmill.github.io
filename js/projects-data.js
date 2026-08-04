@@ -221,7 +221,7 @@ const PROJECTS = [
     links: { repo: "https://github.com/agentsmill/naszwhisper" }
   },
   {
-    id: "aog-game", featured: true, shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
+    id: "aog-game", wakes: true, featured: true, shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
     cat: ["gry", "aiml"],
     desc: "Turowe 4X uczące projektowania systemów agentowych (pamięć, narzędzia, MCP, subagenci jako drzewko technologii) — z pivotem do Token Golf: platformera prompt-golfa z fine-tunowanym Qwen3 0.6B liczącym wynik w przeglądarce przez WebGPU.",
     tech: ["TypeScript", "Qwen3 ONNX", "WebGPU"], badge: "fly",
@@ -253,7 +253,7 @@ const PROJECTS = [
     tech: ["Python", "Docker"], access: "wdrożenie u klienta", links: {}
   },
   {
-    id: "token-drag-race", title: "Token Drag Race", date: "2026-06", era: 5, featured: true,
+    id: "token-drag-race", wakes: true, title: "Token Drag Race", date: "2026-06", era: 5, featured: true,
     cat: ["aiml", "gry"],
     desc: "Wyścigi LLM-ów w pikselowej Warszawie nocą: auta jadą w rytm streamowanych tokenów, czas mierzy serwer przy każdym chunku, nie klient. Globalny leaderboard, własne modele przez OpenRouter.",
     tech: ["Python", "OpenRouter", "Upstash"], badge: "fly", access: "repo prywatne",
@@ -275,7 +275,7 @@ const PROJECTS = [
 
   // ── Era 6: VII–VIII 2026 ────────────────────────────────────────────────────
   {
-    id: "slyd", title: "SLYD", date: "2026-07", era: 6,
+    id: "slyd", wakes: true, title: "SLYD", date: "2026-07", era: 6,
     cat: ["gry"],
     desc: "Neonowa gra slope-like w three.js: kula, zbocze, coraz szybciej. Jeden link, zero instalacji, wbudowane pętle „pobij mnie”.",
     tech: ["three.js", "Vite", "TypeScript"], badge: "fly",
@@ -289,7 +289,7 @@ const PROJECTS = [
     links: { live: "https://wdrozenie.ai" }
   },
   {
-    id: "empowerher", title: "EmpowerHer", date: "2026-07", era: 6, featured: true,
+    id: "empowerher", wakes: true, title: "EmpowerHer", date: "2026-07", era: 6, featured: true,
     cat: ["produkty"],
     desc: "Platforma treningowa dla kobiet: wideo-treningi, osobisty plan, rezerwacje sesji 1:1 z kalendarzem i płatnością przy bookingu. Działa komercyjnie. 138 commitów.",
     tech: ["Next.js", "Supabase", "Stripe"], badge: "fly",
@@ -418,7 +418,7 @@ const ARCHIVE = [
   { title: "Auto Ja", date: "2026-06", note: "raport: cyfrowy klon instruktora" },
   { title: "PokerLab (clawd)", date: "2026-07", note: "play-money poker dla agentów AI" },
   { title: "autoreels / VideoAI-LTX", date: "2026-07", note: "eksperymenty wideo-automatyzacji" },
-  { title: "AutoProcurer", date: "2026-07", note: "agent zakupowy (Next.js + Supabase)", url: "https://autoprocurer.fly.dev" },
+  { title: "AutoProcurer", date: "2026-07", note: "agent zakupowy — musi się uruchomić", url: "https://autoprocurer.fly.dev" },
   { title: "AutoProtector", date: "2026-07", note: "companion bezpieczeństwa (monorepo TS)" },
   { title: "Od lutownicy do humanoida", date: "2026-07", note: "roadmapa robotyki (artefakt HTML)" },
   { title: "Dashboard leasingu 2024/2025", date: "2026-07", note: "wizualizacja danych rynkowych" },

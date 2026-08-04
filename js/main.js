@@ -75,8 +75,9 @@
   function linksHTML(p) {
     const out = [];
     if (p.links.live) {
-      const flyNote = p.badge === "fly" ? ` title="Aplikacja na Fly.io — może wybudzać się kilka sekund"` : "";
-      out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener"${flyNote}>Zobacz ↗</a>`);
+      out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener">Zobacz ↗</a>`);
+      // Aplikacja uśpiona (Fly, skalowanie do zera) — zmierzone budzenie 7–11 s.
+      if (p.wakes) out.push(`<span class="wakes" title="Serwer śpi, gdy nikt nie korzysta. Pierwsze wejście trwa ok. 10 sekund, potem działa normalnie.">(musi się uruchomić, ~10 s)</span>`);
     }
     if (p.links.tg) out.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Bot na Telegramie ↗</a>`);
     if (p.links.repo) out.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
@@ -238,29 +239,31 @@
 
     const rows = PROJECTS.map((p) => ({
       date: p.date, title: p.title,
-      cat: p.cat[0],
+      cat: p.cat[0], best: !!p.featured,
       url: p.links.live || p.links.repo || p.links.tg || null,
       note: p.access || "",
-      hay: `${p.title} ${p.desc} ${p.tech.join(" ")} ${p.cat.map((c) => CATEGORIES[c].label).join(" ")}`.toLowerCase(),
+      hay: `${p.title} ${p.desc} ${p.tech.join(" ")} ${p.cat.map((c) => CATEGORIES[c].label).join(" ")}${p.featured ? " wyróżnione najlepsze" : ""}`.toLowerCase(),
     })).concat(ARCHIVE.map((a) => ({
       date: a.date, title: a.title, cat: null, url: a.url || null, note: a.note,
       hay: `${a.title} ${a.note}`.toLowerCase(), archived: true,
     })));
     rows.sort((a, b) => (a.date === b.date ? a.title.localeCompare(b.title, "pl") : (a.date < b.date ? -1 : 1)));
 
+    const best = rows.filter((r) => r.best).length;
     document.getElementById("index-lead").innerHTML =
       `Wszystko, co powstało — <b>${PROJECTS.length}</b> projektów opisanych na osi czasu i
        <b>${ARCHIVE.length}</b> pozycji archiwalnych, razem <b>${rows.length}</b>.
-       Nic nie chowa się tu przed tobą: wpisz nazwę, technologię albo kategorię, żeby zawęzić listę.`;
+       <b class="lead-star">★</b> oznacza <b>${best}</b> najlepszych — od nich zacznij.
+       Wpisz nazwę, technologię albo kategorię, żeby zawęzić listę.`;
 
     grid.innerHTML = rows.map((r) => {
       const dot = r.cat ? `<span class="ix-dot" style="background:${CATEGORIES[r.cat].color}"></span>` : `<span class="ix-dot ix-dot-arch"></span>`;
       const name = r.url
         ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title} ↗</a>`
         : `<span>${r.title}</span>`;
-      return `<div class="ix-row${r.archived ? " ix-arch" : ""}" data-hay="${r.hay.replace(/"/g, "")}">
+      return `<div class="ix-row${r.archived ? " ix-arch" : ""}${r.best ? " ix-best" : ""}" data-hay="${r.hay.replace(/"/g, "")}">
         ${dot}<span class="ix-date">${fmtDate(r.date)}</span>
-        <span class="ix-name">${name}</span>
+        <span class="ix-name">${r.best ? `<span class="ix-star" title="Wyróżnione — od tych zacznij">★</span>` : ""}${name}</span>
         ${r.note ? `<span class="ix-note">${r.note}</span>` : ""}
       </div>`;
     }).join("");
