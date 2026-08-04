@@ -21,7 +21,7 @@ const ERAS = [
   {
     id: 3, range: "VII–X 2025", title: "Narzędzia domenowe",
     rhythm: "13 repozytoriów w 4 miesiące",
-    lead: "Pierwszy token w Claude Code (lipiec). Energia, biuro, matematyka — AI zaczyna robić rzeczy, które mają zawodowy sens."
+    lead: "Pierwszy token w Claude Code (lipiec) — i w tym samym miesiącu Bajarz, pierwszy pełny system agentowy. Energia, biuro, matematyka: AI zaczyna robić rzeczy, które mają zawodowy sens."
   },
   {
     id: 4, range: "XI 2025 – II 2026", title: "W stronę produktów",
@@ -111,10 +111,11 @@ const PROJECTS = [
     links: { repo: "https://github.com/agentsmill/GreenSolver_Final" }
   },
   {
-    id: "mistrz-gry-wiedzmin", title: "Mistrz gry w świecie Wiedźmina", date: "2025-08", era: 3,
-    cat: ["gry", "aiml"], approxDate: true,
-    desc: "Narracyjny mistrz gry RPG osadzony w uniwersum Wiedźmina — model prowadził sesję i reagował na decyzje gracza. Wdrożony na Vercelu. Powstał przed styczniem 2026, więc kod ani wdrożenie nie zachowały się lokalnie; data przybliżona.",
-    tech: ["Vercel", "LLM"], access: "wdrożenie wygasło", links: {}
+    id: "bajarz", title: "Agent AI Bajarz", date: "2025-07", era: 3, featured: true, shot: "bajarz.jpeg",
+    cat: ["gry", "aiml"],
+    desc: "„Kroniki Mrocznego Świata” — mistrz gry RPG w świecie Wiedźmina, prowadzący sesję na mechanice *Wiedźmin: Gra Wyobraźni*. Tworzenie postaci, zapisywane sesje po ID, narracja głosowa i protokół AG-UI v2.0. Zbudowany w lipcu 2025 — najstarsze wdrożenie, które wciąż odpowiada.",
+    tech: ["TypeScript", "AG-UI Protocol", "TTS", "Vercel"], access: "repo prywatne",
+    links: { live: "https://dawne-czasy.vercel.app/" }
   },
   {
     id: "korpolajf", title: "KorpoLajf RPG", date: "2025-08", era: 3,
@@ -408,7 +409,7 @@ const ARCHIVE = [
   { title: "prosty-mistrz", date: "2025-04", note: "druga iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prosty-mistrz/" },
   { title: "prompt-master", date: "2025-04", note: "trzecia iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prompt-master/" },
   { title: "Latarnik AI", date: "2025-05", note: "eksperyment" },
-  { title: "dawne-czasy", date: "2025-07", note: "dwa podejścia (repo pub+priv)" },
+  { title: "dawno-czasy", date: "2025-07", note: "pusty falstart dzień przed Bajarzem" },
   { title: "arch-scout", date: "2025-08", note: "narzędzie architektoniczne (Lovable)" },
   { title: "SGDH", date: "2025-08", note: "notebooki badawcze (3 iteracje)" },
   { title: "Domowik", date: "2025-11", note: "prywatny eksperyment (Python)" },
@@ -487,6 +488,16 @@ const LINEAGES = [
       { title: "Robotami — mózg", date: "2026-07", pid: "robotami" },
       { title: "Józef dla Leona", date: "2026-07", pid: "robotami" },
       { title: "Stoik", date: "2026-07", pid: "stoik" },
+    ],
+  },
+  {
+    id: "postac",
+    title: "Model jako postać, z którą rozmawiasz",
+    note: "Ta sama idea w odstępie dwunastu miesięcy: model wciela się w rolę i prowadzi z tobą scenę. Zmieniło się to, gdzie mieszka — z chmury na twój komputer.",
+    chain: [
+      { title: "Agent AI Bajarz — mistrz gry", date: "2025-07", pid: "bajarz" },
+      { title: "Józef — kompan Leona", date: "2026-07", pid: "robotami" },
+      { title: "PETENT — urzędniczka Grażyna", date: "2026-07", pid: "petent" },
     ],
   },
   {

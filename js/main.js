@@ -98,7 +98,7 @@
   }
 
   /* ── Wyróżnione ──────────────────────────────────────────────────────── */
-  const FEATURED_ORDER = ["age-of-agents", "empowerher", "reverie", "ekspres-leona",
+  const FEATURED_ORDER = ["age-of-agents", "empowerher", "bajarz", "reverie", "ekspres-leona",
     "token-drag-race", "lastbox", "naszwhisper", "anatomy"];
 
   function buildFeatured() {
