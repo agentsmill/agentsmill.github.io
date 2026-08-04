@@ -329,6 +329,33 @@ h2 {
   border: 1px solid var(--line); border-radius: 99px; padding: 0.15rem 0.55rem;
 }
 
+/* ── Spis wszystkiego ── */
+.index-filter {
+  width: 100%; max-width: 480px; margin: 0 0 1.8rem;
+  font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink);
+  background: var(--bg-raised); border: 1px solid var(--line);
+  border-radius: 99px; padding: 0.65rem 1.1rem;
+}
+.index-filter::placeholder { color: var(--ink-faint); }
+.index-filter:focus { outline: none; border-color: var(--pulse-dim); background: var(--bg-raised-2); }
+.index-grid { columns: 2; column-gap: 2.5rem; }
+.ix-row {
+  break-inside: avoid; display: flex; align-items: baseline; gap: 0.55rem;
+  padding: 0.4rem 0; border-bottom: 1px solid var(--line-soft); font-size: 0.88rem;
+}
+.ix-row[hidden] { display: none; }
+.ix-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; transform: translateY(-1px); }
+.ix-dot-arch { background: var(--ink-faint); opacity: 0.45; }
+.ix-date {
+  flex: none; font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--ink-faint); letter-spacing: 0.06em; min-width: 4.3rem;
+}
+.ix-name a { text-decoration: none; border-bottom: 1px solid var(--line); }
+.ix-name a:hover { color: var(--pulse); border-color: var(--pulse); }
+.ix-note { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); font-style: italic; }
+.ix-arch .ix-name { color: var(--ink-dim); }
+.index-empty { color: var(--ink-faint); font-size: 0.9rem; margin-top: 1rem; }
+
 /* ── Rachunek tokenów ── */
 .bill-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin: 2.2rem 0 2.6rem; }
 .figure { border-left: 2px solid var(--pulse); padding-left: 1rem; display: flex; flex-direction: column; }
@@ -427,6 +454,6 @@ h2 {
   .topbar nav a { font-size: 0.7rem; }
   .vitals li { padding-right: 1rem; margin-right: 1rem; }
   .vitals b { font-size: 1.25rem; }
-  .archive-list { columns: 1; }
+  .archive-list, .index-grid { columns: 1; }
   #ekg-chart { height: 96px; }
 }

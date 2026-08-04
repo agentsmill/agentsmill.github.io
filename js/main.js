@@ -98,8 +98,8 @@
   }
 
   /* ── Wyróżnione ──────────────────────────────────────────────────────── */
-  const FEATURED_ORDER = ["age-of-agents", "empowerher", "bajarz", "reverie", "ekspres-leona",
-    "token-drag-race", "lastbox", "naszwhisper", "anatomy"];
+  const FEATURED_ORDER = ["age-of-agents", "wspolnik", "empowerher", "bajarz", "aog-game",
+    "reverie", "ekspres-leona", "token-drag-race", "lastbox", "naszwhisper", "anatomy"];
 
   function buildFeatured() {
     const grid = document.getElementById("featured-grid");
@@ -231,6 +231,54 @@
       </article>`).join("");
   }
 
+  /* ── Spis wszystkiego: każdy projekt na jednym ekranie, z wyszukiwarką ── */
+  function buildIndex() {
+    const grid = document.getElementById("index-grid");
+    if (!grid) return;
+
+    const rows = PROJECTS.map((p) => ({
+      date: p.date, title: p.title,
+      cat: p.cat[0],
+      url: p.links.live || p.links.repo || p.links.tg || null,
+      note: p.access || "",
+      hay: `${p.title} ${p.desc} ${p.tech.join(" ")} ${p.cat.map((c) => CATEGORIES[c].label).join(" ")}`.toLowerCase(),
+    })).concat(ARCHIVE.map((a) => ({
+      date: a.date, title: a.title, cat: null, url: a.url || null, note: a.note,
+      hay: `${a.title} ${a.note}`.toLowerCase(), archived: true,
+    })));
+    rows.sort((a, b) => (a.date === b.date ? a.title.localeCompare(b.title, "pl") : (a.date < b.date ? -1 : 1)));
+
+    document.getElementById("index-lead").innerHTML =
+      `Wszystko, co powstało — <b>${PROJECTS.length}</b> projektów opisanych na osi czasu i
+       <b>${ARCHIVE.length}</b> pozycji archiwalnych, razem <b>${rows.length}</b>.
+       Nic nie chowa się tu przed tobą: wpisz nazwę, technologię albo kategorię, żeby zawęzić listę.`;
+
+    grid.innerHTML = rows.map((r) => {
+      const dot = r.cat ? `<span class="ix-dot" style="background:${CATEGORIES[r.cat].color}"></span>` : `<span class="ix-dot ix-dot-arch"></span>`;
+      const name = r.url
+        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title} ↗</a>`
+        : `<span>${r.title}</span>`;
+      return `<div class="ix-row${r.archived ? " ix-arch" : ""}" data-hay="${r.hay.replace(/"/g, "")}">
+        ${dot}<span class="ix-date">${fmtDate(r.date)}</span>
+        <span class="ix-name">${name}</span>
+        ${r.note ? `<span class="ix-note">${r.note}</span>` : ""}
+      </div>`;
+    }).join("");
+
+    const input = document.getElementById("index-filter");
+    const empty = document.getElementById("index-empty");
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      grid.querySelectorAll(".ix-row").forEach((row) => {
+        const hit = !q || row.dataset.hay.includes(q);
+        row.hidden = !hit;
+        if (hit) shown++;
+      });
+      empty.hidden = shown > 0;
+    });
+  }
+
   /* ── Rachunek tokenów ────────────────────────────────────────────────── */
   const nf = new Intl.NumberFormat("pl-PL");
   function big(n) {
@@ -316,6 +364,7 @@
   buildLineages();
   buildThreads();
   buildArchive();
+  buildIndex();
   buildBill();
   initReveal();
 })();

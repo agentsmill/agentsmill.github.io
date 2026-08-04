@@ -211,24 +211,17 @@ const PROJECTS = [
     id: "pokemate-engine", title: "Pokemate", date: "2026-06", era: 5,
     cat: ["aiml"],
     desc: "Hybrydowy silnik do Kaggle Pokémon TCG AI Battle Challenge: heurystyki → determinizowany ISMCTS → sieć self-play.",
-    tech: ["Python", "MCTS"], badge: "kaggle", links: {}
+    tech: ["Python", "MCTS"], badge: "kaggle", access: "zgłoszenie na Kaggle", links: {}
   },
   {
     id: "naszwhisper", title: "NaszWhisper", date: "2026-06", era: 5, featured: true, shot: false,
     cat: ["produkty"],
     desc: "Natywna apka macOS do dyktowania po polsku — w pełni lokalnie, na Apple Neural Engine (Parakeet 0.6B). Tapnięcie ⌘, mówisz, tekst wkleja się tam, gdzie kursor.",
     tech: ["Swift", "Core ML", "Parakeet"],
-    access: "zgłoszenie na Kaggle", links: { repo: "https://github.com/agentsmill/naszwhisper" }
+    links: { repo: "https://github.com/agentsmill/naszwhisper" }
   },
   {
-    id: "locavi", title: "Locavi", date: "2026-06", era: 5,
-    cat: ["produkty"],
-    desc: "Marketplace przestrzeni usługowych na godziny — „Airbnb dla specjalistów” z agentowym concierge'em układającym grafik. 176 commitów w trzy dni.",
-    tech: ["Next.js 16", "Supabase", "Stripe", "PWA"], badge: "fly",
-    links: { live: "https://locavi.fly.dev" }
-  },
-  {
-    id: "aog-game", shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
+    id: "aog-game", featured: true, shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
     cat: ["gry", "aiml"],
     desc: "Turowe 4X uczące projektowania systemów agentowych (pamięć, narzędzia, MCP, subagenci jako drzewko technologii) — z pivotem do Token Golf: platformera prompt-golfa z fine-tunowanym Qwen3 0.6B liczącym wynik w przeglądarce przez WebGPU.",
     tech: ["TypeScript", "Qwen3 ONNX", "WebGPU"], badge: "fly",
@@ -303,7 +296,7 @@ const PROJECTS = [
     links: { live: "https://empowerher.fly.dev" }
   },
   {
-    id: "wspolnik", title: "Wspólnik", date: "2026-07", era: 6,
+    id: "wspolnik", featured: true, title: "Wspólnik", date: "2026-07", era: 6,
     cat: ["produkty"],
     desc: "AI-wspólnik dla polskich MŚP: partner biznesowy na czacie (Telegram-first) — pilnuje kosztów, czyta polskie rejestry, przynosi codzienny brief i zwołuje radę mentorów. Stripe, KSeF, 17 równoległych worktree. Pilot.",
     tech: ["TypeScript", "Claude", "Stripe", "KSeF"],
@@ -409,6 +402,7 @@ const ARCHIVE = [
   { title: "prosty-mistrz", date: "2025-04", note: "druga iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prosty-mistrz/" },
   { title: "prompt-master", date: "2025-04", note: "trzecia iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prompt-master/" },
   { title: "Latarnik AI", date: "2025-05", note: "eksperyment" },
+  { title: "PowerAgent", date: "2025-07", note: "agent energetyczny — repo prywatne, bez opisu" },
   { title: "dawno-czasy", date: "2025-07", note: "pusty falstart dzień przed Bajarzem" },
   { title: "arch-scout", date: "2025-08", note: "narzędzie architektoniczne (Lovable)" },
   { title: "SGDH", date: "2025-08", note: "notebooki badawcze (3 iteracje)" },
