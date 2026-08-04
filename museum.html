@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Muzeum Budowania — Mateusz Pawełczuk</title>
+  <meta name="description" content="Spacer przez 16 miesięcy budowania z AI: sześć sal epok, interaktywne eksponaty, linia EKG pod stopami.">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
+  <link rel="stylesheet" href="css/museum.css">
+</head>
+<body>
+
+<div id="scene-host" aria-hidden="true"></div>
+
+<!-- Ekran ładowania -->
+<div id="loader">
+  <svg viewBox="0 0 120 32" width="160" aria-hidden="true">
+    <path d="M0 20 L28 20 L36 6 L46 30 L54 14 L58 20 L120 20"
+          fill="none" stroke="#F2C46D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <p>Otwieram muzeum…</p>
+</div>
+
+<!-- HUD -->
+<header class="hud-top">
+  <a class="hud-back" href="index.html">← Karta budowania</a>
+  <div class="hud-era" id="hud-era" aria-live="polite"></div>
+  <button class="hud-list" id="btn-list" type="button">Lista eksponatów</button>
+</header>
+
+<p class="hud-hint" id="hud-hint">Scrolluj / przesuń palcem, aby iść przez czas · kliknij eksponat, aby go obejrzeć</p>
+
+<!-- Tabliczka eksponatu -->
+<aside class="plaque" id="plaque" role="dialog" aria-modal="false" aria-labelledby="plaque-title" hidden>
+  <p class="plaque-date" id="plaque-date"></p>
+  <h2 id="plaque-title"></h2>
+  <p class="plaque-desc" id="plaque-desc"></p>
+  <p class="plaque-tech" id="plaque-tech"></p>
+  <p class="plaque-links" id="plaque-links"></p>
+  <button class="plaque-close" id="plaque-close" type="button">Wróć do spaceru</button>
+</aside>
+
+<!-- Lista eksponatów (dostępna bez 3D) -->
+<aside class="list-panel" id="list-panel" role="dialog" aria-labelledby="list-title" hidden>
+  <div class="list-head">
+    <h2 id="list-title">Eksponaty</h2>
+    <button class="plaque-close" id="list-close" type="button">Zamknij</button>
+  </div>
+  <div id="list-body"></div>
+</aside>
+
+<!-- Fallback bez WebGL -->
+<div id="no-webgl" hidden>
+  <p>Ta przeglądarka nie obsługuje WebGL — muzeum potrzebuje go do życia.</p>
+  <p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>
+</div>
+
+<script src="js/projects-data.js"></script>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+</script>
+<script type="module" src="js/museum.js"></script>
+</body>
+</html>

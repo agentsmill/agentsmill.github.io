@@ -1,0 +1,133 @@
+/* ── Muzeum Budowania — HUD i tabliczki ─────────────────────────────────── */
+
+:root {
+  --bg: #0C1018;
+  --bg-raised: #131A28;
+  --ink: #E9EDF5;
+  --ink-dim: #8C95A8;
+  --ink-faint: #5A6376;
+  --pulse: #F2C46D;
+  --pulse-dim: #C79A4B;
+  --line: #232B3D;
+  --font-display: "Syne", system-ui, sans-serif;
+  --font-body: "Schibsted Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overscroll-behavior: none; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--pulse); color: #14100a; }
+a { color: var(--pulse); }
+:focus-visible { outline: 2px solid var(--pulse); outline-offset: 3px; }
+
+#scene-host, #scene-host canvas { position: fixed; inset: 0; display: block; }
+
+/* Loader */
+#loader {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: var(--bg); transition: opacity 0.6s ease;
+}
+#loader.done { opacity: 0; pointer-events: none; }
+#loader p { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+#loader svg path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: draw 1.6s ease-in-out infinite; }
+@keyframes draw { 50% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -260; } }
+
+/* HUD */
+.hud-top {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.9rem 1.2rem;
+}
+.hud-back, .hud-list {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-dim); text-decoration: none;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border: 1px solid var(--line); border-radius: 99px; padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+.hud-back:hover, .hud-list:hover { color: var(--pulse); border-color: var(--pulse-dim); }
+.hud-era {
+  margin-left: auto; margin-right: auto;
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--pulse-dim); text-align: center;
+}
+.hud-hint {
+  position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+  z-index: 30; font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.08em; color: var(--ink-faint); text-align: center;
+  padding: 0 1rem; transition: opacity 0.8s ease;
+}
+.hud-hint.gone { opacity: 0; }
+
+/* Tabliczka */
+.plaque {
+  position: fixed; z-index: 40;
+  right: 1.2rem; bottom: 1.2rem; top: auto;
+  width: min(420px, calc(100vw - 2.4rem));
+  background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-left: 2px solid var(--cat, var(--pulse));
+  border-radius: 14px; padding: 1.4rem 1.5rem 1.2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.plaque-date {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.4rem;
+}
+.plaque h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; margin-bottom: 0.6rem; letter-spacing: -0.01em; }
+.plaque-desc { font-size: 0.94rem; color: var(--ink-dim); margin-bottom: 0.7rem; }
+.plaque-tech { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); margin-bottom: 0.9rem; }
+.plaque-links { display: flex; gap: 1.1rem; margin-bottom: 1.1rem; }
+.plaque-links a {
+  font-family: var(--font-mono); font-size: 0.8rem; text-decoration: none;
+  border-bottom: 1px solid var(--pulse-dim); padding-bottom: 1px;
+}
+.plaque-links a:hover { border-color: var(--pulse); }
+.plaque-close {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink); background: none;
+  border: 1px solid var(--line); border-radius: 99px; padding: 0.5rem 1rem; cursor: pointer;
+}
+.plaque-close:hover { border-color: var(--pulse); color: var(--pulse); }
+
+/* Lista eksponatów */
+.list-panel {
+  position: fixed; inset: 0; z-index: 50; overflow-y: auto;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: 2rem clamp(1.2rem, 6vw, 4rem) 3rem;
+}
+.list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.6rem; }
+.list-head h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.8rem; }
+.list-era {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--pulse-dim); margin: 1.6rem 0 0.6rem;
+}
+.list-item {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 1px solid var(--line);
+  color: var(--ink); font-family: var(--font-body); font-size: 0.95rem;
+  padding: 0.55rem 0;
+}
+.list-item:hover { color: var(--pulse); }
+.list-item .li-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-right: 0.7rem; }
+
+/* Fallback */
+#no-webgl {
+  position: fixed; inset: 0; z-index: 70;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+  background: var(--bg); text-align: center; padding: 2rem;
+}
+#no-webgl[hidden], .plaque[hidden], .list-panel[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .hud-era { display: none; }
+  .plaque { left: 1.2rem; right: 1.2rem; width: auto; }
+}
