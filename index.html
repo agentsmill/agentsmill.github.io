@@ -21,8 +21,9 @@
   <nav aria-label="Sekcje">
     <a href="#wyroznione">Wyróżnione</a>
     <a href="#os-czasu">Oś czasu</a>
+    <a href="#rodziny">Rodziny</a>
     <a href="#leon">Leon</a>
-    <a href="#archiwum">Archiwum</a>
+    <a href="#rachunek">Rachunek</a>
     <a class="nav-museum" href="museum.html">Muzeum</a>
   </nav>
   <a class="topbar-gh" href="https://github.com/agentsmill" target="_blank" rel="noopener">GitHub ↗</a>
@@ -75,9 +76,26 @@
     <div class="timeline" id="timeline"></div>
   </section>
 
+  <!-- ── Rodziny projektów ─────────────────────────────────────────────── -->
+  <section class="lineages" id="rodziny">
+    <h2><span class="h-mono">03 /</span> Rodziny projektów</h2>
+    <p class="section-lead">
+      Rzadko co powstaje od zera. Ten sam problem wraca w kolejnych wcieleniach,
+      a projekty wyrastają jedne z drugich — czasem po kilku dniach, czasem po roku.
+    </p>
+    <div class="lineage-list" id="lineage-list"></div>
+
+    <h3 class="threads-head">Wątki w poprzek</h3>
+    <p class="section-lead">
+      Nie chronologia, tylko powracające obsesje — widać je dopiero, gdy ułożyć
+      wszystko obok siebie.
+    </p>
+    <div class="thread-grid" id="thread-grid"></div>
+  </section>
+
   <!-- ── Zabawy z Leonem ───────────────────────────────────────────────── -->
   <section class="leon" id="leon">
-    <h2><span class="h-mono">03 /</span> Zabawy z Leonem</h2>
+    <h2><span class="h-mono">04 /</span> Zabawy z Leonem</h2>
     <p class="section-lead">
       Najważniejszy użytkownik ma pięć lat i konkretne wymagania: pociągi, pożary
       i&nbsp;żadnego czytania. Testy odbiorcze bezlitosne, feedback natychmiastowy.
@@ -115,12 +133,44 @@
 
   <!-- ── Archiwum ──────────────────────────────────────────────────────── -->
   <section class="archive" id="archiwum">
-    <h2><span class="h-mono">04 /</span> Archiwum</h2>
+    <h2><span class="h-mono">05 /</span> Archiwum</h2>
     <p class="section-lead">
       Nie wszystko było na wystawę — ale wszystko było praktyką. Eksperymenty,
       wprawki i narzędzia robocze, jednym wierszem każde.
     </p>
     <div class="archive-list" id="archive-list"></div>
+  </section>
+
+  <!-- ── Rachunek tokenów ──────────────────────────────────────────────── -->
+  <section class="bill" id="rachunek">
+    <h2><span class="h-mono">06 /</span> Rachunek tokenów</h2>
+    <p class="section-lead">
+      Ile to właściwie kosztowało uwagi maszyny? Policzone z lokalnych transkryptów
+      sesji — Claude Code i Codex razem. <b>Uwaga:</b> przetrwały tylko sesje od
+      czerwca 2026, więc to rachunek za <b>ostatnie trzy miesiące</b>, nie za całe
+      szesnaście.
+    </p>
+
+    <div class="bill-figures" id="bill-figures"></div>
+
+    <figure class="ratio">
+      <div class="ratio-bar" id="ratio-bar" role="img"
+           aria-label="Proporcja: 96,5% wszystkich tokenów to ponowne odczyty pamięci podręcznej"></div>
+      <figcaption id="ratio-caption"></figcaption>
+    </figure>
+
+    <div class="bill-cols">
+      <div>
+        <h3 class="bill-sub">Gdzie poszły</h3>
+        <div class="bar-list" id="bill-top"></div>
+      </div>
+      <div>
+        <h3 class="bill-sub">Które modele</h3>
+        <div class="bar-list" id="bill-models"></div>
+      </div>
+    </div>
+
+    <p class="bill-note" id="bill-note"></p>
   </section>
 
 </main>

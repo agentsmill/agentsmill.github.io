@@ -181,6 +181,97 @@
       </div>`).join("");
   }
 
+  /* ── Rodziny projektów ───────────────────────────────────────────────── */
+  function buildLineages() {
+    const host = document.getElementById("lineage-list");
+    if (!host) return;
+    const byId = Object.fromEntries(PROJECTS.map((p) => [p.id, p]));
+    host.innerHTML = LINEAGES.map((l) => {
+      const steps = l.chain.map((s) => {
+        const p = s.pid ? byId[s.pid] : null;
+        const color = p ? `var(--c-${p.cat[0]})` : "var(--ink-faint)";
+        return `<li class="step" style="--dot:${color}">
+          <span class="step-date">${fmtDate(s.date)}</span>
+          <span class="step-title">${s.title}</span>
+        </li>`;
+      }).join("");
+      return `<article class="lineage reveal">
+        <h3>${l.title}</h3>
+        <p class="lineage-note">${l.note}</p>
+        <ol class="chain">${steps}</ol>
+      </article>`;
+    }).join("");
+  }
+
+  function buildThreads() {
+    const host = document.getElementById("thread-grid");
+    if (!host) return;
+    host.innerHTML = THREADS.map((t) => `
+      <article class="thread reveal">
+        <h4>${t.label}</h4>
+        <p>${t.note}</p>
+        <p class="thread-items">${t.items.map((i) => `<span>${i}</span>`).join("")}</p>
+      </article>`).join("");
+  }
+
+  /* ── Rachunek tokenów ────────────────────────────────────────────────── */
+  const nf = new Intl.NumberFormat("pl-PL");
+  function big(n) {
+    if (n >= 1e9) return { v: (n / 1e9).toFixed(2).replace(".", ","), u: "mld" };
+    if (n >= 1e6) return { v: (n / 1e6).toFixed(1).replace(".", ","), u: "mln" };
+    if (n >= 1e3) return { v: Math.round(n / 1e3).toString(), u: "tys." };
+    return { v: nf.format(n), u: "" };
+  }
+
+  function buildBill() {
+    const host = document.getElementById("bill-figures");
+    if (!host || typeof TOKENS === "undefined") return;
+
+    const figures = [
+      { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · Claude Code + Codex` },
+      { n: TOKENS.grandOutput, label: "tokenów napisanych przez AI", sub: "kod, testy, analizy, rozmowy" },
+      { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${TOKENS.sessions} sesjach na dysku` },
+    ];
+    host.innerHTML = figures.map((f) => {
+      const b = big(f.n);
+      return `<div class="figure reveal">
+        <b>${b.v}<span class="unit">${b.u}</span></b>
+        <span class="figure-label">${f.label}</span>
+        <span class="figure-sub">${f.sub}</span>
+      </div>`;
+    }).join("");
+
+    // Proporcja: ile z tego to ponowne czytanie kontekstu
+    const cachePct = (TOKENS.grandCache / TOKENS.grand) * 100;
+    const bar = document.getElementById("ratio-bar");
+    bar.innerHTML = `<span class="seg-cache" style="width:${cachePct.toFixed(2)}%"></span>
+                     <span class="seg-fresh" style="width:${(100 - cachePct).toFixed(2)}%"></span>`;
+    const ratio = Math.round(TOKENS.grand / TOKENS.grandOutput);
+    document.getElementById("ratio-caption").innerHTML =
+      `<b>${cachePct.toFixed(1).replace(".", ",")}%</b> to ponowne odczyty tego samego kontekstu —
+       model raz po raz wczytuje projekt, żeby dopisać kolejny fragment.
+       Na każdy <b>1</b> napisany token przypada <b>${ratio}</b> przeczytanych.`;
+
+    const barList = (el, rows) => {
+      const max = Math.max(...rows.map((r) => r.tokens));
+      el.innerHTML = rows.map((r) => {
+        const b = big(r.tokens);
+        return `<div class="bar-row reveal">
+          <span class="bar-name">${r.name}</span>
+          <span class="bar-track"><span class="bar-fill" style="width:${(r.tokens / max * 100).toFixed(1)}%"></span></span>
+          <span class="bar-val">${b.v} ${b.u}</span>
+        </div>`;
+      }).join("");
+    };
+    barList(document.getElementById("bill-top"), TOKENS.top);
+    barList(document.getElementById("bill-models"), TOKENS.models);
+
+    document.getElementById("bill-note").textContent =
+      `Liczby pochodzą z plików sesji na dysku (${nf.format(TOKENS.claude.total + TOKENS.codex.total)} tokenów w sumie, ` +
+      `deduplikowane po identyfikatorze wiadomości). Starsze transkrypty nie zachowały się, ` +
+      `więc pierwszy rok budowania nie ma tu swojej rubryki — ale też był znacznie tańszy.`;
+  }
+
   /* ── Scroll reveal ───────────────────────────────────────────────────── */
   function initReveal() {
     const els = document.querySelectorAll(".reveal");
@@ -200,6 +291,9 @@
   buildFeatured();
   buildFilters();
   buildTimeline();
+  buildLineages();
+  buildThreads();
   buildArchive();
+  buildBill();
   initReveal();
 })();

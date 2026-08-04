@@ -418,6 +418,139 @@ const ARCHIVE = [
   { title: "ARM-SO-101", date: "2026-07", note: "konfiguracja ramienia robotycznego (LeRobot)" },
 ];
 
+// ── Rodziny projektów ────────────────────────────────────────────────────────
+// Jak projekty wyrastały jedne z drugich. chain: od najstarszego do najnowszego.
+const LINEAGES = [
+  {
+    id: "energia",
+    title: "Od gry o OZE do produktu energetycznego",
+    note: "Najdłuższa linia: 16 miesięcy od pierwszego repo do asystenta, który liczy prawdziwe rachunki.",
+    chain: [
+      { title: "OZE Developer Manager", date: "2025-03", pid: "oze-developer-manager" },
+      { title: "GreenSolver ×4", date: "2025-07", pid: "greensolver" },
+      { title: "bess-solver", date: "2026-01" },
+      { title: "FlexMarket", date: "2026-04", pid: "flexmarket" },
+      { title: "Aule Energy", date: "2026-04", pid: "aule-v2" },
+      { title: "Silnik ROI BESS", date: "2026-06", pid: "silnik-bess" },
+    ],
+  },
+  {
+    id: "agenty",
+    title: "Agenci, którzy stali się grą",
+    note: "Wizualizacja własnych sesji AI urosła do gry o projektowaniu systemów agentowych — a ta wypączkowała platformerem z modelem w przeglądarce.",
+    chain: [
+      { title: "Age of Agents", date: "2026-06", pid: "age-of-agents" },
+      { title: "AoG: The Game", date: "2026-06", pid: "aog-game" },
+      { title: "Token Golf", date: "2026-07", pid: "aog-game" },
+      { title: "aog-ft (fine-tuning Qwen3)", date: "2026-07" },
+    ],
+  },
+  {
+    id: "prompty",
+    title: "Trzy podejścia do jednego pomysłu",
+    note: "Mistrz Promptów w trzy tygodnie przeszedł trzy pełne przepisania. Nauka iterowania na żywym organizmie.",
+    chain: [
+      { title: "mistrz-promptow", date: "2025-04", pid: "mistrz-promptow" },
+      { title: "prosty-mistrz", date: "2025-04" },
+      { title: "prompt-master", date: "2025-04" },
+    ],
+  },
+  {
+    id: "pokemon",
+    title: "Pokémon jako poligon AI",
+    note: "Od sklepu, przez silnik decyzyjny na Kaggle, po system percepcji ekranu i modelowania przeciwnika.",
+    chain: [
+      { title: "Pokemate TCG Hub", date: "2026-02", pid: "pokemate-hub" },
+      { title: "Pokemate (Kaggle)", date: "2026-06", pid: "pokemate-engine" },
+      { title: "PokeSolver", date: "2026-07", pid: "pokesolver" },
+    ],
+  },
+  {
+    id: "roboty",
+    title: "Jeden robot, trzy osobowości",
+    note: "Reachy Mini o imieniu Richie dostał mózg-obserwatora, głosowego kompana dla Leona i stoickiego mentora dla dorosłych.",
+    chain: [
+      { title: "Robotami — mózg", date: "2026-07", pid: "robotami" },
+      { title: "Józef dla Leona", date: "2026-07", pid: "robotami" },
+      { title: "Stoik", date: "2026-07", pid: "stoik" },
+    ],
+  },
+  {
+    id: "transformer",
+    title: "Ten sam autoportret, dwa modele",
+    note: "To samo zadanie — „opowiedz o swojej architekturze od środka” — wykonane przez Claude'a i przez Kimi. Eksperyment porównawczy przebrany za sztukę.",
+    chain: [
+      { title: "Anatomy of a Thought (Claude)", date: "2026-07", pid: "anatomy" },
+      { title: "The Residual Stream (Kimi)", date: "2026-07", pid: "residual-stream" },
+    ],
+  },
+  {
+    id: "zdrowie",
+    title: "Powrót do medycyny — od strony systemów",
+    note: "Wykształcenie lekarskie wraca jako domena: przetargi, obsady dyżurów i izolacja danych wymuszona przez bazę.",
+    chain: [
+      { title: "Krwawy Biznes", date: "2025-03", pid: "krwawy-biznes" },
+      { title: "Radar + grafiki lekarskie", date: "2026-06", pid: "npl" },
+      { title: "Analizy POZ", date: "2026-07" },
+      { title: "Grafiki (RLS)", date: "2026-07", pid: "grafiki" },
+    ],
+  },
+];
+
+// Wątki przecinające portfolio w poprzek — nie chronologia, tylko obsesje.
+const THREADS = [
+  {
+    label: "Model działa lokalnie",
+    note: "Powracająca zasada: inferencja na urządzeniu, bez chmury. Apple Neural Engine, WebGPU, Raspberry Pi, Unity.",
+    items: ["NaszWhisper", "LastBox", "Token Golf", "PETENT", "Mansa Musa", "Bielik"],
+  },
+  {
+    label: "Agent z narzędziami (MCP)",
+    note: "Od pierwszej kompozycji przez MCP w Ableton Live po serwery MCP pisane samodzielnie.",
+    items: ["Akordy Zmierzchu", "Age of Agents", "Open Droids", "NeoOffice", "Wspólnik", "Processor"],
+  },
+  {
+    label: "Policz to uczciwie",
+    note: "Liczby nigdy nie wychodzą z modelu językowego — zawsze z deterministycznego silnika obok niego.",
+    items: ["Aule Energy", "Silnik ROI BESS", "GreenSolver", "StockCast", "Bilans tokenów Polski"],
+  },
+  {
+    label: "Wyjaśnić, jak to działa",
+    note: "Sztuka i edukacja jako to samo zadanie: pokazać wnętrze maszyny, nie tylko jej wynik.",
+    items: ["Anatomy of a Thought", "The Residual Stream", "Mistrz Promptów", "Polska Szkoła Claude", "Token Drag Race"],
+  },
+];
+
+// ── Rachunek tokenów ─────────────────────────────────────────────────────────
+// Policzone z lokalnych transkryptów sesji (~/.claude/projects + ~/.codex).
+// UWAGA: przetrwały tylko sesje od czerwca 2026 — wcześniejsze zostały wyczyszczone.
+const TOKENS = {
+  window: "VI – VIII 2026",
+  sessions: 150,          // 100 plików sesji Claude Code + 50 sesji Codex
+  messages: 17048,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
+  claude:  { total: 5495579177, output: 22405912, cacheRead: 5306681809, fresh: 188897368 },
+  codex:   { total: 1335642388, output: 5435809, cacheRead: 1285237504, fresh: 50405000 },
+  get grand()      { return this.claude.total + this.codex.total; },
+  get grandOutput(){ return this.claude.output + this.codex.output; },
+  get grandFresh() { return this.claude.fresh + this.codex.fresh; },
+  get grandCache() { return this.claude.cacheRead + this.codex.cacheRead; },
+  models: [
+    { name: "Claude Opus 4.8", tokens: 2040000000 },
+    { name: "Claude Fable 5", tokens: 1770000000 },
+    { name: "Claude Sonnet 5", tokens: 1420000000 },
+    { name: "GPT-5.5 (Codex)", tokens: 1335642388 },
+    { name: "Claude Opus 5", tokens: 274800000 },
+  ],
+  top: [
+    { name: "Wspólnik", tokens: 897000000 },
+    { name: "EmpowerHer", tokens: 568600000 },
+    { name: "Token Drag Race", tokens: 498300000 },
+    { name: "Szkoła Claude / WorldModels", tokens: 374200000 },
+    { name: "PETENT", tokens: 328700000 },
+    { name: "Robotami", tokens: 283800000 },
+  ],
+};
+
 // Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → VIII 2026)
 const HEARTBEAT = [
   { m: "III 25", n: 9 }, { m: "IV 25", n: 6 }, { m: "V 25", n: 2 }, { m: "VI 25", n: 0 },

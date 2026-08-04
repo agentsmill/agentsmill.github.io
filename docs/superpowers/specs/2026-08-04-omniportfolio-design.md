@@ -111,6 +111,19 @@ XI 2024 MCP · II 2025 Claude 3.7 + Claude Code (research preview) · V 2025 Cla
 | D16 | Signature continuity | The amber EKG line runs along the museum floor as the guide path — same data, third dimension. |
 | D17 | Tech: three.js pinned from CDN (import map), reuses projects-data.js; DOM overlay for plaques (crisp Polish text, real links); fog culling, no shadows, pixelRatio clamp; WebGL-fail → link back to karta; „Lista eksponatów” DOM list as no-3D path. |
 
+## Addendum 2 (2026-08-04, user review): links, lineages, token bill
+
+User's critique after first deploy: *"jakie projekty są sobą wspólne, czy wszystkie aplikacje, które mają strony, mają udostępnione — jak wspólnik widzę, że nie ma… krytycznie przejrzyj i popraw. A czy da się zsumować ilość tokenów?"*
+
+| # | Decision | Reasoning |
+|---|----------|-----------|
+| D18 | **Section „Rodziny projektów"** — 7 lineage chains + 4 cross-cutting threads | Answers "which projects are related". Lineages show descent (OZEDM→GreenSolver→FlexMarket→Aule→BESS; AoG→AoG Game→Token Golf→aog-ft; Mistrz ×3; Pokémon ×3; Reachy ×3; Anatomy↔Residual; medycyna). Threads name recurring obsessions (local inference, MCP agents, deterministic math beside the LLM, explaining the machine) — these are the actual through-line of the portfolio and no single project shows them. |
+| D19 | **Section „Rachunek tokenów"** with real measured data | Computed by script over `~/.claude/projects/**/*.jsonl` + `~/.codex/sessions/**` (dedup by `message.id`; Codex counters are cumulative → take last per session). Claude 5.50 mld / Codex 1.34 mld = **6.83 mld total**, **27.8 mln output**, 150 sessions, 17 048 model replies. |
+| D20 | **Honesty about the window** stated in-copy, not hidden | Only VI–VIII 2026 transcripts survive (older pruned). Section says so twice — a stat that overstates 16 months would be a lie. |
+| D21 | **Headline the 96.5% cache-read ratio** (245 read : 1 written) | The most interesting true fact in the data: agentic coding is overwhelmingly re-reading context. Echoes the user's own *Bilans tokenów Polski* project — a data-viz about token flows. |
+| D22 | Fixed factual slip caught in verification: 17 048 is **messages**, not sessions | Verified against script output before publishing. |
+| D23 | Link audit — every project with a live deployment must link it; genuinely private ones say so explicitly | See link-audit results applied to `PROJECTS[].links` / `access` field. |
+
 ## Future (explicitly deferred)
 
 EN version · per-project screenshots/OG images · link from pawelczuk.com / wdrozenie.ai · custom domain · RSS/changelog.
