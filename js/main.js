@@ -236,7 +236,7 @@
     const figures = [
       { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · Claude Code + Codex` },
       { n: TOKENS.grandOutput, label: "tokenów napisanych przez AI", sub: "kod, testy, analizy, rozmowy" },
-      { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${TOKENS.sessions} sesjach na dysku` },
+      { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${nf.format(TOKENS.sessions)} plikach sesji` },
     ];
     host.innerHTML = figures.map((f) => {
       const b = big(f.n);
@@ -272,10 +272,12 @@
     barList(document.getElementById("bill-top"), TOKENS.top);
     barList(document.getElementById("bill-models"), TOKENS.models);
 
-    document.getElementById("bill-note").textContent =
-      `Liczby pochodzą z plików sesji na dysku (${nf.format(TOKENS.claude.total + TOKENS.codex.total)} tokenów w sumie, ` +
-      `deduplikowane po identyfikatorze wiadomości). Starsze transkrypty nie zachowały się, ` +
-      `więc pierwszy rok budowania nie ma tu swojej rubryki — ale też był znacznie tańszy.`;
+    const a = TOKENS.archive;
+    document.getElementById("bill-note").innerHTML =
+      `Dokładnie ${nf.format(TOKENS.grand)} tokenów, deduplikowanych po identyfikatorze wiadomości. ` +
+      `Do tego zachował się osobny ślad z <b>${a.window}</b> — lokalny cache statystyk pamięta ` +
+      `${big(a.total).v} ${big(a.total).u} tokenów w ${a.sessions} sesjach, choć same transkrypty ` +
+      `dawno skasowano. Reszty pierwszego roku nie da się już odtworzyć: powstawała na innym komputerze.`;
   }
 
   /* ── Scroll reveal ───────────────────────────────────────────────────── */

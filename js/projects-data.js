@@ -534,28 +534,31 @@ const THREADS = [
 // UWAGA: przetrwały tylko sesje od czerwca 2026 — wcześniejsze zostały wyczyszczone.
 const TOKENS = {
   window: "VI – VIII 2026",
-  sessions: 150,          // 100 plików sesji Claude Code + 50 sesji Codex
-  messages: 17048,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
-  claude:  { total: 5495579177, output: 22405912, cacheRead: 5306681809, fresh: 188897368 },
+  sessions: 1948,         // 1898 plików sesji Claude Code (z subagentami) + 50 sesji Codex
+  messages: 40331,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
+  claude:  { total: 7179446402, output: 25459774, cacheRead: 6859223248, fresh: 320223154 },
   codex:   { total: 1335642388, output: 5435809, cacheRead: 1285237504, fresh: 50405000 },
+  // Osobny ślad: lokalny cache statystyk z I–II 2026 (transkrypty źródłowe już usunięte)
+  archive: { window: "I – II 2026", total: 371758777, output: 633899, sessions: 40, messages: 7639 },
   get grand()      { return this.claude.total + this.codex.total; },
   get grandOutput(){ return this.claude.output + this.codex.output; },
   get grandFresh() { return this.claude.fresh + this.codex.fresh; },
   get grandCache() { return this.claude.cacheRead + this.codex.cacheRead; },
   models: [
-    { name: "Claude Opus 4.8", tokens: 2040000000 },
-    { name: "Claude Fable 5", tokens: 1770000000 },
-    { name: "Claude Sonnet 5", tokens: 1420000000 },
+    { name: "Claude Sonnet 5", tokens: 2330000000 },
+    { name: "Claude Opus 4.8", tokens: 2230000000 },
+    { name: "Claude Fable 5", tokens: 2060000000 },
     { name: "GPT-5.5 (Codex)", tokens: 1335642388 },
-    { name: "Claude Opus 5", tokens: 274800000 },
+    { name: "Claude Opus 5", tokens: 443700000 },
+    { name: "Claude Haiku 4.5", tokens: 95300000 },
   ],
-  top: [
-    { name: "Wspólnik", tokens: 897000000 },
-    { name: "EmpowerHer", tokens: 568600000 },
-    { name: "Token Drag Race", tokens: 498300000 },
-    { name: "Szkoła Claude / WorldModels", tokens: 374200000 },
-    { name: "PETENT", tokens: 328700000 },
-    { name: "Robotami", tokens: 283800000 },
+  top: [   // worktree scalone z projektem macierzystym
+    { name: "Wspólnik", tokens: 1423400000 },
+    { name: "EmpowerHer", tokens: 916400000 },
+    { name: "Radar + grafiki (klient)", tokens: 845200000 },
+    { name: "Token Drag Race", tokens: 498600000 },
+    { name: "Szkoła Claude", tokens: 451000000 },
+    { name: "Robotami + Józef", tokens: 364300000 },
   ],
 };
 
