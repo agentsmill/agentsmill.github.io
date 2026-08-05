@@ -58,8 +58,9 @@ pmrem.compileEquirectangularShader();
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.35;   // muzeum ma być ciemne; pełna siła je rozmywa
 
-// go() dostaje właściwe ciało w main.js, gdy powstają jego prawdziwe targetZ/curZ —
-// tutaj tylko placeholder, żeby klucz istniał od razu.
+// go() dostaje właściwe ciało w main.js, gdy powstaje gracz i jego teleportuj() —
+// tutaj tylko placeholder, żeby klucz istniał od razu i był nieszkodliwy dopóty,
+// dopóki nie ma jeszcze warstwy kolizyjnej, po której miałby kogo przenosić.
 window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: () => {} };   // uchwyt diagnostyczny (nieszkodliwy)
 
 scene.add(new THREE.AmbientLight(0x8899bb, 0.5));

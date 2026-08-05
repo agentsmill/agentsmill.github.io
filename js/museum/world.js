@@ -140,7 +140,7 @@ function buildCorridor() {
   const endSp = textSprite("— sierpień 2026 · koniec ekspozycji (na razie) —", { font: "400 26px 'IBM Plex Mono'", color: "#A7B0C0", maxW: 1000 });
   endSp.position.set(0, 1.8, zCursor - 2.5);
   scene.add(endSp);
-  zCursor += 6;   // zapas na szynę kamery: maxZ() cofa ją i tak przed ścianę
+  zCursor += 6;   // zapas za finałowym napisem, żeby totalLength() sięgało za ostatni eksponat, nie kończyło się na nim
 }
 
 /* Długości sal dla building.js — dokładnie tyle, ile zajmuje ekspozycja epoki.

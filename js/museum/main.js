@@ -1,59 +1,51 @@
 import * as THREE from "three";
-import { renderer, camera, composer, bloom, reduceMotion } from "./render.js";
-import { buildCorridor, buildEkg, dlugosciSal, interactives, tickers, eraRanges, totalLength } from "./world.js";
+import { renderer, camera, composer, bloom } from "./render.js";
+import { buildCorridor, buildEkg, dlugosciSal, interactives, tickers, eraRanges } from "./world.js";
 import { buildBuilding } from "./building.js";
-import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen } from "./ui.js";
+import { initPlayer } from "./player.js";
+import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl } from "./ui.js";
 
 const loader = document.getElementById("loader");
 
 window.__mz.interactives = interactives;
 
-/* ── Szyny kamery, fokus, interakcja ─────────────────────────────────── */
+/* ── Gracz, fokus, interakcja ──────────────────────────────────────────────
+   Gracz powstaje dopiero razem z budynkiem (potrzebuje jego warstwy kolizyjnej),
+   a domknięcia poniżej rejestrują się od razu przy ładowaniu modułu — dlatego
+   `gracz` jest tu pustym `let`, wypełnianym w bloku startowym na końcu pliku.
 
-let targetZ = 0, curZ = 0;
-window.__mz.go = (z) => { targetZ = curZ = z; };   // dokończenie uchwytu go() zaczętego w render.js
-let focus = null;           // {hit, savedZ}
-const maxZ = () => totalLength() - 2;
+   Chodzeniem, kolizjami i kamerą zajmuje się w całości player.js. Zostało tu
+   tylko to, co dotyczy eksponatów: który ma otwartą tabliczkę i jak się do
+   niego przenieść. */
+
+let gracz = null;
+let focus = null;           // {hit} — eksponat z otwartą tabliczką
 
 function focusOn(hit) {
-  focus = { hit, savedZ: targetZ };
+  focus = { hit };
   hit.userData.exhibit?.activate?.();
   openPlaque(hit);
 }
 
 bindFocusControl({
-  onFocusEnd() { if (focus) { targetZ = focus.savedZ; focus = null; } },
-  goToHit(hit) {
-    targetZ = THREE.MathUtils.clamp(hit.position.z - 4, 0, maxZ());
+  // Po Zadaniu 5 zakończenie fokusu nie rusza kamery: gracz stoi tam, gdzie stoi,
+  // i po prostu zamyka tabliczkę. Zostaje samo skasowanie stanu — bez niego
+  // ponowne kliknięcie w ten sam eksponat nie otworzyłoby tabliczki drugi raz.
+  onFocusEnd: () => { focus = null; },
+  goToHit: (hit) => {
+    gracz.teleportuj(hit.position.z - 4, hit.position);   // cztery metry przed eksponatem, przodem do niego
     focusOn(hit);
   },
 });
 
-addEventListener("keydown", (e) => { if (e.key === "Escape") { endFocus(); closeList(); } });
-
-/* wejście: kółko / dotyk / klawiatura */
-addEventListener("wheel", (e) => {
-  if (focus || isListOpen()) return;
-  targetZ = THREE.MathUtils.clamp(targetZ + e.deltaY * 0.02, 0, maxZ());
-  dismissHint();
-}, { passive: true });
-
-let touchY = null;
-addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; }, { passive: true });
-addEventListener("touchmove", (e) => {
-  if (focus || isListOpen() || touchY === null) return;
-  const dy = touchY - e.touches[0].clientY;
-  touchY = e.touches[0].clientY;
-  targetZ = THREE.MathUtils.clamp(targetZ + dy * 0.05, 0, maxZ());
-  dismissHint();
-}, { passive: true });
-
 addEventListener("keydown", (e) => {
-  if (focus || isListOpen()) return;
-  const step = e.key === "PageDown" || e.key === "PageUp" ? 12 : 3;
-  if (["ArrowDown", "ArrowRight", "PageDown", "w", "W"].includes(e.key)) targetZ = Math.min(maxZ(), targetZ + step);
-  if (["ArrowUp", "ArrowLeft", "PageUp", "s", "S"].includes(e.key)) targetZ = Math.max(0, targetZ - step);
-  dismissHint();
+  if (e.key !== "Escape") return;
+  // Przy zablokowanym kursorze pierwszy Esc należy do przeglądarki — zdejmuje
+  // blokadę. Gdyby zamykał przy okazji tabliczkę, nie dałoby się kliknąć jej
+  // linków: tabliczka otwiera się w trakcie chodzenia, czyli przy zajętej myszy.
+  if (gracz?.zablokowany()) return;
+  endFocus();
+  closeList();
 });
 
 /* wskaźnik + klik przez raycaster */
@@ -75,7 +67,11 @@ renderer.domElement.addEventListener("pointerup", (e) => {
 renderer.domElement.addEventListener("pointermove", (e) => { pick(e); });
 
 function pick(e) {
-  pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  // Przy zablokowanym kursorze mysz nie ma pozycji na ekranie (jej zdarzenia
+  // niosą już tylko przesunięcia), więc celujemy środkiem ekranu — tam, gdzie
+  // gracz patrzy. Bez tego wskaźnik zamarzałby w miejscu ostatniego kliknięcia.
+  if (gracz?.zablokowany()) pointer.set(0, 0);
+  else pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(pointer, camera);
   const hitList = ray.intersectObjects(interactives, false);
   hovered = hitList.length ? hitList[0].object : null;
@@ -96,24 +92,13 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  const ease = reduceMotion ? 0.5 : 0.06;
-  if (focus) {
-    const h = focus.hit;
-    const side = h.userData.side;
-    // Amfilada biegnie w stronę +Z, więc kamera staje PRZED eksponatem, czyli
-    // po jego stronie mniejszego Z — inaczej oglądałaby go od tyłu, zza ściany.
-    const goal = new THREE.Vector3(h.position.x - side * h.userData.focusDist * 0.55, 1.55, h.position.z - h.userData.focusDist);
-    camera.position.lerp(goal, reduceMotion ? 1 : 0.08);
-    const look = h.position.clone(); look.y = 1.2;
-    camera.lookAt(look);
-  } else {
-    curZ += (targetZ - curZ) * ease;
-    const sway = reduceMotion ? 0 : Math.sin(curZ * 0.3) * 0.4;
-    camera.position.set(sway, 1.6, curZ - 6);
-    camera.lookAt(sway * 0.5, 1.35, curZ + 6);
+  if (gracz) {
+    gracz.update(dt);
+    // Nazwa epoki idzie za graczem, nie za otwartą tabliczką: fokus już nie
+    // przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego pozycja.
+    // W atrium (z < 8) żaden zakres nie pasuje i pasek zostaje pusty.
+    hudEra.textContent = eraAt(gracz.pozycja().z);
   }
-
-  hudEra.textContent = eraAt(focus ? focus.hit.position.z : curZ);
   for (const fn of tickers) {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
   }
@@ -144,6 +129,12 @@ Promise.all([
     window.__mz.budynek = budynek;
     buildEkg(budynek.sale[0].odZ, budynek.sale.at(-1).doZ);
     buildList();
+
+    gracz = initPlayer(budynek.kolizje);
+    gracz.teleportuj(2);                     // dwa metry w głąb atrium, przodem do amfilady
+    gracz.controls.addEventListener("lock", dismissHint);   // podpowiedź gaśnie, gdy zwiedzający wejdzie do środka
+    window.__mz.gracz = gracz;
+    window.__mz.go = (z) => gracz.teleportuj(z);   // dokończenie uchwytu go() zaczętego w render.js
   } catch (err) { console.error("build error:", err); }
   loop();
 });
