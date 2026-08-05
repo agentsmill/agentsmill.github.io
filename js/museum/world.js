@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { scene, M, bx, textSprite, CAT_HEX, fmtDate } from "./render.js";
 import { EXHIBIT_BUILDERS, framedShot, plinth } from "./exhibits.js";
+import { loadPBR } from "./textures.js";
 
 /* ── Układ korytarza ──────────────────────────────────────────────────── */
 
@@ -98,10 +99,11 @@ function buildCorridor() {
 /* ── Podłoga i linia EKG ──────────────────────────────────────────────── */
 
 function buildFloor(total) {
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, total + 40),
-    new THREE.MeshStandardMaterial({ color: 0x0e1420, roughness: 0.95, metalness: 0 })
-  );
+  const geo = new THREE.PlaneGeometry(40, total + 40);
+  // aoMap czyta drugi zestaw UV (uv1) — bez tej linii mapa AO z zestawu
+  // "beton" byłaby po cichu ignorowana, bez błędu i bez ostrzeżenia.
+  geo.setAttribute("uv1", geo.attributes.uv);
+  const floor = new THREE.Mesh(geo, loadPBR("beton", Math.round(total / 4)));
   floor.rotation.x = -Math.PI / 2;
   floor.position.z = -total / 2;
   scene.add(floor);
