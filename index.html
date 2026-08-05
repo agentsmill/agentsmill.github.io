@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=202608051145">
+  <link rel="stylesheet" href="css/main.css?v=202608051545">
 </head>
 <body>
 
@@ -25,7 +25,6 @@
     <a href="#rodziny">Rodziny</a>
     <a href="#leon">Leon</a>
     <a href="#spis">Spis</a>
-    <a href="#rachunek">Rachunek</a>
     <a class="nav-museum" href="museum.html">Muzeum</a>
   </nav>
   <a class="topbar-gh" href="https://github.com/agentsmill" target="_blank" rel="noopener">GitHub ↗</a>
@@ -174,74 +173,6 @@
     <div class="archive-list" id="archive-list"></div>
   </section>
 
-  <!-- ── Rachunek tokenów ──────────────────────────────────────────────── -->
-  <section class="bill" id="rachunek">
-    <h2><span class="h-mono">07 /</span> Rachunek tokenów</h2>
-    <p class="section-lead">
-      Ile to właściwie kosztowało uwagi maszyny? Policzone z 2121 plików sesji
-      czterech narzędzi — Claude Code w terminalu, trybu agentowego w Claude
-      Desktop, Codeksa i Kimi CLI — łącznie z transkryptami subagentów.
-      Każde narzędzie obejmuje inny wycinek roku; razem składają się na
-      <b>styczeń–sierpień 2026</b>.
-    </p>
-    <p class="section-lead bill-floor">
-      <b>To dolna granica, nie suma.</b> Liczy tylko ten komputer — bez rozmów
-      na claude.ai, które istnieją wyłącznie po stronie serwera, i bez pracy
-      z wcześniejszych maszyn. Sam 2025 rok jest tu nieobecny w całości.
-      Prawdziwa liczba jest wyraźnie wyższa; tej po prostu da się dowieść.
-    </p>
-
-    <div class="bill-figures" id="bill-figures"></div>
-
-    <figure class="ratio">
-      <div class="ratio-bar" id="ratio-bar" role="img"
-           aria-label="Proporcja: 96,5% wszystkich tokenów to ponowne odczyty pamięci podręcznej"></div>
-      <figcaption id="ratio-caption"></figcaption>
-    </figure>
-
-    <div class="bill-cols">
-      <div>
-        <h3 class="bill-sub">Z czego policzone</h3>
-        <div class="bar-list" id="bill-sources"></div>
-      </div>
-      <div>
-        <h3 class="bill-sub">Które modele</h3>
-        <div class="bar-list" id="bill-models"></div>
-      </div>
-    </div>
-    <div class="bill-cols">
-      <div>
-        <h3 class="bill-sub">Gdzie poszły</h3>
-        <div class="bar-list" id="bill-top"></div>
-      </div>
-    </div>
-
-    <p class="bill-note" id="bill-note"></p>
-
-    <!-- ── Ekstrapolacja na cały okres subskrypcji ────────────────────── -->
-    <div class="estimate" id="estymacja">
-      <h3 class="bill-sub bill-sub-lg">A ile poszło naprawdę?</h3>
-      <p class="section-lead">
-        Subskrypcja Anthropic działa od <b>lipca 2024</b>, a lokalne transkrypty
-        obejmują tylko ostatnie osiem miesięcy. Resztę da się oszacować, bo znamy
-        <b>spalanie</b>: ile tokenów schodzi na jeden dzień pracy.
-      </p>
-
-      <h4 class="est-head">Spalanie na dzień pracy</h4>
-      <div class="burn-ladder" id="burn-ladder"></div>
-      <p class="est-caption">
-        Trzy dolne słupki to szacunek z epoki narzędzi, trzy górne — pomiar.
-        Między pierwszym a ostatnim jest osiemdziesiąt siedem razy.
-      </p>
-
-      <h4 class="est-head">Z czego składa się suma</h4>
-      <div class="est-stack" id="est-stack"></div>
-
-      <p class="est-verdict" id="est-verdict"></p>
-      <p class="bill-note" id="est-note"></p>
-    </div>
-  </section>
-
 </main>
 
 <footer class="footer">
@@ -267,7 +198,7 @@
   </p>
 </noscript>
 
-<script src="js/projects-data.js?v=202608051145"></script>
-<script src="js/main.js?v=202608051145"></script>
+<script src="js/projects-data.js?v=202608051545"></script>
+<script src="js/main.js?v=202608051545"></script>
 </body>
 </html>
