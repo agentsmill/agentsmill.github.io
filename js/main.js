@@ -77,7 +77,7 @@
     if (p.links.live) {
       out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener">Zobacz ↗</a>`);
       // Aplikacja uśpiona (Fly, skalowanie do zera) — zmierzone budzenie 7–11 s.
-      if (p.wakes) out.push(`<span class="wakes" title="Serwer śpi, gdy nikt nie korzysta. Pierwsze wejście trwa ok. 10 sekund, potem działa normalnie.">(musi się uruchomić, ~10 s)</span>`);
+      if (p.wakes) out.push(`<span class="wakes" title="Serwer śpi, gdy nikt nie korzysta. Pierwsze wejście trwa ok. 10 sekund, potem działa normalnie.">(start serwera ~10 s)</span>`);
     }
     if (p.links.tg) out.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Bot na Telegramie ↗</a>`);
     if (p.links.repo) out.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
@@ -299,12 +299,9 @@
       { n: TOKENS.grand, label: "tokenów przetworzonych", sub: `${TOKENS.window} · cztery narzędzia, jeden komputer` },
       { n: TOKENS.grandOutput, label: "tokenów napisanych przez AI", sub: "kod, testy, analizy, rozmowy" },
       { n: TOKENS.messages, label: "odpowiedzi modeli", sub: `w ${nf.format(TOKENS.sessions)} plikach sesji` },
-      { money: TOKENS.apiCost, label: "tyle kosztowałyby modele Anthropic", sub: "w cenniku API, gdyby nie abonament" },
     ];
     host.innerHTML = figures.map((f) => {
-      const b = f.money
-        ? { v: "$" + nf.format(f.money).replace(/ /g, " "), u: "" }
-        : big(f.n);
+      const b = big(f.n);
       return `<div class="figure reveal">
         <b>${b.v}<span class="unit">${b.u}</span></b>
         <span class="figure-label">${f.label}</span>
@@ -342,12 +339,8 @@
     document.getElementById("bill-note").innerHTML =
       `Dokładnie ${nf.format(TOKENS.grand)} tokenów, deduplikowanych po identyfikatorze wiadomości. ` +
       `Do tego zachował się osobny ślad z <b>${a.window}</b> — lokalny cache statystyk pamięta ` +
-      `${big(a.total).v} ${big(a.total).u} tokenów w ${a.sessions} sesjach, choć same transkrypty ` +
-      `dawno skasowano. Każde narzędzie trzyma sesje w innym miejscu, więc pierwsza wersja tego ` +
-      `rachunku zaniżała wynik o ponad trzy miliardy — brakowało trybu agentowego Claude Desktop ` +
-      `i Kimi CLI. Ten sam Desktop okazał się też pamiętać marzec–maj 2026, który w terminalu ` +
-      `dawno wyczyszczono. Skrypt liczący jest w repozytorium: da się go uruchomić na dowolnym ` +
-      `komputerze i dodać wynik do tej sumy.`;
+      `${big(a.total).v} ${big(a.total).u} tokenów w ${a.sessions} sesjach. Skrypt liczący jest ` +
+      `w repozytorium: da się go uruchomić na dowolnym komputerze i sprawdzić ten rachunek samodzielnie.`;
   }
 
   /* ── Ekstrapolacja na cały okres subskrypcji ─────────────────────────── */
@@ -406,14 +399,13 @@
        ${ESTIMATE.monthsPaid} miesięcy subskrypcji. Widełki:
        <b>${fmt(ESTIMATE.lo)}</b> ostrożnie, <b>${fmt(ESTIMATE.hi)}</b> śmiało.`;
     document.getElementById("est-note").innerHTML =
-      `Zmierzone <b>${fmt(ESTIMATE.measured)}</b> to niecałe osiem miesięcy z dwudziestu pięciu
-       opłaconych — a mimo to ${share}% całości. Nie dlatego, że wcześniej było mniej pracy:
+      `Zmierzone <b>${fmt(ESTIMATE.measured)}</b> to niecałe osiem miesięcy z dwudziestu pięciu —
+       a mimo to ${share}% całości. Nie dlatego, że wcześniej było mniej pracy:
        dni z commitem wypadło ${ESTIMATE.days.y2025} w 2025 i ${ESTIMATE.days.y2026} w 2026,
        czyli praktycznie tyle samo. Urosło to, ile maszyna zjada w ciągu jednego dnia —
-       z około 3 do 260 milionów tokenów, blisko dziewięćdziesiąt razy. Że limity były realnie
-       napinane, widać po ${ESTIMATE.limitHits} sesjach przerwanych komunikatem o wyczerpaniu
-       planu. Widełki nie są kokieterią: dolna to sam pomiar plus minimum, górna zakłada,
-       że rozmowy na claude.ai ważyły tyle, co praca w terminalu.`;
+       z około 3 do 260 milionów tokenów, blisko dziewięćdziesiąt razy. Widełki: dolna granica
+       to sam pomiar plus ostrożne minimum, górna zakłada, że rozmowy na claude.ai ważyły
+       tyle, co praca w terminalu.`;
   }
 
   /* ── Scroll reveal ───────────────────────────────────────────────────── */

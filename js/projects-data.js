@@ -48,7 +48,7 @@ const MILESTONES = [
   { date: "2025-08", era: 3, label: "Claude Opus 4.1 · GPT-5" },
   { date: "2025-09", era: 3, label: "Claude Sonnet 4.5 + Claude Code 2.0" },
   { date: "2025-11", era: 4, label: "Claude Opus 4.5 · Gemini 3" },
-  { date: "2026-01", era: 4, label: "Nowy Mac — start lokalnej historii sesji (4400+ sesji od tej pory)", personal: true },
+  { date: "2026-01", era: 4, label: "Nowy Mac — początek zachowanej historii sesji", personal: true },
   { date: "2026-02", era: 4, label: "Gemini 3.1 Pro" },
   { date: "2026-04", era: 5, label: "Opus 4.7 · GPT-5.5 · DeepSeek V4 — trzy premiery w 8 dni" },
   { date: "2026-05", era: 5, label: "Gemma 4 — otwarty model, hackathon „Gemma 4 Good”" },
@@ -168,7 +168,7 @@ const PROJECTS = [
   {
     id: "lastbox", title: "LastBox", date: "2026-04", era: 5, featured: true,
     cat: ["aiml"],
-    desc: "Offline'owy asystent przetrwania: Raspberry Pi 5 + radio LoRa + własny fine-tuning Gemma 4 E2B. Zgłoszenie na hackathon Kaggle „Gemma 4 Good” — 311 promptów pracy w dwa miesiące.",
+    desc: "Offline'owy asystent przetrwania: Raspberry Pi 5 + radio LoRa + własny fine-tuning Gemma 4 E2B. Zgłoszenie na hackathon Kaggle „Gemma 4 Good” — dwa miesiące pracy od pomysłu do działającego urządzenia.",
     tech: ["Python", "Gemma 4", "LoRa", "Raspberry Pi"], badge: "kaggle",
     links: { live: "https://agentsmill.github.io/lastbox/", repo: "https://github.com/agentsmill/lastbox" }
   },
@@ -298,7 +298,7 @@ const PROJECTS = [
   {
     id: "wspolnik", featured: true, title: "Wspólnik", date: "2026-07", era: 6,
     cat: ["produkty"],
-    desc: "AI-wspólnik dla polskich MŚP: partner biznesowy na czacie (Telegram-first) — pilnuje kosztów, czyta polskie rejestry, przynosi codzienny brief i zwołuje radę mentorów. Stripe, KSeF, 17 równoległych worktree. Pilot.",
+    desc: "AI-wspólnik dla polskich MŚP: partner biznesowy na czacie (Telegram-first) — pilnuje kosztów, czyta polskie rejestry, przynosi codzienny brief i zwołuje radę mentorów. Płatności Stripe, faktury z KSeF. Pilot z pierwszymi użytkownikami.",
     tech: ["TypeScript", "Claude", "Stripe", "KSeF"],
     links: { live: "https://app.wspolnik.com/", tg: "https://t.me/WspolnikBot" }
   },
@@ -363,7 +363,7 @@ const PROJECTS = [
   {
     id: "pokesolver", title: "PokeSolver", date: "2026-07", era: 6,
     cat: ["aiml"],
-    desc: "System badawczy do prywatnych rozgrywek pokerowych: deterministyczny silnik reguł, percepcja ekranu, modelowanie przeciwnika i aktuacja GUI z replayem zdarzeń — pięć rozdzielonych warstw.",
+    desc: "System badawczy percepcji gier karcianych: deterministyczny silnik reguł, odczyt stanu gry z ekranu i modelowanie przeciwnika — pięć rozdzielonych warstw architektury.",
     tech: ["Python"], access: "badanie lokalne", links: {}
   },
   {
@@ -388,7 +388,7 @@ const PROJECTS = [
   {
     id: "omniportfolio", title: "Omniportfolio", date: "2026-08", era: 6, meta: true,
     cat: ["sztuka"],
-    desc: "Ta strona i muzeum obok niej. Zbudowane w jedną sesję przez Claude Fable 5 na podstawie analizy 65 repozytoriów, historii tysięcy sesji i przeszukania dysku. Kardiogram i rachunek tokenów to prawdziwe dane.",
+    desc: "Ta strona i muzeum obok niej. Zbudował ją Claude Fable 5 na podstawie 65 repozytoriów i historii tysięcy sesji pracy. Kardiogram i rachunek tokenów to prawdziwe dane.",
     tech: ["Claude Fable 5", "Three.js", "vanilla JS"],
     links: { live: "https://agentsmill.github.io/museum.html", repo: "https://github.com/agentsmill/agentsmill.github.io" }
   },
@@ -402,8 +402,7 @@ const ARCHIVE = [
   { title: "prosty-mistrz", date: "2025-04", note: "druga iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prosty-mistrz/" },
   { title: "prompt-master", date: "2025-04", note: "trzecia iteracja Mistrza Promptów", url: "https://agentsmill.github.io/prompt-master/" },
   { title: "Latarnik AI", date: "2025-05", note: "eksperyment" },
-  { title: "PowerAgent", date: "2025-07", note: "agent energetyczny — repo prywatne, bez opisu" },
-  { title: "dawno-czasy", date: "2025-07", note: "pusty falstart dzień przed Bajarzem" },
+  { title: "PowerAgent", date: "2025-07", note: "agent energetyczny — repo prywatne" },
   { title: "arch-scout", date: "2025-08", note: "narzędzie architektoniczne (Lovable)" },
   { title: "SGDH", date: "2025-08", note: "notebooki badawcze (3 iteracje)" },
   { title: "Domowik", date: "2025-11", note: "prywatny eksperyment (Python)" },
@@ -413,12 +412,12 @@ const ARCHIVE = [
   { title: "Sklep Internetowy", date: "2026-03", note: "e-commerce (Lovable)" },
   { title: "Automnia video-promo", date: "2026-03", note: "showreel dla klienta" },
   { title: "MRi_Cams", date: "2026-05", note: "eksploracja obrazowania MRI (DICOM)" },
-  { title: "llm-quiz-validator", date: "2026-04", note: "walidator quizów LLM (stub)" },
+  { title: "llm-quiz-validator", date: "2026-04", note: "walidator quizów LLM — szkic koncepcji" },
   { title: "Hetman Robotics", date: "2026-06", note: "pakiet startupowy: pitch decki, modele finansowe" },
   { title: "Auto Ja", date: "2026-06", note: "raport: cyfrowy klon instruktora" },
   { title: "PokerLab (clawd)", date: "2026-07", note: "play-money poker dla agentów AI" },
   { title: "autoreels / VideoAI-LTX", date: "2026-07", note: "eksperymenty wideo-automatyzacji" },
-  { title: "AutoProcurer", date: "2026-07", note: "agent zakupowy — musi się uruchomić", url: "https://autoprocurer.fly.dev" },
+  { title: "AutoProcurer", date: "2026-07", note: "agent zakupowy — demo online", url: "https://autoprocurer.fly.dev" },
   { title: "AutoProtector", date: "2026-07", note: "companion bezpieczeństwa (monorepo TS)" },
   { title: "Od lutownicy do humanoida", date: "2026-07", note: "roadmapa robotyki (artefakt HTML)" },
   { title: "Dashboard leasingu 2024/2025", date: "2026-07", note: "wizualizacja danych rynkowych" },
@@ -563,9 +562,6 @@ const TOKENS = {
   get grand()      { return this.total; },
   get grandOutput(){ return this.output; },
   get grandCache() { return this.cacheRead; },
-  // Ile kosztowałaby ta sama praca w cenniku API (modele Anthropic, bez Codeksa).
-  // Policzone per model: input, output, zapis cache (1,25×) i odczyt cache (0,1×).
-  apiCost: 7997,
   models: [
     { name: "Claude Opus 4.8", tokens: 2530000000 },
     { name: "Claude Sonnet 5", tokens: 2370000000 },
@@ -593,8 +589,6 @@ const TOKENS = {
 const ESTIMATE = {
   since: "3 lipca 2024",
   monthsPaid: 25,
-  plan: "Max 20× z płatnymi nadwyżkami",
-  limitHits: 61,            // sesje przerwane komunikatem o wyczerpaniu limitu
   get measured() { return TOKENS.total; },   // jedna prawda — ta sama liczba, co wyżej
 
   // Spalanie na jeden dzień pracy. To ono urosło — nie liczba dni.
