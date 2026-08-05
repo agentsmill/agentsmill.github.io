@@ -54,18 +54,6 @@ export function initPlayer(kolizje) {
   addEventListener("keydown", (e) => { klawisze[e.code] = true; });
   addEventListener("keyup", (e) => { klawisze[e.code] = false; });
 
-  renderer.domElement.addEventListener("click", () => {
-    if (controls.isLocked) return;
-    /* Prosimy o blokadę sami, zamiast wołać controls.lock(). To dokładnie ta
-       sama operacja (`domElement.requestPointerLock()`), ale mamy dostęp do
-       zwracanej obietnicy: Chrome odrzuca ją, gdy klik trafi w ~1,3 s karencji
-       po wyjściu Esc, a nieprzechwycone odrzucenie wylądowałoby w window.__errs
-       i zaśmiecało weryfikację. Stan blokady i tak śledzą `controls` — przez
-       zdarzenie pointerlockchange, niezależnie od tego, kto o nią poprosił.
-       Starsze przeglądarki nie zwracają obietnicy, stąd `?.catch?.()`. */
-    renderer.domElement.requestPointerLock()?.catch?.(() => {});
-  });
-
   /* Klawisze, które w tej klatce mają prawo ruszyć graczem.
 
      Bez blokady kursora nie rusza go nic: przed pierwszym kliknięciem gracz stoi
@@ -114,6 +102,25 @@ export function initPlayer(kolizje) {
     zablokowany: () => controls.isLocked,
     naZiemi: () => naZiemi,
     pozycja: () => kapsula.end.clone(),
+
+    /* Wejście w tryb chodzenia i wyjście z niego. Ten moduł CELOWO nie nasłuchuje
+       już kliknięć na płótnie: o tym, czy dany klik ma zabrać myszkę, decyduje
+       main.js, bo tylko on wie, czy klik trafił w eksponat i czy jest otwarta
+       tabliczka. Gdy nasłuchy były dwa (tutaj `click`, tam `pointerup`),
+       koordynowała je wyłącznie kolejność zdarzeń w przeglądarce i jedno
+       kliknięcie w eksponat naraz otwierało tabliczkę i chowało kursor. */
+    zablokuj() {
+      if (controls.isLocked) return;
+      /* Prosimy o blokadę wprost, zamiast przez controls.lock(). To ta sama
+         operacja (`domElement.requestPointerLock()`), ale mamy dostęp do
+         zwracanej obietnicy: Chrome odrzuca ją, gdy klik trafi w ~1,3 s karencji
+         po wyjściu Esc, a nieprzechwycone odrzucenie wylądowałoby w window.__errs
+         i zaśmiecało weryfikację. Stan blokady i tak śledzą `controls` — przez
+         zdarzenie pointerlockchange, niezależnie od tego, kto o nią poprosił.
+         Starsze przeglądarki nie zwracają obietnicy, stąd `?.catch?.()`. */
+      renderer.domElement.requestPointerLock()?.catch?.(() => {});
+    },
+    odblokuj: () => controls.unlock(),
 
     /* Skok na wskazane z, na oś amfilady. `patrzNa` (opcjonalne) obraca kamerę
        ku danemu punktowi — używa tego skok do eksponatu z listy, żeby gracz

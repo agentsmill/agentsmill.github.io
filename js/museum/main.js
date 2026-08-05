@@ -23,6 +23,10 @@ let focus = null;           // {hit} — eksponat z otwartą tabliczką
 
 function focusOn(hit) {
   focus = { hit };
+  // Tabliczka to zwykły panel HTML z linkami i przyciskiem „Wróć do spaceru” —
+  // przy schowanym kursorze nie da się w nie trafić. Otwarcie tabliczki oddaje
+  // więc myszkę; z powrotem w chodzenie wchodzi się kliknięciem w scenę.
+  gracz?.odblokuj();
   hit.userData.exhibit?.activate?.();
   openPlaque(hit);
 }
@@ -38,15 +42,11 @@ bindFocusControl({
   },
 });
 
-addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
-  // Przy zablokowanym kursorze pierwszy Esc należy do przeglądarki — zdejmuje
-  // blokadę. Gdyby zamykał przy okazji tabliczkę, nie dałoby się kliknąć jej
-  // linków: tabliczka otwiera się w trakcie chodzenia, czyli przy zajętej myszy.
-  if (gracz?.zablokowany()) return;
-  endFocus();
-  closeList();
-});
+// Esc zamyka tabliczkę i listę zawsze, bez warunków. Przy zablokowanym kursorze
+// przeglądarka zabiera to naciśnięcie dla siebie (zdejmuje blokadę) i zdarzenie
+// zwykle nie dochodzi do strony — ale skoro otwarcie tabliczki i tak oddaje
+// myszkę, otwarta tabliczka przy schowanym kursorze się nie zdarza.
+addEventListener("keydown", (e) => { if (e.key === "Escape") { endFocus(); closeList(); } });
 
 /* wskaźnik + klik przez raycaster */
 const ray = new THREE.Raycaster();
@@ -63,6 +63,13 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   pick(e);
   if (hovered) { if (focus && hovered === focus.hit) return; endFocus(); focusOn(hovered); }
   else if (focus) endFocus();
+  /* Jedyne miejsce w całym muzeum, które zakłada blokadę wskaźnika — stąd
+     player.js nie ma już własnego nasłuchu na płótnie. Warunek czytany PO
+     rozstrzygnięciu fokusu: w chodzenie wchodzimy tylko wtedy, gdy klik nie
+     trafił w eksponat i nie została otwarta żadna tabliczka. Klik w pustkę
+     przy otwartej tabliczce zamyka ją (gałąź wyżej) i tym samym kliknięciem
+     wraca do spaceru. */
+  if (!hovered && !focus) gracz?.zablokuj();
 });
 renderer.domElement.addEventListener("pointermove", (e) => { pick(e); });
 
