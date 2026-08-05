@@ -66,6 +66,10 @@ function joystick(naRuch) {
   const naUi = (t) => !!t.target.closest?.(".plaque, .list-panel, .hud-top");
 
   addEventListener("touchstart", (e) => {
+    // Samoleczenie: gdyby touchend/touchcancel i tak zaginęło, nowy dotyk się nie blokuje.
+    const zywy = (i) => i === null || [...e.touches].some((x) => x.identifier === i);
+    if (!zywy(id)) id = null;
+    if (!zywy(idRozgladania)) idRozgladania = null;
     for (const t of e.changedTouches) {
       if (naUi(t)) continue;
       host.hidden = false;                       // pokaż dopiero przy pierwszym dotyku
@@ -94,7 +98,10 @@ function joystick(naRuch) {
     }
   }, { passive: true });
 
-  addEventListener("touchend", (e) => {
+  // touchend i touchcancel zwalniają identycznie — iOS wysyła cancel zamiast end,
+  // gdy dotyk przechodzi w gest systemowy (np. „wstecz” od lewej krawędzi, czyli
+  // dokładnie tam, gdzie mieszka joystick); bez tego `id` blokował się na zawsze.
+  const pusc = (e) => {
     for (const t of e.changedTouches) {
       if (t.identifier === id) {
         id = null; kciuk.style.transform = ""; host.classList.remove("aktywny");
@@ -103,7 +110,9 @@ function joystick(naRuch) {
         idRozgladania = null;
       }
     }
-  }, { passive: true });
+  };
+  addEventListener("touchend", pusc, { passive: true });
+  addEventListener("touchcancel", pusc, { passive: true });
 }
 
 export function initPlayer(kolizje) {
@@ -129,20 +138,25 @@ export function initPlayer(kolizje) {
 
   /* Klawisze i dotyk, które w tej klatce mają prawo ruszyć graczem.
 
-     Klawiatura rusza tylko po blokadzie kursora (przed pierwszym kliknięciem
-     gracz stoi w atrium; po Esc świat nie ma uciekać pod otwartą tabliczką).
-     Dotyk (`dotyk` niżej) NIE jest tak bramkowany — telefon nie zna blokady
-     kursora, a joystick i tak pokazuje się tylko na urządzeniach dotykowych
-     (patrz media query w museum.css). Wychylenie poniżej MARTWA_STREFA liczy
-     się jako brak kierunku, dokładnie jak niewciśnięty klawisz.
+     Klawiatura rusza tylko po blokadzie kursora; dotyk (`dotyk` niżej) NIE
+     jest tak bramkowany — telefon nie zna blokady, a joystick i tak pokazuje
+     się tylko na urządzeniach dotykowych (media query w museum.css).
+     Wychylenie poniżej MARTWA_STREFA liczy się jako brak kierunku.
 
-     `__mz.testRuch` omija resztę bramki — sonda nie ma jak wywołać blokady,
-     bo ta wymaga prawdziwego gestu użytkownika. */
+     KRYTYCZNE: `dotyk` wpisuje TYLKO aktywne (`true`) klucze, nigdy `false` —
+     scalenie niżej jest sumą źródeł, nie nadpisaniem. Wersja, która wpisywała
+     tu też `false`, zerowała realne WASD w tym samym spreadzie i klawiatura
+     nie działała NIGDY na desktopie; strzałki przeżyły tylko dlatego, że
+     `dotyk` ich nie definiowało.
+
+     `__mz.testRuch` omija resztę bramki — wymaga symulacji, bo blokada
+     potrzebuje prawdziwego gestu użytkownika. */
   function wcisniete() {
-    const dotyk = {
-      KeyW: joyY > MARTWA_STREFA, KeyS: joyY < -MARTWA_STREFA,
-      KeyD: joyX > MARTWA_STREFA, KeyA: joyX < -MARTWA_STREFA,
-    };
+    const dotyk = {};
+    if (joyY > MARTWA_STREFA) dotyk.KeyW = true;
+    if (joyY < -MARTWA_STREFA) dotyk.KeyS = true;
+    if (joyX > MARTWA_STREFA) dotyk.KeyD = true;
+    if (joyX < -MARTWA_STREFA) dotyk.KeyA = true;
     return { ...(controls.isLocked ? klawisze : null), ...dotyk, ...window.__mz?.testRuch };
   }
 
@@ -202,6 +216,7 @@ export function initPlayer(kolizje) {
     zablokowany: () => controls.isLocked,
     naZiemi: () => naZiemi,
     pozycja: () => kapsula.end.clone(),
+    wTurze: () => !!tura,   // main.js zmienia etykietę przycisku, patrz oprowadz()
 
     /* Wejście w tryb chodzenia i wyjście z niego. Ten moduł CELOWO nie nasłuchuje
        już kliknięć na płótnie: o tym, czy dany klik ma zabrać myszkę, decyduje
@@ -226,6 +241,7 @@ export function initPlayer(kolizje) {
        ku danemu punktowi — używa tego skok do eksponatu z listy, żeby gracz
        lądował przodem do niego, a nie bokiem. */
     teleportuj(z, patrzNa) {
+      tura = null;   // skok kamery z innego powodu niż tura — np. klik w eksponat z listy — ma nad nią wygrywać
       kapsula.start.set(0, PROMIEN, z);
       kapsula.end.set(0, WZROST, z);
       predkosc.set(0, 0, 0);
@@ -236,14 +252,19 @@ export function initPlayer(kolizje) {
       else camera.rotation.set(0, Math.PI, 0);
     },
 
-    /* Autopilot: `sale` to budynek.sale z building.js. Patrz prosto w głąb
-       amfilady, zanim ruszy — inaczej ciągnęłaby gracza tyłem do kierunku
-       jazdy. Przerwanie nie ma osobnej metody: robi to każdy czynny ruch,
-       klawiszem albo joystickiem — patrz update(). */
+    /* Autopilot: `sale` to budynek.sale z building.js. Patrz prosto w głąb,
+       zanim ruszy. Nigdy nie cofa: jedzie tylko przez sale, których środek
+       jest PRZED graczem (albo dokładnie tam, gdzie stoi) — kto już przeszedł
+       kawałek pieszo, ma jechać dalej, nie tyłem przez zwiedzone sale. Za
+       środkiem ostatniej sali nie ma dokąd jechać — tura się nie uruchamia.
+       Przerwanie: czynny ruch (update()) albo ponowny klik (przerwijTure()). */
     oprowadz(sale) {
+      const przedGraczem = sale.filter((s) => s.srodekZ >= kapsula.end.z);
+      if (!przedGraczem.length) return;
       camera.rotation.set(0, Math.PI, 0);
-      tura = { i: 0, faza: "jazda", czas: 0, sale };
+      tura = { i: 0, faza: "jazda", czas: 0, sale: przedGraczem };
     },
+    przerwijTure() { tura = null; },
 
     update(dt) {
       dt = Math.min(dt, MAX_KROK);       // patrz MAX_KROK: zapas przed przeniknięciem przez ścianę

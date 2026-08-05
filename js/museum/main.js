@@ -6,6 +6,7 @@ import { initPlayer } from "./player.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl } from "./ui.js";
 
 const loader = document.getElementById("loader");
+const btnTura = document.getElementById("btn-tura");
 
 window.__mz.interactives = interactives;
 
@@ -20,6 +21,7 @@ window.__mz.interactives = interactives;
 
 let gracz = null;
 let focus = null;           // {hit} — eksponat z otwartą tabliczką
+let byloWTurze = false;     // ostatnio odczytany stan gracz.wTurze() — do wykrywania zmiany w loop()
 
 function focusOn(hit) {
   focus = { hit };
@@ -105,6 +107,13 @@ function loop() {
     // przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego pozycja.
     // W atrium (z < 8) żaden zakres nie pasuje i pasek zostaje pusty.
     hudEra.textContent = eraAt(gracz.pozycja().z);
+    // Widoczny sygnał, że tura trwa, i jak ją przerwać: etykieta przycisku sama
+    // się zmienia. Czytane co klatkę, ale zapisywane do DOM tylko przy zmianie.
+    const wTurze = gracz.wTurze();
+    if (wTurze !== byloWTurze) {
+      byloWTurze = wTurze;
+      btnTura.textContent = wTurze ? "Przerwij zwiedzanie" : "Oprowadź mnie";
+    }
   }
   for (const fn of tickers) {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
@@ -143,9 +152,11 @@ Promise.all([
     window.__mz.gracz = gracz;
     window.__mz.go = (z) => gracz.teleportuj(z);   // dokończenie uchwytu go() zaczętego w render.js
 
-    // Zamyka ewentualną otwartą tabliczkę — tura przejmuje kamerę całkowicie,
-    // nie ma sensu trzymać jej otwartej nad eksponatem, który zaraz zniknie z widoku.
-    document.getElementById("btn-tura").addEventListener("click", () => {
+    // Przycisk działa jak przełącznik: w trakcie tury przerywa ją (tak samo jak
+    // klawisz albo joystick), poza turą — startuje ją. Zamyka ewentualną otwartą
+    // tabliczkę przed startem, bo tura przejmuje kamerę całkowicie.
+    btnTura.addEventListener("click", () => {
+      if (gracz.wTurze()) { gracz.przerwijTure(); return; }
       endFocus();
       gracz.oprowadz(budynek.sale);
     });
