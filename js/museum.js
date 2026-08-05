@@ -2,6 +2,15 @@
    Dane: js/projects-data.js (PROJECTS, ERAS, MILESTONES, HEARTBEAT, CATEGORIES). */
 
 import * as THREE from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+window.__errs = [];
+addEventListener("error", (e) => window.__errs.push(String(e.message)));
+addEventListener("unhandledrejection", (e) => window.__errs.push(String(e.reason)));
 
 /* ── Podstawy ─────────────────────────────────────────────────────────── */
 
@@ -35,8 +44,21 @@ camera.position.set(0, 1.6, 6);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 host.appendChild(renderer.domElement);
-window.__mz = { renderer, scene, camera, go: (z) => { targetZ = curZ = z; } };   // uchwyt diagnostyczny (nieszkodliwy)
+
+// Mapa środowiskowa generowana proceduralnie — 0 bajtów do pobrania, a bez niej
+// materiały z metalness nie mają czego odbijać i wyglądają jak matowy plastik.
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.35;   // muzeum ma być ciemne; pełna siła je rozmywa
+
+window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: (z) => { targetZ = curZ = z; } };   // uchwyt diagnostyczny (nieszkodliwy)
 
 scene.add(new THREE.AmbientLight(0x8899bb, 0.5));
 const hemi = new THREE.HemisphereLight(0x35507a, 0x0c1018, 0.55);
@@ -44,6 +66,15 @@ scene.add(hemi);
 const key = new THREE.DirectionalLight(0xf2c46d, 0.35);
 key.position.set(3, 8, 2);
 scene.add(key);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+// (rozdzielczość, siła, promień, próg) — kolejność zweryfikowana w źródle r169
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.4, 0.85);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+window.__mz.composer = composer;
+window.__mz.bloom = bloom;
 
 /* ── Tekst na sprite'ach ──────────────────────────────────────────────── */
 
@@ -710,7 +741,7 @@ function loop() {
   for (const fn of tickers) {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
   }
-  renderer.render(scene, camera);
+  composer.render();
   if (firstFrame) { firstFrame = false; loader.classList.add("done"); }
 }
 
@@ -718,6 +749,8 @@ addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  bloom.setSize(innerWidth, innerHeight);
 });
 
 /* ── Start ────────────────────────────────────────────────────────────── */
