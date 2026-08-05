@@ -81,12 +81,34 @@ function bryla(w, h, d, mat) {
   return m;
 }
 
-/* Pozioma płyta podłogi. Nie ma grubości, więc nie wchodzi do kolizji —
-   podłogę Zadanie 5 i tak trzyma wysokością oczu, nie ścianą. */
+/* Pozioma płyta podłogi. Widoczna, ale sama w sobie bez objętości — kolizję
+   dokłada osobna, niewidoczna bryła poniżej (patrz `podlogaKolizja`). */
 function plyta(szer, dl, mat) {
   const m = new THREE.Mesh(skalujUV(new THREE.PlaneGeometry(szer, dl), szer / KAFEL, dl / KAFEL), mat);
   m.rotation.x = -Math.PI / 2;
   m.receiveShadow = true;
+  return m;
+}
+
+/* POPRAWKA po przeglądzie Zadania 4: `plyta()` powyżej jest PlaneGeometry —
+   bez grubości i bez `userData.kolizja` — więc żadna z siedmiu podłóg (atrium
+   i sześć sal) nie trafiała do warstwy kolizyjnej. Zadanie 5 liczy `naZiemi`
+   z `octree.capsuleIntersect`: bez podłogi w Octree kapsula gracza nigdy nie
+   dostanie przecięcia z normalną skierowaną w górę i gracz spadałby przez
+   podłogę od pierwszej klatki, w nieskończoność. Sama płaszczyzna by nie
+   wystarczyła nawet ze znacznikiem — jest nieskończenie cienka, a szybko
+   poruszająca się kapsuła potrafi ją "przelecieć" między klatkami. Octree
+   potrzebuje objętości, więc pod każdą płytą kładziemy cienką bryłę o
+   grubości GRUB, której górne lico wypada dokładnie na y = 0 (środek na
+   -GRUB/2) — tuż pod widoczną podłogą. `visible = false` wyłącza ją z
+   renderowania, więc nie ma mowy o z-fightingu z płytą nad nią; `root.traverse()`
+   niżej w tym pliku i tak ją znajdzie, bo (w odróżnieniu od `traverseVisible`)
+   nie sprawdza widoczności — trafi więc do warstwy kolizyjnej jak każda ściana. */
+function podlogaKolizja(szer, dl, mat) {
+  const m = bx(szer, GRUB, dl, mat);
+  m.position.y = -GRUB / 2;
+  m.visible = false;
+  m.userData.kolizja = true;
   return m;
 }
 
@@ -120,6 +142,7 @@ function scianaZDziura(szer, wys, szerDziury, wysDziury, mat, dolDziury = 0) {
 function atrium(matPodloga, matSciana) {
   const g = new THREE.Group();
   g.add(plyta(SZER_ATRIUM, SZER_ATRIUM, matPodloga));
+  g.add(podlogaKolizja(SZER_ATRIUM, SZER_ATRIUM, matPodloga));
 
   [-1, 1].forEach((sx) => {
     const s = bryla(GRUB, WYS_ATRIUM, SZER_ATRIUM, matSciana);
@@ -224,6 +247,9 @@ export function buildBuilding(dlugosciSal) {
     const pod = plyta(SZER_SALI, dl, matParkiet);
     pod.position.z = dl / 2;
     sala.add(pod);
+    const podKolizja = podlogaKolizja(SZER_SALI, dl, matParkiet);
+    podKolizja.position.z = dl / 2;
+    sala.add(podKolizja);
 
     [-1, 1].forEach((s) => {
       const w = bryla(GRUB, WYS_SALI, dl, matTynk);
@@ -265,6 +291,9 @@ export function buildBuilding(dlugosciSal) {
     const k = new THREE.Mesh(o.geometry);        // geometria współdzielona — Octree tylko ją czyta
     o.getWorldPosition(k.position);
     o.getWorldQuaternion(k.quaternion);
+    o.getWorldScale(k.scale);      // POPRAWKA po przeglądzie: dziś wszędzie 1, ale bez tego
+                                    // kolizje rozjadą się z obrazem, gdyby ktoś kiedyś
+                                    // przeskalował `sala` albo `root`
     kolizje.add(k);
   });
 

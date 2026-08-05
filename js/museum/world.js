@@ -34,7 +34,12 @@ const MIN_DL_SALI = 20;                // krótka epoka też ma wyglądać na sa
 /* Pozycje w poprzek sali. Ściany stoją na ±7 (SZER_SALI/2), ich wewnętrzne
    lico na ±6,8 — napisy i ramki muszą się zmieścić przed nim. */
 const X_AUTORSKI = 3.6;
-const X_COKOL = 4.6;
+/* POPRAWKA po przeglądzie Zadania 4: przy 4,6 najdłuższe podpisy cokołów
+   (36 znaków, np. „Age of Agents: The Game → Token Golf") mierzą realnie do
+   559 px przy foncie „600 30px Schibsted Grotesk" — sprite wychodzi ~4,46 m
+   szeroki, więc jego zewnętrzna krawędź (±2,23 m od osi cokołu) sięgała 6,83 m,
+   za lico ściany (6,8 m). Zejście do 4,4 daje krawędź 6,63 m — margines ~17 cm. */
+const X_COKOL = 4.4;
 const X_KAMIEN = 3.0;                  // sprite kamienia milowego bywa 7 m szeroki
 const Y_KAMIEN = 3.2;                  // nad głowami: pas dat pod stropem, a nie baner przed nosem
 const X_RAMKI = SZER_SALI / 2 - 0.3;   // ramka płasko na ścianie, z zapasem na poświatę
