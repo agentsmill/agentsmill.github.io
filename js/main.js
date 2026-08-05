@@ -345,8 +345,9 @@
       `${big(a.total).v} ${big(a.total).u} tokenów w ${a.sessions} sesjach, choć same transkrypty ` +
       `dawno skasowano. Każde narzędzie trzyma sesje w innym miejscu, więc pierwsza wersja tego ` +
       `rachunku zaniżała wynik o ponad trzy miliardy — brakowało trybu agentowego Claude Desktop ` +
-      `i Kimi CLI. Skrypt liczący jest w repozytorium: da się go uruchomić na dowolnym komputerze ` +
-      `i dodać wynik do tej sumy.`;
+      `i Kimi CLI. Ten sam Desktop okazał się też pamiętać marzec–maj 2026, który w terminalu ` +
+      `dawno wyczyszczono. Skrypt liczący jest w repozytorium: da się go uruchomić na dowolnym ` +
+      `komputerze i dodać wynik do tej sumy.`;
   }
 
   /* ── Scroll reveal ───────────────────────────────────────────────────── */

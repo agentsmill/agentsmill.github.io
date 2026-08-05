@@ -544,18 +544,18 @@ const THREADS = [
 // Policzone z lokalnych transkryptów sesji (~/.claude/projects + ~/.codex).
 // UWAGA: przetrwały tylko sesje od czerwca 2026 — wcześniejsze zostały wyczyszczone.
 const TOKENS = {
-  window: "VI – VIII 2026",
+  window: "I – VIII 2026",
   sessions: 2121,         // pliki sesji ze wszystkich narzędzi na tym komputerze
   messages: 54209,        // odpowiedzi modeli z licznikiem zużycia (po deduplikacji)
   total: 11926685667,
   output: 44329003,
   cacheRead: 11368885424,
-  // Rozbicie na narzędzia — każde trzyma sesje gdzie indziej.
+  // Rozbicie na narzędzia — każde trzyma sesje gdzie indziej i obejmuje inny okres.
   sources: [
-    { name: "Claude Code w terminalu", tokens: 7280000000, files: 1749 },
-    { name: "Claude Desktop, tryb agentowy", tokens: 2440000000, files: 89 },
-    { name: "Codex (GPT-5.5)", tokens: 1370000000, files: 57 },
-    { name: "Kimi CLI", tokens: 832300000, files: 28 },
+    { name: "Claude Code w terminalu · VI–VIII", tokens: 7280000000, files: 1749 },
+    { name: "Claude Desktop, tryb agentowy · I–VII", tokens: 2440000000, files: 89 },
+    { name: "Codex (GPT-5.5) · II–VIII", tokens: 1370000000, files: 57 },
+    { name: "Kimi CLI · VII–VIII", tokens: 832300000, files: 28 },
   ],
   // Osobny ślad: lokalny cache statystyk z I–II 2026 (transkrypty źródłowe już usunięte)
   archive: { window: "I – II 2026", total: 371758777, output: 633899, sessions: 40, messages: 7639 },
