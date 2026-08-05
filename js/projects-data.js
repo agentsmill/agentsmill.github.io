@@ -541,8 +541,9 @@ const THREADS = [
 ];
 
 // ── Rachunek tokenów ─────────────────────────────────────────────────────────
-// Policzone z lokalnych transkryptów sesji (~/.claude/projects + ~/.codex).
-// UWAGA: przetrwały tylko sesje od czerwca 2026 — wcześniejsze zostały wyczyszczone.
+// Policzone z lokalnych transkryptów czterech narzędzi (Claude Code, tryb agentowy
+// Claude Desktop, Codex, Kimi CLI) — łącznie z transkryptami subagentów.
+// Ten komputer pamięta I–VIII 2026; wcześniejsze lata są tylko szacowane (ESTIMATE).
 const TOKENS = {
   window: "I – VIII 2026",
   sessions: 2121,         // pliki sesji ze wszystkich narzędzi na tym komputerze
@@ -582,6 +583,49 @@ const TOKENS = {
     { name: "Szkoła Claude", tokens: 451000000 },
     { name: "Robotami + Józef", tokens: 364300000 },
   ],
+};
+
+// ── Ekstrapolacja: ile poszło przez CAŁY okres subskrypcji ───────────────────
+// Data startu subskrypcji jest twarda (metadane konta, 3 VII 2024). Reszta to model:
+// tokeny = dni robocze × spalanie na dzień. Dni robocze dla 2024–2025 z dni z commitem
+// (GitHub API) przeskalowanych współczynnikiem zmierzonym na 2026 — 112 dni sesyjnych
+// przypada tam na 66 dni z commitem, czyli ×1,70. Spalanie na dzień: patrz burn.
+const ESTIMATE = {
+  since: "3 lipca 2024",
+  monthsPaid: 25,
+  plan: "Max 20× z płatnymi nadwyżkami",
+  limitHits: 61,            // sesje przerwane komunikatem o wyczerpaniu limitu
+  get measured() { return TOKENS.total; },   // jedna prawda — ta sama liczba, co wyżej
+
+  // Spalanie na jeden dzień pracy. To ono urosło — nie liczba dni.
+  burn: [
+    { label: "VII 2024 – II 2025",  what: "czat na claude.ai, jeszcze bez budowania", perDay: 3000000 },
+    { label: "III – VI 2025",       what: "pierwsze repozytoria: czat + Cursor",      perDay: 6000000 },
+    { label: "VII – XII 2025",      what: "pierwszy token w Claude Code",             perDay: 18000000 },
+    { label: "II – V 2026",         what: "tryb agentowy w Claude Desktop",           perDay: 24000000, measured: true },
+    { label: "VI 2026",             what: "dochodzi Claude Code w terminalu",         perDay: 72000000, measured: true },
+    { label: "VII – VIII 2026",     what: "subagenci i cztery narzędzia naraz",       perDay: 260000000, measured: true },
+  ],
+
+  // Warstwy sumy — od twardego pomiaru do sufitu. Sumy liczone, nie wpisane ręcznie.
+  get layers() {
+    return [
+      { name: "Zmierzone w transkryptach", tokens: TOKENS.total, measured: true,
+        note: `I–VIII 2026 · ${TOKENS.sessions} plików sesji, cztery narzędzia` },
+      { name: "Reszta okresu subskrypcji", tokens: 1660000000, lo: 730000000, hi: 2920000000,
+        note: "VII 2024 – XII 2025 · brak transkryptów, szacunek z dni pracy" },
+      { name: "Rozmowy na claude.ai", tokens: 3000000000, lo: 1000000000, hi: 7500000000,
+        note: "25 miesięcy · istnieją wyłącznie po stronie serwera" },
+      { name: "Inne komputery", tokens: 800000000, lo: 300000000, hi: 2000000000,
+        note: "poprzedni sprzęt · stąd nie do sprawdzenia" },
+    ];
+  },
+  get mid() { return this.layers.reduce((a, l) => a + l.tokens, 0); },
+  get lo()  { return this.layers.reduce((a, l) => a + (l.lo ?? l.tokens), 0); },
+  get hi()  { return this.layers.reduce((a, l) => a + (l.hi ?? l.tokens), 0); },
+
+  // Dni pracy prawie się nie zmieniły — zmieniło się, ile maszyna zjada w ciągu dnia.
+  days: { y2025: 61, y2026: 66, note: "dni z commitem wg GitHub API" },
 };
 
 // Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → VIII 2026)

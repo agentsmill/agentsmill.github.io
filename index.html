@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=202608050220">
+  <link rel="stylesheet" href="css/main.css?v=202608050248">
 </head>
 <body>
 
@@ -201,6 +201,30 @@
     </div>
 
     <p class="bill-note" id="bill-note"></p>
+
+    <!-- ── Ekstrapolacja na cały okres subskrypcji ────────────────────── -->
+    <div class="estimate" id="estymacja">
+      <h3 class="bill-sub bill-sub-lg">A ile poszło naprawdę?</h3>
+      <p class="section-lead">
+        Subskrypcja Anthropic chodzi od <b>3 lipca 2024</b> — to data twarda,
+        z metadanych konta. Transkrypty pamiętają tylko ostatnie osiem miesięcy
+        z dwudziestu pięciu opłaconych. Resztę da się oszacować, bo znamy
+        <b>spalanie</b>: ile tokenów schodzi na jeden dzień pracy.
+      </p>
+
+      <h4 class="est-head">Spalanie na dzień pracy</h4>
+      <div class="burn-ladder" id="burn-ladder"></div>
+      <p class="est-caption">
+        Trzy dolne słupki to szacunek z epoki narzędzi, trzy górne — pomiar.
+        Między pierwszym a ostatnim jest osiemdziesiąt siedem razy.
+      </p>
+
+      <h4 class="est-head">Z czego składa się suma</h4>
+      <div class="est-stack" id="est-stack"></div>
+
+      <p class="est-verdict" id="est-verdict"></p>
+      <p class="bill-note" id="est-note"></p>
+    </div>
   </section>
 
 </main>
@@ -228,7 +252,7 @@
   </p>
 </noscript>
 
-<script src="js/projects-data.js?v=202608050220"></script>
-<script src="js/main.js?v=202608050220"></script>
+<script src="js/projects-data.js?v=202608050248"></script>
+<script src="js/main.js?v=202608050248"></script>
 </body>
 </html>

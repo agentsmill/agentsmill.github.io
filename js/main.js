@@ -350,6 +350,72 @@
       `komputerze i dodać wynik do tej sumy.`;
   }
 
+  /* ── Ekstrapolacja na cały okres subskrypcji ─────────────────────────── */
+  function buildEstimate() {
+    if (typeof ESTIMATE === "undefined") return;
+    const ladder = document.getElementById("burn-ladder");
+    const stack = document.getElementById("est-stack");
+    if (!ladder || !stack) return;
+
+    // "3,0 mln" i "7,50 mld" czytają się gorzej niż "3 mln" i "7,5 mld".
+    // Ucinamy zera na końcu części dziesiętnej, a potem osierocony przecinek.
+    const trim = (s) => s.replace(/(,\d*?)0+$/, "$1").replace(/,$/, "");
+    const fmt = (n) => { const b = big(n); return `${trim(b.v)} ${b.u}`; };
+    // Zakres: wspólną jednostkę pokazujemy raz, różne — przy każdej liczbie.
+    const range = (lo, hi) => {
+      const a = big(lo), b = big(hi);
+      return a.u === b.u ? `${trim(a.v)}–${trim(b.v)} ${b.u}`
+                         : `${trim(a.v)} ${a.u} – ${trim(b.v)} ${b.u}`;
+    };
+
+    // Drabina spalania: ile tokenów na jeden dzień pracy, epoka po epoce.
+    // Skala liniowa — bo to właśnie ta dysproporcja jest tu treścią.
+    const maxBurn = Math.max(...ESTIMATE.burn.map((b) => b.perDay));
+    ladder.innerHTML = ESTIMATE.burn.map((b) => {
+      const w = Math.max(1.5, (b.perDay / maxBurn) * 100);
+      return `<div class="burn-row reveal${b.measured ? " is-measured" : ""}">
+        <span class="burn-when">${b.label}</span>
+        <span class="burn-track"><span class="burn-fill" style="width:${w.toFixed(1)}%"></span></span>
+        <span class="burn-val">${fmt(b.perDay)}<span class="burn-unit">/dzień</span></span>
+        <span class="burn-what">${b.what}</span>
+      </div>`;
+    }).join("");
+
+    // Warstwy sumy: twardy pomiar + trzy warstwy szacunku, w jednym pasku.
+    const sum = ESTIMATE.layers.reduce((a, l) => a + l.tokens, 0);
+    stack.innerHTML = `
+      <div class="est-bar" role="img" aria-label="Warstwy szacunku: ${big(sum).v} ${big(sum).u} tokenów łącznie">
+        ${ESTIMATE.layers.map((l, i) => `<span class="est-seg${l.measured ? " is-measured" : ""}"
+             style="width:${(l.tokens / sum * 100).toFixed(2)}%" data-i="${i + 1}"></span>`).join("")}
+      </div>
+      <ol class="est-legend">
+        ${ESTIMATE.layers.map((l) => {
+          const band = l.lo ? `<span class="est-band">${range(l.lo, l.hi)}</span>` : "";
+          return `<li class="${l.measured ? "is-measured" : ""}">
+            <span class="est-key" aria-hidden="true"></span>
+            <span class="est-name">${l.name}</span>
+            <span class="est-num">${fmt(l.tokens)}${band}</span>
+            <span class="est-note">${l.note}</span>
+          </li>`;
+        }).join("")}
+      </ol>`;
+
+    const share = Math.round((ESTIMATE.measured / ESTIMATE.mid) * 100);
+    document.getElementById("est-verdict").innerHTML =
+      `<b>${fmt(ESTIMATE.mid)}</b> tokenów — tyle wychodzi centralnie za
+       ${ESTIMATE.monthsPaid} miesięcy subskrypcji. Widełki:
+       <b>${fmt(ESTIMATE.lo)}</b> ostrożnie, <b>${fmt(ESTIMATE.hi)}</b> śmiało.`;
+    document.getElementById("est-note").innerHTML =
+      `Zmierzone <b>${fmt(ESTIMATE.measured)}</b> to niecałe osiem miesięcy z dwudziestu pięciu
+       opłaconych — a mimo to ${share}% całości. Nie dlatego, że wcześniej było mniej pracy:
+       dni z commitem wypadło ${ESTIMATE.days.y2025} w 2025 i ${ESTIMATE.days.y2026} w 2026,
+       czyli praktycznie tyle samo. Urosło to, ile maszyna zjada w ciągu jednego dnia —
+       z około 3 do 260 milionów tokenów, blisko dziewięćdziesiąt razy. Że limity były realnie
+       napinane, widać po ${ESTIMATE.limitHits} sesjach przerwanych komunikatem o wyczerpaniu
+       planu. Widełki nie są kokieterią: dolna to sam pomiar plus minimum, górna zakłada,
+       że rozmowy na claude.ai ważyły tyle, co praca w terminalu.`;
+  }
+
   /* ── Scroll reveal ───────────────────────────────────────────────────── */
   function initReveal() {
     const els = document.querySelectorAll(".reveal");
@@ -374,5 +440,6 @@
   buildArchive();
   buildIndex();
   buildBill();
+  buildEstimate();
   initReveal();
 })();

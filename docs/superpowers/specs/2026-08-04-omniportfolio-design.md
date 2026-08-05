@@ -124,6 +124,20 @@ User's critique after first deploy: *"jakie projekty są sobą wspólne, czy wsz
 | D22 | Fixed factual slip caught in verification: 17 048 is **messages**, not sessions | Verified against script output before publishing. |
 | D23 | Link audit — every project with a live deployment must link it; genuinely private ones say so explicitly | See link-audit results applied to `PROJECTS[].links` / `access` field. |
 
+## Addendum 3 (2026-08-05, user request): extrapolation to the full subscription period
+
+User's ask: *"to estymuj ile mogłem zużyć znając moje spalanie tokenów"* — after the bill section had been reframed as a provable floor without quantifying how far below the real number it sits.
+
+| # | Decision | Reasoning |
+|---|----------|-----------|
+| D24 | **Anchor the window on `subscriptionCreatedAt`, not on the first repo** | `~/.claude.json` → `oauthAccount.subscriptionCreatedAt` = **2024-07-03**, `organizationRateLimitTier` = `default_claude_max_20x`, `hasExtraUsageEnabled` = true. So the paid period is **25 months**, of which transcripts cover 8. This is a hard fact and it reframes the whole question: the gap isn't "some missing months", it's two thirds of the timeline. Only non-secret metadata fields were read; no tokens touched. |
+| D25 | **Model = working days × burn per working day**, not tokens-per-project | Project counts are a bad driver (2026-06 had 7 public commits and 1.37 mld tokens). Days are measurable on both sides of the gap: session-days from transcript timestamps (112 in 2026), commit-days from GitHub API (61 in 2025, 66 in 2026). The 112/66 = ×1.70 ratio calibrates commit-days → working-days for the unmeasured period. |
+| D26 | **The finding worth publishing: days barely moved, burn per day grew ×87** | 61 vs 66 active days across the two years — his habits are unchanged. Burn went ~3 → 260 mln/day. The token explosion is a property of the tools, not of him working more. This is the honest headline and it's what the burn ladder visualises. |
+| D27 | **Bands per era, not an exponential fit** | The measured curve is a step function (flat ~24 mln/day Feb–May 2026, then 72 in June when Claude Code arrives, then 260 in July with subagents + four tools). Fitting an exponential through that and extrapolating backwards would manufacture false precision. Eras with explicit low/central/high bands admit what's actually known. |
+| D28 | **Visual convention: solid gold = measured, hatched = inferred.** Never mixed without marking | Applies to both the burn ladder and the stacked total. A reader can tell at a glance which 69% of the number is provable. |
+| D29 | **Totals are getters, not literals** (`ESTIMATE.mid/lo/hi` sum `layers`; `measured` reads `TOKENS.total`) | First pass hardcoded 11.99 mld from a fresh measurement while the page headline said 11.93 mld — same quantity, two numbers, on one page. Deriving them makes that class of drift impossible. |
+| D30 | **Ship `tools/spalanie.py` with assumptions at the top of the file** | The estimate is only as good as `EPOKI`. Putting the constants where they can be edited, and saying so in the README, is the difference between a claim and a reproducible argument. README also explains why re-running gives a slightly larger number than the page: the session doing the measuring is itself being logged. |
+
 ## Future (explicitly deferred)
 
 EN version · per-project screenshots/OG images · link from pawelczuk.com / wdrozenie.ai · custom domain · RSS/changelog.
