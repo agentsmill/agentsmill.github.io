@@ -103,7 +103,14 @@ function buildFloor(total) {
   // aoMap czyta drugi zestaw UV (uv1) — bez tej linii mapa AO z zestawu
   // "beton" byłaby po cichu ignorowana, bez błędu i bez ostrzeżenia.
   geo.setAttribute("uv1", geo.attributes.uv);
-  const floor = new THREE.Mesh(geo, loadPBR("beton", Math.round(total / 4)));
+  // Płyta jest prostokątna (40 × total+40), więc jeden wspólny skalar
+  // powtórzeń rozciągałby kafle — liczymy osobno z obu rzeczywistych
+  // wymiarów geometrii (nie z samego "total"), tak żeby kafel betonu
+  // wyszedł ~kafelSwiata × kafelSwiata niezależnie od proporcji płyty.
+  const kafelSwiata = 4;
+  const powtX = Math.round(geo.parameters.width / kafelSwiata);
+  const powtY = Math.round(geo.parameters.height / kafelSwiata);
+  const floor = new THREE.Mesh(geo, loadPBR("beton", [powtX, powtY]));
   floor.rotation.x = -Math.PI / 2;
   floor.position.z = -total / 2;
   scene.add(floor);
