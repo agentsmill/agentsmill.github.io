@@ -1,5 +1,15 @@
 import * as THREE from "three";
-import { M, bx, textSprite, fmtDate } from "./render.js";
+import { M, bx as bxSurowe, textSprite, fmtDate } from "./render.js";
+
+/* Bryły eksponatów w oświetlonych salach muszą rzucać cień — inaczej wiszą
+   nad podłogą jak naklejki. Ale tylko te z materiału „body": M.glow i M.add są
+   przezroczyste albo addytywne, a three.js liczy cień z samej głębokości
+   i wyciąłby spod poświaty pełną, czarną plamę. */
+function bx(w, h, d, mat) {
+  const m = bxSurowe(w, h, d, mat);
+  m.castShadow = m.receiveShadow = mat.isMeshStandardMaterial === true;
+  return m;
+}
 
 /* 1. Age of Agents — pikselowy zamek z osadnikami */
 function exAgeOfAgents(hex) {
@@ -105,11 +115,11 @@ function exReverie(hex) {
 function exEkspres(hex) {
   const g = new THREE.Group();
   const track = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.045, 8, 60), M.body(0x3a4258));
-  track.rotation.x = Math.PI / 2; track.position.y = 0.05; g.add(track);
+  track.rotation.x = Math.PI / 2; track.position.y = 0.05; track.castShadow = true; g.add(track);
   const train = new THREE.Group();
   const loco = bx(0.5, 0.34, 0.3, M.glow(hex, 0.98)); loco.position.y = 0.28; train.add(loco);
   const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.16, 8), M.body(0x2a3550));
-  chimney.position.set(0.16, 0.52, 0); train.add(chimney);
+  chimney.position.set(0.16, 0.52, 0); chimney.castShadow = true; train.add(chimney);
   [1, 2].forEach((i) => {
     const w = bx(0.38, 0.26, 0.26, M.body(0x4a5470)); w.position.set(-0.5 * i, 0.24, 0); train.add(w);
   });
@@ -184,7 +194,7 @@ function exLastBox(hex) {
   const box = bx(0.7, 0.4, 0.5, M.body(0x2a3550)); box.position.y = 0.2; g.add(box);
   const led = bx(0.08, 0.08, 0.02, M.glow(hex, 1)); led.position.set(0.2, 0.32, 0.26); g.add(led);
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 8), M.body(0x4a5470));
-  mast.position.y = 1.5; g.add(mast);
+  mast.position.y = 1.5; mast.castShadow = true; g.add(mast);
   const rings = [];
   for (let i = 0; i < 4; i++) {
     const r = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.02, 8, 36), M.add(hex, 0.0));
@@ -211,7 +221,7 @@ function exLastBox(hex) {
 function exWhisper(hex) {
   const g = new THREE.Group();
   const mic = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.3, 6, 14), M.body(0x4a5470));
-  mic.position.y = 1.7; g.add(mic);
+  mic.position.y = 1.7; mic.castShadow = true; g.add(mic);
   const bars = [];
   for (let i = 0; i < 16; i++) {
     const b = bx(0.08, 0.3, 0.08, M.glow(hex, 0.85));

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { renderer, camera, composer, bloom, reduceMotion } from "./render.js";
-import { buildCorridor, buildFloor, interactives, tickers, eraRanges, totalLength } from "./world.js";
+import { buildCorridor, buildEkg, dlugosciSal, interactives, tickers, eraRanges, totalLength } from "./world.js";
+import { buildBuilding } from "./building.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen } from "./ui.js";
 
 const loader = document.getElementById("loader");
@@ -23,7 +24,7 @@ function focusOn(hit) {
 bindFocusControl({
   onFocusEnd() { if (focus) { targetZ = focus.savedZ; focus = null; } },
   goToHit(hit) {
-    targetZ = THREE.MathUtils.clamp(-hit.position.z - 4, 0, maxZ());
+    targetZ = THREE.MathUtils.clamp(hit.position.z - 4, 0, maxZ());
     focusOn(hit);
   },
 });
@@ -99,18 +100,20 @@ function loop() {
   if (focus) {
     const h = focus.hit;
     const side = h.userData.side;
-    const goal = new THREE.Vector3(h.position.x - side * h.userData.focusDist * 0.55, 1.55, h.position.z + h.userData.focusDist);
+    // Amfilada biegnie w stronę +Z, więc kamera staje PRZED eksponatem, czyli
+    // po jego stronie mniejszego Z — inaczej oglądałaby go od tyłu, zza ściany.
+    const goal = new THREE.Vector3(h.position.x - side * h.userData.focusDist * 0.55, 1.55, h.position.z - h.userData.focusDist);
     camera.position.lerp(goal, reduceMotion ? 1 : 0.08);
     const look = h.position.clone(); look.y = 1.2;
     camera.lookAt(look);
   } else {
     curZ += (targetZ - curZ) * ease;
     const sway = reduceMotion ? 0 : Math.sin(curZ * 0.3) * 0.4;
-    camera.position.set(sway, 1.6, -curZ + 6);
-    camera.lookAt(sway * 0.5, 1.35, -curZ - 6);
+    camera.position.set(sway, 1.6, curZ - 6);
+    camera.lookAt(sway * 0.5, 1.35, curZ + 6);
   }
 
-  hudEra.textContent = eraAt(focus ? -focus.hit.position.z : curZ);
+  hudEra.textContent = eraAt(focus ? focus.hit.position.z : curZ);
   for (const fn of tickers) {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
   }
@@ -134,8 +137,12 @@ Promise.all([
   document.fonts.load("600 30px 'Schibsted Grotesk'"),
 ]).catch(() => {}).finally(() => {
   try {
+    // Kolejność jest wiążąca: dopiero rozstawione eksponaty wiedzą, jak długa
+    // ma być każda sala, a dopiero gotowy budynek zna zasięg linii EKG.
     buildCorridor();
-    buildFloor(totalLength());
+    const budynek = buildBuilding(dlugosciSal());
+    window.__mz.budynek = budynek;
+    buildEkg(budynek.sale[0].odZ, budynek.sale.at(-1).doZ);
     buildList();
   } catch (err) { console.error("build error:", err); }
   loop();
