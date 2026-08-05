@@ -142,6 +142,13 @@ Promise.all([
     gracz.controls.addEventListener("lock", dismissHint);   // podpowiedź gaśnie, gdy zwiedzający wejdzie do środka
     window.__mz.gracz = gracz;
     window.__mz.go = (z) => gracz.teleportuj(z);   // dokończenie uchwytu go() zaczętego w render.js
+
+    // Zamyka ewentualną otwartą tabliczkę — tura przejmuje kamerę całkowicie,
+    // nie ma sensu trzymać jej otwartej nad eksponatem, który zaraz zniknie z widoku.
+    document.getElementById("btn-tura").addEventListener("click", () => {
+      endFocus();
+      gracz.oprowadz(budynek.sale);
+    });
   } catch (err) { console.error("build error:", err); }
   loop();
 });

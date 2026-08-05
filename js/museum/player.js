@@ -28,6 +28,15 @@ const AMPLITUDA_KROKU = 0.025;   // bujanie kamery w pionie [m]
    kroku dorosłego człowieka — a przy biegu odpowiednio szybciej. */
 const TEMPO_KROKU = 0.0042;
 
+// Martwa strefa joysticka — poniżej tego wychylenia kciuk nie liczy się jako naciśnięty kierunek.
+const MARTWA_STREFA = 0.15;
+
+/* ── Stałe trybu „Oprowadź mnie” — kamera jedzie środkiem amfilady i
+   zatrzymuje się w środku każdej sali. */
+const PROG_DOJAZDU = 0.3;    // [m] — bliżej celu niż to uznajemy dojazd za zakończony
+const POSTOJ_TURY = 2.5;     // [s] — ile stoi w środku sali, zanim ruszy dalej
+const TEMPO_TURY = 3.5 * (reduceMotion ? 0.6 : 1);   // [m/s] jazdy; zwolniona 40% przy prefers-reduced-motion
+
 /* Górny limit kroku całkowania. Przy 0,05 s i biegu (9,9 m/s) kapsuła przesuwa
    się o 0,49 m na klatkę, a żeby przeskoczyć ścianę o grubości 0,4 m musiałaby
    pokonać ponad 1,1 m (0,4 grubości + dwa promienie kapsuły) — zapas jest
@@ -35,6 +44,67 @@ const TEMPO_KROKU = 0.0042;
    margines i gracz wyszedłby przez ścianę, dlatego limit pilnujemy tutaj, a nie
    tylko po stronie pętli w main.js. */
 const MAX_KROK = 0.05;
+
+/* ── Dotyk: joystick i rozglądanie ────────────────────────────────────────
+   Telefon nie ma PointerLockControls, więc to jedyna droga ruchu: lewa połowa
+   ekranu to analogowy joystick (naRuch(dx, dy) karmi wcisniete() niżej),
+   prawa obraca kamerę jak przeciągnięcie myszą przy zablokowanym kursorze.
+   Każdy gest śledzi WŁASNY identifier dotyku, więc działają jednocześnie.
+
+   Nasłuch wisi na całym oknie, więc naUi() jest konieczne: bez niego
+   przewijanie listy eksponatów albo dotknięcie tabliczki/nagłówka HUD
+   kręciłoby kamerą albo pchało joystick zamiast obsłużyć się samo. */
+function joystick(naRuch) {
+  const host = document.createElement("div");
+  host.className = "joy"; host.hidden = true;
+  host.innerHTML = '<span class="joy-kciuk"></span>';
+  document.body.appendChild(host);
+  const kciuk = host.querySelector(".joy-kciuk");
+  let id = null, sx = 0, sy = 0;
+  let idRozgladania = null, ostatniX = 0;
+
+  const naUi = (t) => !!t.target.closest?.(".plaque, .list-panel, .hud-top");
+
+  addEventListener("touchstart", (e) => {
+    for (const t of e.changedTouches) {
+      if (naUi(t)) continue;
+      host.hidden = false;                       // pokaż dopiero przy pierwszym dotyku
+      if (t.clientX <= innerWidth / 2) {
+        if (id !== null) continue;
+        id = t.identifier; sx = t.clientX; sy = t.clientY;
+        host.style.left = `${sx}px`; host.style.top = `${sy}px`;
+        host.classList.add("aktywny");
+      } else if (idRozgladania === null) {
+        idRozgladania = t.identifier; ostatniX = t.clientX;
+      }
+    }
+  }, { passive: true });
+
+  addEventListener("touchmove", (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === id) {
+        const dx = THREE.MathUtils.clamp((t.clientX - sx) / 60, -1, 1);
+        const dy = THREE.MathUtils.clamp((t.clientY - sy) / 60, -1, 1);
+        kciuk.style.transform = `translate(${dx * 26}px, ${dy * 26}px)`;
+        naRuch(dx, -dy);
+      } else if (t.identifier === idRozgladania) {
+        camera.rotation.y -= (t.clientX - ostatniX) * 0.004;
+        ostatniX = t.clientX;
+      }
+    }
+  }, { passive: true });
+
+  addEventListener("touchend", (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === id) {
+        id = null; kciuk.style.transform = ""; host.classList.remove("aktywny");
+        naRuch(0, 0);
+      } else if (t.identifier === idRozgladania) {
+        idRozgladania = null;
+      }
+    }
+  }, { passive: true });
+}
 
 export function initPlayer(kolizje) {
   const octree = new Octree().fromGraphNode(kolizje);
@@ -50,20 +120,30 @@ export function initPlayer(kolizje) {
   const przod = new THREE.Vector3(), bok = new THREE.Vector3();
   const ruch = new THREE.Vector3(), krok = new THREE.Vector3();
   let naZiemi = false;
+  let joyX = 0, joyY = 0;    // wychylenie joysticka: X = bok, Y = przód (dodatnie = do przodu)
+  let tura = null;           // stan trybu „Oprowadź mnie” — patrz oprowadz()/updateTura()
 
   addEventListener("keydown", (e) => { klawisze[e.code] = true; });
   addEventListener("keyup", (e) => { klawisze[e.code] = false; });
+  joystick((dx, dy) => { joyX = dx; joyY = dy; });
 
-  /* Klawisze, które w tej klatce mają prawo ruszyć graczem.
+  /* Klawisze i dotyk, które w tej klatce mają prawo ruszyć graczem.
 
-     Bez blokady kursora nie rusza go nic: przed pierwszym kliknięciem gracz stoi
-     w atrium, a po Esc (otwarta tabliczka eksponatu albo lista) świat nie ma
-     uciekać pod panelem, po którym akurat wodzi się myszą.
+     Klawiatura rusza tylko po blokadzie kursora (przed pierwszym kliknięciem
+     gracz stoi w atrium; po Esc świat nie ma uciekać pod otwartą tabliczką).
+     Dotyk (`dotyk` niżej) NIE jest tak bramkowany — telefon nie zna blokady
+     kursora, a joystick i tak pokazuje się tylko na urządzeniach dotykowych
+     (patrz media query w museum.css). Wychylenie poniżej MARTWA_STREFA liczy
+     się jako brak kierunku, dokładnie jak niewciśnięty klawisz.
 
-     `__mz.testRuch` omija tę bramkę — sonda weryfikacyjna nie ma jak wywołać
-     blokady kursora, bo ta wymaga prawdziwego gestu użytkownika. */
+     `__mz.testRuch` omija resztę bramki — sonda nie ma jak wywołać blokady,
+     bo ta wymaga prawdziwego gestu użytkownika. */
   function wcisniete() {
-    return { ...(controls.isLocked ? klawisze : null), ...window.__mz?.testRuch };
+    const dotyk = {
+      KeyW: joyY > MARTWA_STREFA, KeyS: joyY < -MARTWA_STREFA,
+      KeyD: joyX > MARTWA_STREFA, KeyA: joyX < -MARTWA_STREFA,
+    };
+    return { ...(controls.isLocked ? klawisze : null), ...dotyk, ...window.__mz?.testRuch };
   }
 
   function kierunek(w) {
@@ -95,6 +175,26 @@ export function initPlayer(kolizje) {
     naZiemi = w.normal.y > 0;
     if (!naZiemi) predkosc.addScaledVector(w.normal, -w.normal.dot(predkosc));
     kapsula.translate(w.normal.multiplyScalar(w.depth));
+  }
+
+  /* Krok trybu „Oprowadź mnie”: jazda środkiem amfilady do środka kolejnej
+     sali, POSTOJ_TURY sekund postoju, dalej. Celowo bez kolizja()/grawitacji —
+     jazda na szynach, nie fizyka. Zwraca true, dopóki tura trwa — update(dt)
+     wtedy pomija resztę swojej logiki. */
+  function updateTura(dt) {
+    if (!tura) return false;
+    const cel = tura.sale[tura.i];
+    if (!cel) { tura = null; return false; }        // ostatnia sala minęła postój — koniec trasy
+    if (tura.faza === "jazda") {
+      const dz = cel.srodekZ - kapsula.end.z;
+      if (Math.abs(dz) < PROG_DOJAZDU) { tura.faza = "postoj"; tura.czas = 0; }
+      else kapsula.translate(new THREE.Vector3(0, 0, Math.sign(dz) * Math.min(TEMPO_TURY * dt, Math.abs(dz))));
+    } else {
+      tura.czas += dt;
+      if (tura.czas > POSTOJ_TURY) { tura.i++; tura.faza = "jazda"; }
+    }
+    camera.position.copy(kapsula.end);
+    return true;
   }
 
   return {
@@ -136,10 +236,25 @@ export function initPlayer(kolizje) {
       else camera.rotation.set(0, Math.PI, 0);
     },
 
+    /* Autopilot: `sale` to budynek.sale z building.js. Patrz prosto w głąb
+       amfilady, zanim ruszy — inaczej ciągnęłaby gracza tyłem do kierunku
+       jazdy. Przerwanie nie ma osobnej metody: robi to każdy czynny ruch,
+       klawiszem albo joystickiem — patrz update(). */
+    oprowadz(sale) {
+      camera.rotation.set(0, Math.PI, 0);
+      tura = { i: 0, faza: "jazda", czas: 0, sale };
+    },
+
     update(dt) {
       dt = Math.min(dt, MAX_KROK);       // patrz MAX_KROK: zapas przed przeniknięciem przez ścianę
       const w = wcisniete();
       const d = kierunek(w);
+      /* Dowolny czynny ruch (klawisz albo joystick, oba przez `d`) przerywa
+         turę. Rozglądanie się NIE przeszkadza z premedytacją — ma działać
+         jak patrzenie przez okno jadącego pociągu, nie wysiadanie z niego. */
+      const ruszaSie = d.lengthSq() > 0;
+      if (ruszaSie) tura = null;
+      if (updateTura(dt)) return;
       const tempo = PREDKOSC * (w.ShiftLeft || w.ShiftRight ? BIEG : 1);
       predkosc.x = d.x * tempo;
       predkosc.z = d.z * tempo;
@@ -155,7 +270,7 @@ export function initPlayer(kolizje) {
       kolizja();
       camera.position.copy(kapsula.end);
       // bujanie kroku — wyłączone przy prefers-reduced-motion
-      if (!reduceMotion && d.lengthSq() > 0 && naZiemi) {
+      if (!reduceMotion && ruszaSie && naZiemi) {
         camera.position.y += Math.sin(performance.now() * TEMPO_KROKU * tempo) * AMPLITUDA_KROKU;
       }
     },
