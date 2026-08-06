@@ -15,11 +15,17 @@ window.__mz.interactives = interactives;
    perf.js. `komunikat` to jedyny most między perf.js a DOM-em — perf.js celowo
    nie wie nic o HTML-u. Ten sam kanał (#hud-perf) obsługuje też komunikat
    o ślepym zaułku tury niżej, żeby gość miał jedno miejsce, gdzie szukać
-   informacji zwrotnej od muzeum. */
+   informacji zwrotnej od muzeum.
+
+   Trzy wywołania mogą trafić w ten sam element (dwa z perf.js, jedno z
+   ślepego zaułka tury) — bez pamiętania poprzedniego timera stary `setTimeout`
+   chowałby świeżo podmieniony tekst przedwcześnie, bo nic go nie anulowało. */
+let chowanieId = null;
 function komunikat(t) {
   const el = document.getElementById("hud-perf");
   el.textContent = t; el.hidden = false;
-  setTimeout(() => { el.hidden = true; }, 6000);
+  clearTimeout(chowanieId);
+  chowanieId = setTimeout(() => { el.hidden = true; }, 6000);
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
