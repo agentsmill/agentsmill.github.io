@@ -9,7 +9,10 @@ Atrybucja poniżej jest dobrowolna, z szacunku dla autorów.
 | `beton_*.webp` | [smooth_concrete_floor](https://polyhaven.com/a/smooth_concrete_floor) | CC0 |
 | `parkiet_*.webp` | [rectangular_parquet](https://polyhaven.com/a/rectangular_parquet) | CC0 |
 | `tynk_*.webp` | [plastered_wall_04](https://polyhaven.com/a/plastered_wall_04) | CC0 |
-| `metal_*.webp` | [metal_plate_02](https://polyhaven.com/a/metal_plate_02) | CC0 |
+
+Zestaw `metal_*` (metal_plate_02) leżał tu wcześniej, ale `loadPBR()` wołane jest
+wyłącznie z „beton", „parkiet" i „tynk" — trzy pliki (544 kB, jedna piąta wagi
+katalogu `assets/`) nie były używane przez ani jedną linię kodu. Usunięte.
 
 Każdy zestaw ma trzy pliki: `_kolor` (mapa Diffuse/albedo), `_normal` (mapa `nor_gl`,
 konwencja OpenGL — zgodna z domyślnym odczytem three.js) i `_arm` (mapa łączona:
