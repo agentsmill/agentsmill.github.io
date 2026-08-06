@@ -25,7 +25,17 @@ const GRUB = 0.4;          // grubość ścian, stropów i nadproży
 const KAFEL = 4;           // metry świata na jeden kafel tekstury
 const SWIETLIK = 6;        // bok kwadratowej dziury w stropie atrium
 const ODSTEP_REFLEKTOROW = 16;   // co ile metrów sali stawiać reflektor
-const MAX_REFLEKTOROW = 3;       // dłuższa sala i tak ginie we mgle (10–60 m)
+/* Górna granica reflektorów NA SALĘ. Trójka (dawna wartość) była policzona pod
+   mgłę: skoro widać i tak tylko 60 m, po co więcej. Ale w sali flagowej — 126 m
+   i 23 projekty — trzy reflektory to rozstaw 42 m przy zasięgu 16 m, więc dwie
+   trzecie sali stały w czerni jeszcze zanim mgła cokolwiek zasłoniła. Ósemka
+   daje w tej sali rozstaw ~15,8 m, czyli stożki stykają się na całej długości.
+
+   To NIE dotyka limitu map cieni: cień rzuca dalej dokładnie jeden reflektor na
+   salę (patrz `srodkowy` w swiatloSali), reszta świeci bez cienia i nie kosztuje
+   ani jednej jednostki tekstur. Sumarycznie 7 map cieni przy limicie 8 —
+   tak samo jak przed zmianą. */
+const MAX_REFLEKTOROW = 8;
 
 /* Twardy limit, nie kwestia gustu: fragment shader ma 16 jednostek tekstur.
    Pięć zjada sam materiał PBR (kolor, normalna, AO, roughness, metalness),

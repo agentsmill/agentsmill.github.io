@@ -287,11 +287,33 @@ const EXHIBIT_BUILDERS = {
   "naszwhisper": exWhisper, "anatomy": exAnatomy,
 };
 
+/* Zrzuty, które FAKTYCZNIE leżą w assets/shots.
+
+   Ścieżka pliku powstaje z `p.shot` albo — gdy go nie ma — z `${p.id}.jpeg`,
+   a 27 z 49 eksponatów nie ma własnego zrzutu. Bez tej listy każde wejście do
+   muzeum wysyłało za nie 27 osobnych żądań; GitHub Pages odpowiada na brakującą
+   ścieżkę pełną stroną 404 o wadze 9 379 bajtów, czyli ~250 kB śmieci na wizytę
+   (dziesiąta część całego budżetu assetów). Pusty `onError` niżej połykał to
+   bez jednego słowa w konsoli.
+
+   Lista siedzi tutaj, a nie w danych, bo js/projects-data.js jest poza zasięgiem
+   tej poprawki. PRZY DODAWANIU ZRZUTU: wrzuć plik do assets/shots ORAZ dopisz
+   jego nazwę poniżej — inaczej nie pojawi się w muzeum. */
+const ZRZUTY = new Set([
+  "age-of-agents.jpeg", "ai-video-portfolio.jpeg", "anatomy.jpeg", "aule-energy.jpeg",
+  "autoprocurer.jpeg", "bajarz.jpeg", "bilans-tokenow.jpeg", "ekspres-leona.jpeg",
+  "empowerher.jpeg", "korpolajf.jpeg", "lastbox.jpeg", "open-droids.jpeg",
+  "oze-developer-manager.jpeg", "pokemate-hub.jpeg", "residual-stream.jpeg",
+  "reverie.jpeg", "slyd.jpeg", "szkola-claude.jpeg", "tibijka.jpeg",
+  "token-drag-race.jpeg", "token-golf.jpeg", "wdrozenie-ai.jpeg", "wspolnik.jpeg",
+]);
+
 /* Oprawiony zrzut ekranu — ładowany asynchronicznie, znika jeśli pliku brak. */
 const texLoader = new THREE.TextureLoader();
 function framedShot(p, w = 2.2) {
   const g = new THREE.Group();
   const file = p.shot || `${p.id}.jpeg`;
+  if (!ZRZUTY.has(file)) return g;     // nie ma pliku — nie zawracamy głowy serwerowi
   texLoader.load(
     `assets/shots/${file}`,
     (tex) => {
