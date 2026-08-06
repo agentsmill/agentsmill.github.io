@@ -216,6 +216,10 @@ export function initPlayer(kolizje) {
     zablokowany: () => controls.isLocked,
     naZiemi: () => naZiemi,
     pozycja: () => kapsula.end.clone(),
+    /* Samo z — bez alokacji. `pozycja()` klonuje Vector3, a wskaźnik sali
+       w main.js potrzebuje z pozycji gracza w KAŻDEJ klatce; klon na śmietnik
+       60 razy na sekundę to jedyny koszt, jaki ten odczyt miał. */
+    pozycjaZ: () => kapsula.end.z,
     wTurze: () => !!tura,   // main.js zmienia etykietę przycisku, patrz oprowadz()
 
     /* Wejście w tryb chodzenia i wyjście z niego. Ten moduł CELOWO nie nasłuchuje

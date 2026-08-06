@@ -33,8 +33,12 @@ a { color: var(--pulse); }
   position: fixed; inset: 0; z-index: 60;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
   background: var(--bg); transition: opacity 0.6s ease;
+  /* Loader niczego nie obsługuje, więc nie ma prawa przechwytywać kliknięć.
+     Bez tego przy zawieszonym ładowaniu nieklikalny był nawet link
+     „← Karta budowania" pod spodem — jedyne wyjście z zawieszonej strony. */
+  pointer-events: none;
 }
-#loader.done { opacity: 0; pointer-events: none; }
+#loader.done { opacity: 0; }
 #loader p { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
 #loader svg path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: draw 1.6s ease-in-out infinite; }
 @keyframes draw { 50% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -260; } }
@@ -58,13 +62,40 @@ a { color: var(--pulse); }
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--pulse-dim); text-align: center;
 }
+/* `left: 0; right: 0` zamiast dawnego `left: 50%` + translateX. Przesunięcie
+   transformem jest CZYSTO wizualne: układ nadal liczył szerokość od połowy
+   ekranu w prawo, więc podpowiedź miała do dyspozycji 195 px z 390 i łamała się
+   na pięć wierszy. Teraz akapit zajmuje całą szerokość, a wyśrodkowuje go
+   text-align. */
 .hud-hint {
-  position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 1.1rem; left: 0; right: 0;
   z-index: 30; font-family: var(--font-mono); font-size: 0.72rem;
   letter-spacing: 0.08em; color: var(--ink-faint); text-align: center;
-  padding: 0 1rem; transition: opacity 0.8s ease;
+  padding: 0 1.2rem; transition: opacity 0.8s ease;
 }
 .hud-hint.gone { opacity: 0; }
+/* Wariant dla dotyku — kryterium to samo, co przy joysticku na końcu pliku
+   (urządzenie bez precyzyjnego wskaźnika). Kto dostaje joystick, dostaje też
+   podpowiedź o kciukach zamiast o klawiszu Shift. */
+.hint-dotyk { display: none; }
+@media (hover: none), (pointer: coarse) {
+  .hint-mysz { display: none; }
+  .hint-dotyk { display: inline; }
+}
+
+/* Celownik — kropka na środku ekranu w trybie chodzenia. Jasna z ciemną
+   obwódką, żeby była czytelna i na białej ścianie, i w ciemnym końcu sali;
+   przy najechaniu na eksponat robi się bursztynowa i puchnie. */
+#celownik {
+  position: fixed; left: 50%; top: 50%; z-index: 35;
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%; pointer-events: none;
+  background: rgba(233, 237, 245, 0.6);
+  box-shadow: 0 0 0 1px rgba(12, 16, 24, 0.6);
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+#celownik[hidden] { display: none; }
+#celownik.celuje { background: var(--pulse); transform: scale(1.8); }
 
 /* Tabliczka */
 .plaque {
@@ -133,10 +164,29 @@ a { color: var(--pulse); }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
   background: var(--bg); text-align: center; padding: 2rem;
 }
+#no-webgl p { max-width: 34rem; color: var(--ink-dim); }
 #no-webgl[hidden], .plaque[hidden], .list-panel[hidden] { display: none; }
 
+/* ── Telefon ──────────────────────────────────────────────────────────────
+   Platforma główna, nie wariant awaryjny: to wizytówka otwierana z LinkedIna.
+   Trzy rzeczy naraz — nagłówek mieści się w jednym wierszu (wcześniej łamał
+   się na dwa i zjadał 77 px), przyciski zostają na tyle duże, żeby trafić
+   w nie kciukiem, a wskaźnik sali WRACA (był `display: none`, więc gość nie
+   miał skąd wiedzieć, w której z sześciu sal stoi) — własnym, wąskim wierszem
+   pod przyciskami. */
 @media (max-width: 640px) {
-  .hud-era { display: none; }
+  .hud-top { padding: 0.4rem 0.6rem; gap: 0.35rem; flex-wrap: wrap; }
+  .hud-back, .hud-list {
+    font-size: 0.62rem; letter-spacing: 0.03em; padding: 0.4rem 0.6rem;
+    min-height: 32px; display: inline-flex; align-items: center; white-space: nowrap;
+  }
+  .hud-tekst { display: none; }          /* zostaje „←" i „Lista"; pełne nazwy w aria-label */
+  .hud-era {
+    display: block; order: 5; flex: 0 0 100%;
+    margin: 0.2rem 0 0; font-size: 0.62rem; letter-spacing: 0.05em; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hud-hint { font-size: 0.66rem; letter-spacing: 0.05em; bottom: 0.9rem; }
   .plaque { left: 1.2rem; right: 1.2rem; width: auto; }
 }
 

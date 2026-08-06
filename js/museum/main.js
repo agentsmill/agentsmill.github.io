@@ -42,6 +42,7 @@ let gracz = null;
 let budynek = null;         // {kolizje, sale} — z building.js; hoisted, żeby loop() widział budynek.sale
 let focus = null;           // {hit} — eksponat z otwartą tabliczką
 let byloWTurze = false;     // ostatnio odczytany stan gracz.wTurze() — do wykrywania zmiany w loop()
+let bylaSala = null;        // ostatnio wpisany opis sali — j.w., patrz loop()
 
 /* KOLEJNOŚĆ W TEJ FUNKCJI JEST WIĄŻĄCA — najpierw treść, potem przeglądarka.
 
@@ -86,8 +87,16 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") { endFocus(); close
 
 /* wskaźnik + klik przez raycaster */
 const ray = new THREE.Raycaster();
+/* Zasięg wskazywania. Bez niego jeden klik potrafił otworzyć tabliczkę
+   eksponatu oddalonego o kilkadziesiąt metrów — trafionego przez pół sali,
+   często niewidocznego, bo mgła gaśnie na 60 m. Czternaście metrów to mniej
+   więcej „to, co stoi przede mną": sala ma 14 m szerokości, a eksponaty przy
+   ścianach są od osi amfilady o 4–5 m. */
+ray.far = 14;
 const pointer = new THREE.Vector2();
+const celownik = document.getElementById("celownik");
 let hovered = null;
+let bylHovered = false;    // ostatnio zapisany stan celownika — patrz pick()
 let downAt = null;
 
 renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
@@ -109,16 +118,25 @@ renderer.domElement.addEventListener("pointerup", (e) => {
 });
 renderer.domElement.addEventListener("pointermove", (e) => { pick(e); });
 
+// `e` jest opcjonalne: w trybie chodzenia celujemy środkiem ekranu, więc pętla
+// woła pick() bez żadnego zdarzenia (patrz loop()).
 function pick(e) {
   // Przy zablokowanym kursorze mysz nie ma pozycji na ekranie (jej zdarzenia
   // niosą już tylko przesunięcia), więc celujemy środkiem ekranu — tam, gdzie
   // gracz patrzy. Bez tego wskaźnik zamarzałby w miejscu ostatniego kliknięcia.
   if (gracz?.zablokowany()) pointer.set(0, 0);
-  else pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  else if (e) pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  else return;                    // ani blokady, ani zdarzenia — nie ma czym celować
   ray.setFromCamera(pointer, camera);
   const hitList = ray.intersectObjects(interactives, false);
   hovered = hitList.length ? hitList[0].object : null;
-  renderer.domElement.style.cursor = hovered ? "pointer" : "default";
+  // Zapis do DOM tylko przy zmianie celu: pick() chodzi teraz co klatkę, dopóki
+  // trwa spacer, a nie wyłącznie przy ruchu myszy.
+  if (!!hovered !== bylHovered) {
+    bylHovered = !!hovered;
+    renderer.domElement.style.cursor = bylHovered ? "pointer" : "default";
+    celownik.classList.toggle("celuje", bylHovered);
+  }
 }
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
@@ -136,10 +154,21 @@ function loop() {
 
   if (gracz) {
     gracz.update(dt);
-    // Wskaźnik sali idzie za pozycją gracza, nie za otwartą tabliczką: fokus
-    // już nie przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego
-    // pozycja, przepuszczona przez salaZ() (ui.js) i sale z budynek.js.
-    hudEra.textContent = salaZ(gracz.pozycja().z, budynek.sale, ERAS);
+    // W trybie chodzenia celownik pokazuje to, co na środku ekranu — a to
+    // zmienia się od samego chodzenia, nie tylko od ruchu myszy. Bez tej linii
+    // kropka zapalałaby się dopiero przy drgnięciu ręką.
+    if (gracz.zablokowany()) pick();
+    /* Wskaźnik sali idzie za pozycją gracza, nie za otwartą tabliczką: fokus
+       już nie przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego
+       pozycja, przepuszczona przez salaZ() (ui.js) i sale z budynek.js.
+
+       Zapis TYLKO przy zmianie. #hud-era ma aria-live="polite", więc każde
+       przypisanie jest ogłaszane czytnikowi ekranu — bezwarunkowe pisanie 60
+       razy na sekundę zamieniało wskaźnik w nieprzerwany strumień mowy.
+       Etykieta przycisku niżej była bramkowana od początku; to była
+       niekonsekwencja, nie decyzja. */
+    const opisSali = salaZ(gracz.pozycjaZ(), budynek.sale, ERAS);
+    if (opisSali !== bylaSala) { bylaSala = opisSali; hudEra.textContent = opisSali; }
     // Widoczny sygnał, że tura trwa, i jak ją przerwać: etykieta przycisku sama
     // się zmienia. Czytane co klatkę, ale zapisywane do DOM tylko przy zmianie.
     const wTurze = gracz.wTurze();
@@ -152,7 +181,10 @@ function loop() {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
   }
   composer.render();
-  if (firstFrame) { firstFrame = false; loader.classList.add("done"); }
+  // Pierwsza klatka = muzeum stoi. Gasimy ekran ładowania i rozbrajamy strażnika
+  // ładowania z museum.html (`?.` — bo strażnik jest w stronie, nie w module,
+  // i testy jednostkowe modułu mogą go nie mieć).
+  if (firstFrame) { firstFrame = false; loader.classList.add("done"); window.__mzOtwarte?.(); }
 }
 
 addEventListener("resize", () => {
@@ -182,6 +214,18 @@ Promise.all([
     gracz = initPlayer(budynek.kolizje);
     gracz.teleportuj(2);                     // dwa metry w głąb atrium, przodem do amfilady
     gracz.controls.addEventListener("lock", dismissHint);   // podpowiedź gaśnie, gdy zwiedzający wejdzie do środka
+    // Na telefonie blokada wskaźnika nie następuje nigdy, więc powyższe zdarzenie
+    // też nie — bez tej linii podpowiedź wisiałaby nad joystickiem do końca wizyty.
+    addEventListener("touchstart", dismissHint, { once: true, passive: true });
+    // Celownik żyje dokładnie tak długo, jak tryb chodzenia. Na telefonie
+    // blokady nie ma, więc kropka nie pojawi się tam ani razu — i słusznie,
+    // bo dotyk celuje palcem, nie środkiem ekranu.
+    gracz.controls.addEventListener("lock", () => { celownik.hidden = false; });
+    gracz.controls.addEventListener("unlock", () => {
+      celownik.hidden = true;
+      celownik.classList.remove("celuje");
+      bylHovered = false;
+    });
     window.__mz.gracz = gracz;
     window.__mz.go = (z) => gracz.teleportuj(z);   // dokończenie uchwytu go() zaczętego w render.js
 
