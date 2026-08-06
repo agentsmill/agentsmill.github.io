@@ -43,14 +43,28 @@ let budynek = null;         // {kolizje, sale} — z building.js; hoisted, żeby
 let focus = null;           // {hit} — eksponat z otwartą tabliczką
 let byloWTurze = false;     // ostatnio odczytany stan gracz.wTurze() — do wykrywania zmiany w loop()
 
+/* KOLEJNOŚĆ W TEJ FUNKCJI JEST WIĄŻĄCA — najpierw treść, potem przeglądarka.
+
+   Treść eksponatu nie może zależeć od powodzenia czegokolwiek, co dotyka
+   warstwy przeglądarki. W poprzedniej wersji `odblokuj()` szło pierwsze, a ono
+   schodzi ostatecznie do `exitPointerLock()` — metody, której WebKit na iOS
+   w ogóle nie ma. Rzucony tam TypeError przerywał całą funkcję, więc na
+   iPhonie żaden z 49 eksponatów nie pokazywał opisu: dało się chodzić po
+   muzeum, ale nie dało się go zwiedzić.
+
+   Zabezpieczenie samego wywołania siedzi w player.js (odblokuj/zablokuj), ale
+   to jest druga linia obrony. Ta kolejność jest pierwszą: gdyby ktoś kiedyś
+   wprowadził poniżej nowy wyjątek, tabliczka i tak zdąży się otworzyć. */
 function focusOn(hit) {
   focus = { hit };
+  openPlaque(hit);
+  // Animacja eksponatu to kod z exhibits.js — miła, ale nieobowiązkowa: jej
+  // awaria nie ma prawa zabrać ze sobą oddania myszki.
+  try { hit.userData.exhibit?.activate?.(); } catch (err) { console.error("activate error:", err); }
   // Tabliczka to zwykły panel HTML z linkami i przyciskiem „Wróć do spaceru” —
   // przy schowanym kursorze nie da się w nie trafić. Otwarcie tabliczki oddaje
   // więc myszkę; z powrotem w chodzenie wchodzi się kliknięciem w scenę.
   gracz?.odblokuj();
-  hit.userData.exhibit?.activate?.();
-  openPlaque(hit);
 }
 
 bindFocusControl({

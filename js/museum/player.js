@@ -232,10 +232,26 @@ export function initPlayer(kolizje) {
          po wyjściu Esc, a nieprzechwycone odrzucenie wylądowałoby w window.__errs
          i zaśmiecało weryfikację. Stan blokady i tak śledzą `controls` — przez
          zdarzenie pointerlockchange, niezależnie od tego, kto o nią poprosił.
-         Starsze przeglądarki nie zwracają obietnicy, stąd `?.catch?.()`. */
-      renderer.domElement.requestPointerLock()?.catch?.(() => {});
+         Starsze przeglądarki nie zwracają obietnicy, stąd `?.catch?.()`.
+
+         `requestPointerLock?.()` — bo są przeglądarki bez Pointer Lock API
+         w ogóle (WebKit na iOS): tam ta metoda nie istnieje i gołe wywołanie
+         rzuciłoby TypeError. Brak blokady na telefonie niczego nie psuje —
+         ruch idzie joystickiem, który blokady nie potrzebuje. */
+      renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
     },
-    odblokuj: () => controls.unlock(),
+
+    /* Świadomie NIE wołamy `controls.unlock()`. W three.js r169 to gołe
+       `this.domElement.ownerDocument.exitPointerLock()` — bez `?.` i bez
+       try/catch, a zmienić tego nie możemy, bo to kod biblioteki. WebKit na
+       iOS nie udostępnia Pointer Lock API, więc `exitPointerLock` jest tam
+       `undefined` i wywołanie rzuca TypeError w środku otwierania tabliczki.
+       Tu robimy dokładnie tę samą operację, tylko zabezpieczoną. Stan blokady
+       śledzi i tak `controls` — przez zdarzenie pointerlockchange, niezależnie
+       od tego, kto o zdjęcie blokady poprosił. */
+    odblokuj() {
+      renderer.domElement.ownerDocument.exitPointerLock?.();
+    },
 
     /* Skok na wskazane z, na oś amfilady. `patrzNa` (opcjonalne) obraca kamerę
        ku danemu punktowi — używa tego skok do eksponatu z listy, żeby gracz
