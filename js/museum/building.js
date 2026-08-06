@@ -11,8 +11,8 @@
    tabliczce z podpisem. */
 
 import * as THREE from "three";
-import { scene, M, bx, textSprite } from "./render.js";
-import { loadPBR } from "./textures.js";
+import { scene, M, bx, textSprite } from "muzeum/render.js";
+import { loadPBR } from "muzeum/textures.js";
 
 /* ── Wymiary ──────────────────────────────────────────────────────────────
    Wszystkie w metrach świata. Współdzielone z world.js (pozycje eksponatów)

@@ -1,14 +1,27 @@
 import * as THREE from "three";
-import { renderer, camera, composer, bloom } from "./render.js";
-import { buildCorridor, buildEkg, dlugosciSal, interactives, tickers, eraRanges } from "./world.js";
-import { buildBuilding } from "./building.js";
-import { initPlayer } from "./player.js";
-import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl } from "./ui.js";
+import { renderer, camera, composer, bloom } from "muzeum/render.js";
+import { buildCorridor, buildEkg, dlugosciSal, interactives, tickers } from "muzeum/world.js";
+import { buildBuilding } from "muzeum/building.js";
+import { initPlayer } from "muzeum/player.js";
+import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, salaZ } from "muzeum/ui.js";
+import { initPerf } from "muzeum/perf.js";
 
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
 
 window.__mz.interactives = interactives;
+
+/* Strażnik wydajności: degradacja jednokierunkowa (bloom, potem cienie), patrz
+   perf.js. `komunikat` to jedyny most między perf.js a DOM-em — perf.js celowo
+   nie wie nic o HTML-u. Ten sam kanał (#hud-perf) obsługuje też komunikat
+   o ślepym zaułku tury niżej, żeby gość miał jedno miejsce, gdzie szukać
+   informacji zwrotnej od muzeum. */
+function komunikat(t) {
+  const el = document.getElementById("hud-perf");
+  el.textContent = t; el.hidden = false;
+  setTimeout(() => { el.hidden = true; }, 6000);
+}
+const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
 /* ── Gracz, fokus, interakcja ──────────────────────────────────────────────
    Gracz powstaje dopiero razem z budynkiem (potrzebuje jego warstwy kolizyjnej),
@@ -20,6 +33,7 @@ window.__mz.interactives = interactives;
    niego przenieść. */
 
 let gracz = null;
+let budynek = null;         // {kolizje, sale} — z building.js; hoisted, żeby loop() widział budynek.sale
 let focus = null;           // {hit} — eksponat z otwartą tabliczką
 let byloWTurze = false;     // ostatnio odczytany stan gracz.wTurze() — do wykrywania zmiany w loop()
 
@@ -89,11 +103,6 @@ function pick(e) {
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
 
-function eraAt(z) {
-  const r = eraRanges.find((r) => z >= r.from && z < r.to);
-  return r ? `${r.era.range} — ${r.era.title}` : "";
-}
-
 const clock = new THREE.Clock();
 let firstFrame = true;
 function loop() {
@@ -101,12 +110,16 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
+  // Niezależne od gracz/budynek — strażnik wydajności patrzy tylko na dt
+  // i composer/renderer, więc mierzy klatki nawet gdyby budowa sceny padła.
+  perfTick(dt);
+
   if (gracz) {
     gracz.update(dt);
-    // Nazwa epoki idzie za graczem, nie za otwartą tabliczką: fokus już nie
-    // przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego pozycja.
-    // W atrium (z < 8) żaden zakres nie pasuje i pasek zostaje pusty.
-    hudEra.textContent = eraAt(gracz.pozycja().z);
+    // Wskaźnik sali idzie za pozycją gracza, nie za otwartą tabliczką: fokus
+    // już nie przenosi kamery, więc jedyne wiarygodne „gdzie jestem” to jego
+    // pozycja, przepuszczona przez salaZ() (ui.js) i sale z budynek.js.
+    hudEra.textContent = salaZ(gracz.pozycja().z, budynek.sale, ERAS);
     // Widoczny sygnał, że tura trwa, i jak ją przerwać: etykieta przycisku sama
     // się zmienia. Czytane co klatkę, ale zapisywane do DOM tylko przy zmianie.
     const wTurze = gracz.wTurze();
@@ -141,7 +154,7 @@ Promise.all([
     // Kolejność jest wiążąca: dopiero rozstawione eksponaty wiedzą, jak długa
     // ma być każda sala, a dopiero gotowy budynek zna zasięg linii EKG.
     buildCorridor();
-    const budynek = buildBuilding(dlugosciSal());
+    budynek = buildBuilding(dlugosciSal());   // przypisanie do zmiennej z modułu — patrz deklaracja `let budynek` wyżej
     window.__mz.budynek = budynek;
     buildEkg(budynek.sale[0].odZ, budynek.sale.at(-1).doZ);
     buildList();
@@ -158,7 +171,11 @@ Promise.all([
     btnTura.addEventListener("click", () => {
       if (gracz.wTurze()) { gracz.przerwijTure(); return; }
       endFocus();
-      gracz.oprowadz(budynek.sale);
+      // Jedyny przypadek, w którym przycisk nic nie robi: gość stoi za środkiem
+      // ostatniej sali i oprowadz() (player.js) odmawia startu (tura nigdy nie
+      // cofa). Bez komunikatu wyglądałoby to jak zepsuty przycisk.
+      const ruszylo = gracz.oprowadz(budynek.sale);
+      if (!ruszylo) komunikat("Jesteś już na końcu ekspozycji — nie ma czego zwiedzać do przodu.");
     });
   } catch (err) { console.error("build error:", err); }
   loop();

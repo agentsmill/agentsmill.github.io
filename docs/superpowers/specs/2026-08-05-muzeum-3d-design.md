@@ -189,3 +189,70 @@ poprzednich zmianach:
 - Nie dodaje dźwięku (osobna decyzja, nie pytana)
 - Nie tłumaczy muzeum na angielski (odłożone globalnie)
 - Nie zmienia strony głównej ani danych w `projects-data.js`
+
+## Wynik wdrożenia (Zadanie 7, 2026-08-06)
+
+Siedem zadań zamknięte na gałęzi `muzeum-3d` (bez `push` do `main` — decyzja
+świadoma, patrz niżej). Poniżej wynik względem kryteriów akceptacji z sekcji
+„Oświetlenie" i „Testy".
+
+**FPS.** Zmierzone metodą z Kroku 3 planu (`requestAnimationFrame`, 120 klatek)
+w atrium i w sali 5 („Rok agentów", 23 projekty, najgęstsza z sześciu):
+
+| miejsce | fps (metoda z planu) | ms/klatkę (surowy `composer.render()`, 200 wywołań) |
+|---|---|---|
+| atrium | 121 | 1,55 ms (~644 fps bez limitu) |
+| sala 5 | 122 | 1,45 ms (~690 fps bez limitu) |
+
+Obie liczby są **capowane**, nie realnym sufitem — 121/122 to prawie na pewno
+częstotliwość odświeżania panelu Playwright (blisko 120 Hz), nie granica
+wydajności sceny. Dowód: surowy koszt `composer.render()` (bez `rAF`, bez
+capu) wychodzi ~1,5 ms/klatkę w obu miejscach — to i tak dużo poniżej budżetu
+16,7 ms potrzebnego na 60 fps, więc scena nie jest renderowana na granicy w
+żadnym z dwóch miejsc. Kryterium **≥60 fps na 1440×900 spełnione z dużym
+zapasem** (~2× wprost, i jeszcze więcej wg surowego pomiaru).
+
+**Warunki pomiaru — zastrzeżenie uczciwości.** Pomiar w Playwright (Chromium
+sterowany przez CDP), prawdopodobnie z ograniczeniami headless/wirtualnego
+ekranu — wydajność bywa niereprezentatywna w obie strony względem realnego
+MacBooka z fizycznym ekranem. Telefon **nie został zmierzony fizycznie** —
+środowisko nie miało dostępu do realnego urządzenia mobilnego ani do
+emulacji GPU telefonu; zweryfikowano tylko warstwę interakcji (joystick,
+brak przewijania poziomego przy 390×844), nie fps. Kryterium „≥30 fps na
+telefonie" pozostaje bez własnego pomiaru w tym zadaniu — dziedziczone z
+poprzednich zadań bez nowych danych.
+
+**Żadna z ratunkowych degradacji z planu (mapy cieni 512, ograniczenie
+widoczności sal) nie była potrzebna** — scena mieści się w budżecie przy
+domyślnych ustawieniach (mapy cieni 1024, wszystkie sale renderowane).
+Strażnik wydajności (`perf.js`) został i tak zaimplementowany w pełni jako
+zabezpieczenie na słabszym sprzęcie odwiedzającego (poza tym środowiskiem
+testowym) — nie jako obejście zmierzonego tu problemu, bo problemu nie było.
+
+**Waga assetów.** `du -sh assets/` → **2,5 MB**, poniżej sufitu 10 MB i
+poniżej szacunku z sekcji „Assety" (~4,5 MB) — `assets/museum/` (tekstury
+PBR) waży 1,1 MB, `assets/shots/` (zrzuty ekranu) 1,4 MB. Zadanie 7 nie
+dodało żadnych nowych assetów.
+
+**Co odbiegało od planu i dlaczego:**
+
+- Długość amfilady wyszła 329 m zamiast planowanych 120–200 m (ustalone i
+  zaakceptowane w Zadaniu 4 — gęstość eksponatów tego wymagała; zobacz
+  `progress.md`, wpis Zadania 4).
+- Cache-busting importów modułów nie był częścią pierwotnego planu — dziura
+  odkryta w przeglądzie przed Zadaniem 4, zamknięta w tym zadaniu (Krok 4b)
+  przez import mapy. Dziura była **realna i odtworzona empirycznie** podczas
+  weryfikacji tego zadania: nieodświeżona przeglądarka z wersją sprzed zmiany
+  `ui.js` dostała `SyntaxError: does not provide an export named 'salaZ'` —
+  dokładnie ten scenariusz, przed którym Krok 4b miał chronić. Po naprawie:
+  zwykłe przeładowanie (bez czyszczenia pamięci podręcznej) z podbitą wersją
+  poprawnie ściągnęło wszystkie osiem modułów na nowo.
+- Poza tym żadnych odstępstw — wszystkie sekcje specyfikacji zrealizowane
+  zgodnie z planem z Zadań 1–7 (patrz `docs/superpowers/plans/2026-08-05-muzeum-3d.md`
+  i `.superpowers/sdd/2026-08-05-muzeum-3d/zadanie-7-raport.md` po szczegóły).
+
+**Status wdrożenia:** gałąź `muzeum-3d` gotowa merytorycznie (siedem zadań,
+przeglądy czyste lub z jawnie rozstrzygniętymi wątpliwościami), ale **nie
+scalona z `main` i nie wypchnięta** — GitHub Pages buduje z `main`, więc
+decyzja o wdrożeniu na żywo należy do właściciela strony po szerokim
+przeglądzie całej gałęzi, nie do wykonawcy Zadania 7.

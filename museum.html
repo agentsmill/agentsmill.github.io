@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/museum.css?v=202608060125">
+  <link rel="stylesheet" href="css/museum.css?v=202608060157">
 </head>
 <body>
 
@@ -59,15 +59,26 @@
   <p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>
 </div>
 
-<script src="js/projects-data.js?v=202608060125"></script>
+<!-- Komunikaty strażnika wydajności i ślepego zaułka tury (main.js/perf.js) -->
+<p class="hud-perf" id="hud-perf" hidden></p>
+
+<script src="js/projects-data.js?v=202608060157"></script>
 <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+      "muzeum/render.js":   "./js/museum/render.js?v=202608060157",
+      "muzeum/textures.js": "./js/museum/textures.js?v=202608060157",
+      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202608060157",
+      "muzeum/world.js":    "./js/museum/world.js?v=202608060157",
+      "muzeum/building.js": "./js/museum/building.js?v=202608060157",
+      "muzeum/ui.js":       "./js/museum/ui.js?v=202608060157",
+      "muzeum/player.js":   "./js/museum/player.js?v=202608060157",
+      "muzeum/perf.js":     "./js/museum/perf.js?v=202608060157"
     }
   }
 </script>
-<script type="module" src="js/museum/main.js?v=202608060125"></script>
+<script type="module" src="js/museum/main.js?v=202608060157"></script>
 </body>
 </html>

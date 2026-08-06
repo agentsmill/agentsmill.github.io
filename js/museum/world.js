@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { scene, M, bx, textSprite, CAT_HEX, fmtDate } from "./render.js";
-import { EXHIBIT_BUILDERS, framedShot, plinth } from "./exhibits.js";
-import { SZER_ATRIUM, SZER_SALI } from "./building.js";
+import { scene, M, bx, textSprite, CAT_HEX, fmtDate } from "muzeum/render.js";
+import { EXHIBIT_BUILDERS, framedShot, plinth } from "muzeum/exhibits.js";
+import { SZER_ATRIUM, SZER_SALI } from "muzeum/building.js";
 
 /* ── Rozstawienie eksponatów w salach ─────────────────────────────────────
    Amfilada biegnie w stronę DODATNIEGO Z: atrium kończy się na z = 8, tam

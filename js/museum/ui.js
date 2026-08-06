@@ -1,5 +1,5 @@
-import { fmtDate, CAT_HEX } from "./render.js";
-import { interactives } from "./world.js";
+import { fmtDate, CAT_HEX } from "muzeum/render.js";
+import { interactives } from "muzeum/world.js";
 
 /* ── Tabliczka eksponatu ──────────────────────────────────────────────── */
 
@@ -7,6 +7,18 @@ const plaque = document.getElementById("plaque");
 const hudEra = document.getElementById("hud-era");
 const hint = document.getElementById("hud-hint");
 let moved = false;
+
+/* Wskaźnik sali w HUD: wyliczony z pozycji gracza (nie z curZ ani z otwartej
+   tabliczki — fokus po Zadaniu 5 nie przenosi już kamery, więc jedyne
+   wiarygodne „gdzie jestem" to gracz.pozycja()). `sale` to budynek.sale
+   z building.js ({id, odZ, doZ, srodekZ}); poza amfiladą (atrium, z mniejsze
+   niż odZ pierwszej sali) żadna sala nie pasuje — stąd jawny fallback. */
+function salaZ(z, sale, ERAS) {
+  const s = sale.find((s) => z >= s.odZ && z < s.doZ);
+  if (!s) return "Atrium";
+  const e = ERAS[s.id - 1];
+  return `${s.id}/${sale.length} · ${e.range} — ${e.title}`;
+}
 
 function openPlaque(hit) {
   const p = hit.userData.project;
@@ -80,4 +92,4 @@ function buildList() {
   });
 }
 
-export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen };
+export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen, salaZ };

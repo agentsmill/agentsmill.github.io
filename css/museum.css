@@ -119,6 +119,14 @@ a { color: var(--pulse); }
 .list-item:hover { color: var(--pulse); }
 .list-item .li-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-right: 0.7rem; }
 
+/* Komunikat strażnika wydajności / ślepego zaułka tury */
+.hud-perf {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 30; max-width: 22rem;
+  font-family: var(--font-mono, monospace); font-size: 0.72rem; color: #8C95A8;
+  background: rgba(12,16,24,0.85); border: 1px solid #232B3D;
+  border-radius: 6px; padding: 0.5rem 0.7rem;
+}
+
 /* Fallback */
 #no-webgl {
   position: fixed; inset: 0; z-index: 70;

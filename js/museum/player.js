@@ -11,7 +11,7 @@ import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { Octree } from "three/addons/math/Octree.js";
 import { Capsule } from "three/addons/math/Capsule.js";
-import { camera, renderer, reduceMotion } from "./render.js";
+import { camera, renderer, reduceMotion } from "muzeum/render.js";
 
 /* ── Stałe ruchu ──────────────────────────────────────────────────────────
    Wszystko w metrach i sekundach świata, tak jak wymiary z building.js. */
@@ -257,12 +257,17 @@ export function initPlayer(kolizje) {
        jest PRZED graczem (albo dokładnie tam, gdzie stoi) — kto już przeszedł
        kawałek pieszo, ma jechać dalej, nie tyłem przez zwiedzone sale. Za
        środkiem ostatniej sali nie ma dokąd jechać — tura się nie uruchamia.
-       Przerwanie: czynny ruch (update()) albo ponowny klik (przerwijTure()). */
+       Przerwanie: czynny ruch (update()) albo ponowny klik (przerwijTure()).
+
+       Zwraca true/false — czy tura faktycznie ruszyła. Gość za środkiem
+       ostatniej sali dostaje false: main.js wtedy pokazuje komunikat w
+       #hud-perf, bo inaczej klik nie daje żadnego widocznego skutku. */
     oprowadz(sale) {
       const przedGraczem = sale.filter((s) => s.srodekZ >= kapsula.end.z);
-      if (!przedGraczem.length) return;
+      if (!przedGraczem.length) return false;
       camera.rotation.set(0, Math.PI, 0);
       tura = { i: 0, faza: "jazda", czas: 0, sale: przedGraczem };
+      return true;
     },
     przerwijTure() { tura = null; },
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { M, bx as bxSurowe, textSprite, fmtDate } from "./render.js";
+import { M, bx as bxSurowe, textSprite, fmtDate } from "muzeum/render.js";
 
 /* Bryły eksponatów w oświetlonych salach muszą rzucać cień — inaczej wiszą
    nad podłogą jak naklejki. Ale tylko te z materiału „body": M.glow i M.add są
