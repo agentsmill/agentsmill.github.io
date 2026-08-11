@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/museum.css?v=202608051545">
+  <link rel="stylesheet" href="css/museum.css?v=202608060321">
 </head>
 <body>
 
@@ -25,13 +25,30 @@
 </div>
 
 <!-- HUD -->
+<!-- Etykiety w <span> mają jeden powód: na telefonie chowamy sam tekst, zostawiając
+     strzałkę i skrót. Pełna nazwa zostaje w aria-label, więc czytnik ekranu nic nie
+     traci. Przycisku „Oprowadź mnie" to nie dotyczy — jego treść przepisuje main.js. -->
 <header class="hud-top">
-  <a class="hud-back" href="index.html">← Karta budowania</a>
+  <a class="hud-back" href="index.html" aria-label="Wróć do karty budowania">←<span class="hud-tekst"> Karta budowania</span></a>
   <div class="hud-era" id="hud-era" aria-live="polite"></div>
-  <button class="hud-list" id="btn-list" type="button">Lista eksponatów</button>
+  <button class="hud-list" id="btn-tura" type="button">Oprowadź mnie</button>
+  <button class="hud-list" id="btn-list" type="button" aria-label="Lista eksponatów">Lista<span class="hud-tekst"> eksponatów</span></button>
 </header>
 
-<p class="hud-hint" id="hud-hint">Scrolluj / przesuń palcem, aby iść przez czas · kliknij eksponat, aby go obejrzeć</p>
+<!-- Dwa warianty podpowiedzi. Gość z kciukiem nie ma czego zrobić z instrukcją
+     o WASD, myszce, Shifcie i klawiszu Esc — dostaje swoją. Przełącznik jest
+     w museum.css i używa tego samego kryterium co joystick. -->
+<p class="hud-hint" id="hud-hint">
+  <span class="hint-mysz">Kliknij, aby wejść · <b>WASD</b> chodzi, myszka rozgląda, <b>Shift</b> biegnie · <b>Esc</b> wychodzi</span>
+  <span class="hint-dotyk">Lewy kciuk prowadzi, prawy rozgląda · dotknij eksponatu</span>
+</p>
+
+<!-- Celownik trybu chodzenia. Przy zablokowanym wskaźniku raycaster celuje
+     środkiem ekranu, ale kursor jest schowany — bez tej kropki gość nie ma
+     jak zobaczyć, w co właśnie celuje. Pokazuje i chowa go main.js razem
+     z blokadą wskaźnika, więc na telefonie (gdzie blokady nie ma, a dotyk
+     celuje palcem) nie pojawia się w ogóle. -->
+<div id="celownik" hidden aria-hidden="true"></div>
 
 <!-- Tabliczka eksponatu -->
 <aside class="plaque" id="plaque" role="dialog" aria-modal="false" aria-labelledby="plaque-title" hidden>
@@ -52,16 +69,67 @@
   <div id="list-body"></div>
 </aside>
 
-<!-- Fallback bez WebGL -->
+<!-- Fallback bez WebGL. Ten sam panel obsługuje awarię ładowania (skrypt niżej):
+     w obu wypadkach gość ma przed sobą wyjaśnienie i wyjście, a nie zawieszony ekran. -->
 <div id="no-webgl" hidden>
   <p>Ta przeglądarka nie obsługuje WebGL — muzeum potrzebuje go do życia.</p>
   <p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>
 </div>
 
-<script src="js/projects-data.js?v=202608051545"></script>
-<script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+<!-- Komunikaty strażnika wydajności i ślepego zaułka tury (main.js/perf.js) -->
+<p class="hud-perf" id="hud-perf" hidden></p>
+
+<!-- Strażnik ładowania. main.js rusza dopiero, gdy wczyta się three.js z jsDelivr
+     i dziewięć własnych modułów; wystarczy, że padnie którykolwiek (404,
+     zablokowany CDN, firmowe proxy, brak sieci w tunelu) i pętla nie startuje
+     nigdy, a #loader zostaje na ekranie do końca świata.
+
+     Ten skrypt jest CELOWO zwykły (nie `type="module"`) i wpisany wprost
+     w stronę: ma przeżyć dokładnie tę awarię, w której nie wczytuje się nic
+     innego. Z tego samego powodu nie wisi na window.__mz — ten obiekt powstaje
+     w render.js, czyli w module, którego może zabraknąć. -->
+<script>
+(function () {
+  var CZAS = 10000;         // ~10 s bez pierwszej klatki uznajemy za awarię ładowania
+  var pokazane = false;
+  var czasomierz = setTimeout(function () {
+    // Brak WebGL ma własny komunikat i sam gasi loader — wtedy nie mamy tu nic do roboty.
+    if (document.getElementById("loader").classList.contains("done")) return;
+    var panel = document.getElementById("no-webgl");
+    panel.innerHTML =
+      "<p>Muzeum nie chce się otworzyć — nie udało się wczytać wszystkich jego części.</p>" +
+      "<p>Najczęściej to chwilowy brak sieci albo blokada zewnętrznych skryptów. Spróbuj odświeżyć stronę.</p>" +
+      '<p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>';
+    panel.hidden = false;
+    pokazane = true;
+  }, CZAS);
+  /* Wołane z main.js w pierwszej klatce. Kasuje nie tylko czasomierz, ale i sam
+     komunikat: muzeum, które wstało w dwunastej sekundzie, nie ma prawa zostać
+     przykryte panelem awarii. */
+  window.__mzOtwarte = function () {
+    clearTimeout(czasomierz);
+    if (pokazane) { document.getElementById("no-webgl").hidden = true; pokazane = false; }
+  };
+})();
 </script>
-<script type="module" src="js/museum.js?v=202608051545"></script>
+
+<script src="js/projects-data.js?v=202608060321"></script>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+      "muzeum/render.js":   "./js/museum/render.js?v=202608060321",
+      "muzeum/textures.js": "./js/museum/textures.js?v=202608060321",
+      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202608060321",
+      "muzeum/world.js":    "./js/museum/world.js?v=202608060321",
+      "muzeum/building.js": "./js/museum/building.js?v=202608060321",
+      "muzeum/ui.js":       "./js/museum/ui.js?v=202608060321",
+      "muzeum/player.js":   "./js/museum/player.js?v=202608060321",
+      "muzeum/perf.js":     "./js/museum/perf.js?v=202608060321"
+    }
+  }
+</script>
+<script type="module" src="js/museum/main.js?v=202608060321"></script>
 </body>
 </html>
