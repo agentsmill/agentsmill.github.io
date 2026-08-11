@@ -256,3 +256,53 @@ przeglądy czyste lub z jawnie rozstrzygniętymi wątpliwościami), ale **nie
 scalona z `main` i nie wypchnięta** — GitHub Pages buduje z `main`, więc
 decyzja o wdrożeniu na żywo należy do właściciela strony po szerokim
 przeglądzie całej gałęzi, nie do wykonawcy Zadania 7.
+
+---
+
+## Domknięcie (2026-08-06)
+
+Przegląd całej gałęzi (24 commity) plus jedna fala poprawek 9/9. Gałąź
+`muzeum-3d` scalona do `main` i usunięta.
+
+**Zmierzone na scalonym drzewie:** zero błędów w `window.__errs`, 150 wywołań
+rysowania, 19 962 trójkąty, 49 eksponatów, 6 sal, 329 m, 51 brył kolizyjnych,
+wszystkie moduły z parametrem wersji, 22 żądania zrzutów bez ani jednego 404,
+`assets/` 2,0 MB. Ruch prawdziwym `KeyboardEvent`: 5,2 m/s; kolizja ze ścianą
+boczną: stop na 6,45 m. Strona główna nietknięta co do bajtu.
+
+**Usterka, która blokowała scalenie i została naprawiona:** `focusOn()` wołało
+`odblokuj()` → `exitPointerLock()` **przed** `openPlaque()`. `PointerLockControls`
+w r169 nie zabezpiecza tego wywołania, a WebKit na iOS nie ma Pointer Lock API —
+więc na iPhonie `TypeError` zjadałby treść i żaden z 49 eksponatów nie otwierałby
+opisu. Naprawione dwiema warstwami: opcjonalne wywołania API oraz przestawienie
+`openPlaque()` na pierwsze miejsce. Dowód: przy `odblokuj()` rzucającym `TypeError`
+tabliczka otwiera się z pełną treścią, a wyjątek nie wychodzi na zewnątrz.
+
+### Otwarte decyzje właściciela (nie usterki)
+
+1. **Mgła w sali 5.** Sala „Rok agentów" (126 m, 23 projekty) dostała osiem
+   reflektorów zamiast trzech i rozstaw spadł z 42 do 15,8 m, ale koniec sali
+   nadal ginie w czerni. Powód: `scene.fog = Fog(0x0c1018, 10, 60)` w
+   `js/museum/render.js`. Nie ruszone świadomie — to parametr globalny całej
+   sceny i pełni funkcję techniczną przy `camera.far = 120` i amfiladzie długiej
+   na 329 m. Kandydat do zmiany: `Fog(0x0c1018, 18, 90)` z ponownym pomiarem
+   wydajności. Decyzja estetyczna.
+2. **Brak kolizji na eksponatach.** Da się wejść w cokół i przeniknąć eksponat
+   autorski. Zadanie 4 celowo wykluczyło eksponaty z Octree, bo wciągnięcie całej
+   sceny groziłoby zaklinowaniem na hologramie, sprite'cie albo chmurze punktów.
+   Przegląd końcowy rozstrzygnął: **warto naprawić, ale jako osobne zadanie**
+   z własnym przejściem pieszo przez sale i portale. Zakres: `postawEksponat()`
+   dokłada niewidzialną bryłę do eksportowanej tablicy, `main.js` wsypuje ją do
+   `budynek.kolizje` przed `initPlayer` (~15 linii). Bryłę wymierzyć na widoczną
+   masę (~2,6 m), **nie** na pierścień poświaty (2,72 m promienia) — kolider tej
+   wielkości zostawiłby 0,25 m do ściany i zrobiłby z boku sali szczelinę.
+
+### Ryzyko niezmierzone
+
+Fps na fizycznym telefonie nie został zmierzony — brak urządzenia w środowisku.
+Policzone zamiast tego zużycie pamięci karty: ~200 MB (166 MB tekstur — sprite'y
+podpisów 62, zrzuty 57, PBR 48 — plus 28 MB map cieni i ~11 MB buforów
+composera). Mieści się na iPhonie i lepszym Androidzie, ale słabsze telefony mogą
+zgubić kontekst WebGL. Waga pobrania (2,0 MB) nic o tym nie mówi: 1,4 MB
+skompresowanych zrzutów rozpakowuje się do 57 MB RGBA. Jeżeli miałby paść jeden
+pomiar na prawdziwym urządzeniu, to ten.
