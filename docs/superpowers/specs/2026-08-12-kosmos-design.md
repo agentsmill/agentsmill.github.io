@@ -40,7 +40,18 @@ jest lotem w przód przez historię autora.
 | 3 | Narzędzia domenowe | VII–X 2025 | Ziemia | 4 |
 | 4 | W stronę produktów | XI 2025 – II 2026 | Mars | 2 |
 | 5 | Rok agentów | III–VI 2026 | Jowisz | 20 |
-| 6 | Studio jednoosobowe | VII–VIII 2026 | Saturn | 17 |
+| 6 | Studio jednoosobowe | VII–VIII 2026 | Pluton | 17 |
+
+**Dlaczego Pluton, a nie Saturn.** Pierwotnie szóstą epokę miał zamykać Saturn z pierścieniami.
+Sprawdzenie przed napisaniem planu wykazało, że **NASA nie publikuje mapy walcowej globu
+Saturna** — biblioteka obrazów, odpytana trzema różnymi sformułowaniami, zwraca wyłącznie
+mapy jego księżyców (Mimas, Enceladus). Cassini systematycznie mapował księżyce; pasy
+atmosfery Saturna ciągle się zmieniają i nie mają standardowej mapy globalnej.
+
+Zrobienie Saturna wymagałoby wymyślenia tekstury, co łamie postawiony przez właściciela
+wymóg wierności oryginałom. Pluton z New Horizons ma prawdziwą mapę, leży najdalej —
+więc chronologia „im dalej, tym później" zostaje nienaruszona — i jest ostatnim światem
+Układu Słonecznego zmapowanym przez człowieka, w 2015. Decyzja właściciela.
 
 ### Nierówność gęstości jest treścią, nie usterką
 
