@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kosmos budowania — Mateusz Pawełczuk</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
+<link rel="stylesheet" href="css/kosmos.css?v=202608120001">
+</head>
+<body>
+
+<div id="scene-host" aria-hidden="true"></div>
+
+<div id="k-loader"><p>Wchodzę na orbitę…</p></div>
+
+<div id="k-brak-webgpu" hidden>
+  <h1>Ta przeglądarka nie uruchomi kosmosu</h1>
+  <p>Gra potrzebuje WebGPU albo WebGL 2. Spróbuj nowszej wersji Chrome, Edge lub Safari.</p>
+  <p><a href="index.html">Wróć do karty budowania</a></p>
+</div>
+
+<header class="k-hud-gora">
+  <a class="k-przycisk" href="index.html">← Karta budowania</a>
+  <div class="k-epoka" id="k-epoka" aria-live="polite"></div>
+  <button class="k-przycisk" id="k-btn-zrodla" type="button">Źródła</button>
+</header>
+
+<p class="k-plakietka" id="k-backend"></p>
+
+<script src="js/projects-data.js?v=202608120001"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three":         "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+    "three/webgpu":  "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+    "three/tsl":     "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+    "kosmos/render.js":   "./js/kosmos/render.js?v=202608120001",
+    "kosmos/swiat.js":    "./js/kosmos/swiat.js?v=202608120001",
+    "kosmos/mglawica.js": "./js/kosmos/mglawica.js?v=202608120001",
+    "kosmos/cele.js":     "./js/kosmos/cele.js?v=202608120001",
+    "kosmos/rakieta.js":  "./js/kosmos/rakieta.js?v=202608120001",
+    "kosmos/hud.js":      "./js/kosmos/hud.js?v=202608120001"
+  }
+}
+</script>
+<script type="module" src="js/kosmos/main.js?v=202608120001"></script>
+</body>
+</html>

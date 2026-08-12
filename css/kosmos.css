@@ -1,0 +1,61 @@
+/* Kosmos budowania — wszystkie klasy z przedrostkiem k-, żeby nic nie kolidowało
+   z css/museum.css ani css/main.css. */
+
+:root {
+  --k-tlo: #03050c;
+  --k-tekst: #C9E8EE;
+  --k-akcent: #5CC8DB;
+  --k-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--k-tlo); }
+body { font-family: var(--k-mono); color: var(--k-tekst); }
+
+#scene-host { position: fixed; inset: 0; }
+#scene-host canvas { display: block; }
+
+#k-loader {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  background: var(--k-tlo);
+  transition: opacity .6s ease;
+}
+#k-loader.gotowe { opacity: 0; pointer-events: none; }
+#k-loader p { letter-spacing: .22em; text-transform: uppercase; font-size: .8rem; }
+
+#k-brak-webgpu {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; place-content: center; gap: .8rem;
+  padding: 2rem; text-align: center; background: var(--k-tlo);
+}
+/* Poprawka własna (poza dosłownym brzmieniem briefu): #k-brak-webgpu[hidden] musi
+   jawnie wygrać z regułą display:grid powyżej. ID + [hidden] ma wyższą specyficzność
+   niż samo ID, więc bez tej linii atrybut hidden nic nie daje — panel „ta przeglądarka
+   nie uruchomi kosmosu" zasłania scenę NA STAŁE, nawet gdy WebGPU wstał bezbłędnie.
+   Wykryte zrzutem ekranu w Playwright: window.__kosmos.backend === "WebGPU" i
+   el.hidden === true, a mimo to getComputedStyle(el).display był "grid". */
+#k-brak-webgpu[hidden] { display: none; }
+#k-brak-webgpu a { color: var(--k-akcent); }
+
+.k-hud-gora {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: .9rem 1.1rem;
+}
+.k-przycisk {
+  background: rgba(6, 20, 28, .86);
+  border: 1px solid rgba(92, 200, 219, .35);
+  color: var(--k-akcent);
+  font: inherit; font-size: .7rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  padding: .42rem .8rem; text-decoration: none; cursor: pointer;
+}
+.k-przycisk:hover { background: rgba(18, 52, 66, .92); color: #fff; }
+.k-epoka { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; }
+
+.k-plakietka {
+  position: fixed; right: 1.1rem; bottom: 1rem; z-index: 30; margin: 0;
+  font-size: .62rem; letter-spacing: .2em; text-transform: uppercase;
+  color: rgba(201, 232, 238, .45);
+}
