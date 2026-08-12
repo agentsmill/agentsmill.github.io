@@ -79,8 +79,8 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
 }
 .hero h1 {
   font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(2.7rem, 8vw, 5.2rem);
-  line-height: 1.02; letter-spacing: -0.015em;
+  font-size: clamp(1.55rem, 6.6vw, 4.4rem);
+  line-height: 1.05; letter-spacing: -0.015em;
   margin-bottom: 1.6rem;
 }
 .lead {
