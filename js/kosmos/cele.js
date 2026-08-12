@@ -29,9 +29,19 @@ function ziarno(id) {
 }
 
 /* Sondy jednej epoki leżą na wspólnym promieniu, rozłożone po kącie w kolejności daty.
-   Wysokość rozrzucona ziarnem, żeby powłoka była pasem, a nie płaskim pierścieniem. */
+   Wysokość rozrzucona ziarnem, żeby powłoka była pasem, a nie płaskim pierścieniem.
+
+   POPRAWKA (runda 1 przeglądu): +0.5 do indeksu przesuwa CAŁY pierścień o pół slotu,
+   jednolicie dla każdej epoki i każdego indeksu — kolejność chronologiczna i rozkład po
+   epokach zostają bez zmian, zmienia się tylko kąt startowy. Bez tego przesunięcia sonda
+   o indeks=0 (pierwszy chronologicznie projekt epoki) zawsze lądowała pod kątem 0°, a
+   swiat.js (poza zakresem tego zadania, nietknięty) stawia PIERWSZĄ planetę (Merkury) też
+   pod kątem 0° — sonda oze-developer-manager (epoka 1, indeks 0) wypadała 59,885 jedn. od
+   środka Merkurego przy sumie promieni planety i sondy 161,4 (promień planety 130 +
+   zasięg torusa 30+1,4), czyli w całości WEWNĄTRZ planety i trwale niewidoczna. Po
+   przesunięciu minimalny margines w całym zbiorze 49 sond wynosi 268,2 (zob. raport). */
 function pozycjaSondy(projekt, indeks, ile, powloka) {
-  const kat = (indeks / Math.max(ile, 1)) * Math.PI * 2;
+  const kat = ((indeks + 0.5) / Math.max(ile, 1)) * Math.PI * 2;
   const r = powloka.promien;
   const y = (ziarno(projekt.id) - 0.5) * r * 0.16;
   return new THREE.Vector3(Math.cos(kat) * r, y, Math.sin(kat) * r);
