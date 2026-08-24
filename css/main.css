@@ -501,3 +501,32 @@ h2 {
 /* Znacznik przy Kosmosie. Mniejszy i przygaszony, bo to dopisek do etykiety,
    a nie druga etykieta — ma uprzedzać, nie krzyczeć. */
 .cta-tag { text-transform: none; letter-spacing: 0.04em; opacity: 0.72; }
+
+/* ── Wideo generatywne ───────────────────────────────────────────────────── */
+.wideo-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.2rem; margin-top: 2rem;
+}
+.wideo-karta {
+  margin: 0; display: grid; gap: .7rem;
+  background: var(--bg-raised); border: 1px solid var(--line);
+  border-left: 2px solid var(--kosmos);
+  border-radius: 10px; padding: .8rem .8rem 1rem;
+}
+/* preload="none" w HTML to nie drobiazg: bez niego przeglądarka ciągnie
+   megabajty wideo przy każdym wejściu na stronę, także wtedy, gdy nikt nie
+   kliknie play. Plakat wystarczy, żeby sekcja wyglądała na gotową. */
+.wideo-plyta {
+  width: 100%; display: block; border-radius: 7px;
+  background: #000; aspect-ratio: 16 / 9; object-fit: cover;
+}
+.wideo-karta figcaption { display: grid; gap: .25rem; padding: 0 .3rem; }
+.wideo-karta figcaption b { font-size: .95rem; }
+.wideo-karta figcaption span { font-size: .82rem; color: var(--ink-dim); line-height: 1.5; }
+.wideo-cta { margin-top: 1.4rem; }
+.cta-wideo {
+  font-family: var(--font-mono); font-size: .8rem; letter-spacing: .06em;
+  color: var(--kosmos); text-decoration: none;
+  border-bottom: 1px solid rgba(92, 200, 219, .35); padding-bottom: 2px;
+}
+.cta-wideo:hover { color: var(--ink); border-color: var(--ink); }
