@@ -10,6 +10,7 @@
   --ink-faint: #5A6376;
   --pulse: #F2C46D;
   --pulse-dim: #C79A4B;
+  --kosmos: #5CC8DB;          /* akcent gry Kosmos, zgodny z --k-akcent w css/kosmos.css */
   --line: #232B3D;
   --line-soft: #1A2233;
 
@@ -103,6 +104,37 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
 }
 .cta-scroll:hover { color: var(--ink-dim); }
 .nav-museum { color: var(--pulse) !important; }
+
+/* Kosmos — druga gra. Cyjan zamiast bursztynu, bo to barwa akcentu samej gry
+   (--k-akcent w css/kosmos.css): przycisk zapowiada to, do czego prowadzi.
+   Obrys zamiast wypełnienia, żeby muzeum zostało pierwszym wezwaniem, a kosmos
+   czytelną drugą drogą, nie konkurentem o to samo miejsce. */
+.cta-kosmos {
+  font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.08em;
+  text-transform: uppercase; text-decoration: none; color: var(--kosmos);
+  border: 1px solid var(--kosmos); border-radius: 99px;
+  /* Minus 1px z każdej strony: obrys dokłada 2px wysokości, przez co przycisk
+     byłby o 2px wyższy od wypełnionego muzeum stojącego obok. Kompensujemy tutaj,
+     a nie dokładając przezroczystej ramki do .cta-museum — tamten przycisk jest
+     na żywej stronie od dawna i nie ma powodu go ruszać. */
+  padding: calc(0.7rem - 1px) calc(1.3rem - 1px);
+  box-shadow: 0 0 22px rgba(92, 200, 219, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.cta-kosmos:hover {
+  transform: translateY(-2px); background: rgba(92, 200, 219, 0.12);
+  box-shadow: 0 0 34px rgba(92, 200, 219, 0.38);
+}
+.nav-kosmos { color: var(--kosmos) !important; }
+
+/* Uwaga o wymaganiach sprzętowych. Nie chowamy jej w atrybucie title ani w dymku:
+   gra na WebGPU potrafi nie wstać na starszym sprzęcie, a odwiedzający ma to
+   wiedzieć PRZED kliknięciem, nie po czarnym ekranie. */
+.cta-uwaga {
+  max-width: 620px; margin: -2.2rem 0 3rem;
+  font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.6;
+  color: var(--ink-faint);
+}
 
 /* EKG */
 .ekg { margin: 0 0 1.6rem; }
