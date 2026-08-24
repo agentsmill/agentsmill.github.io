@@ -33,6 +33,7 @@ export function zbudujObraz() {
   if (backend !== "WebGPU") {
     return {
       poziom: "prosty",
+      stopienDegradacji: () => 0,
       renderuj: () => { renderer.render(scene, camera); },
       ustawTempo: () => {},
     };
@@ -71,9 +72,55 @@ export function zbudujObraz() {
 
   post.outputNode = podstawa.add(kwiat).mul(winieta);
 
+  /* ──────────────────────────────────────────────────────────────────────────
+     Degradacja MIERZONA, nie zgadywana.
+
+     Do tej pory poziom jakości wybierał backend: WebGPU dostawał pełny potok,
+     WebGL 2 prosty. To jest przybliżenie zdolności, a nie jej pomiar — słaby
+     laptop z WebGPU dostawał wszystko, a mocny telefon na WebGL 2 nic. Teraz
+     poziom ustala liczba klatek, tak jak w muzeum (js/museum/perf.js).
+
+     Dwie zasady przejęte stamtąd jako wiedza, nie jako import:
+     - ROZGRZEWKA: pierwsze klatki nie liczą się do średniej. Kompilacja shaderów
+       i wysyłka tekstur potrafią zjeść setki milisekund na klatkę i mijają same;
+       bez tego telefon zmierzyłby wyłącznie rozgrzewkę i straciłby efekty na
+       stałe, z powodu, którego już nie ma.
+     - JEDNOKIERUNKOWOŚĆ: raz zdjętego efektu nie przywracamy. Na granicy
+       wydajności obraz migotałby w tę i z powrotem.
+
+     Kolejność zdejmowania jest kolejnością „najmniejsza strata w obrazie za
+     największy zysk w klatkach": najpierw gęstość pikseli (prawie niewidoczna),
+     dopiero potem cała klamra postprocessingu (widoczna od razu). */
+  const ROZGRZEWKA = 120;
+  const PROG_KLATEK = 30;
+  let rozgrzewka = ROZGRZEWKA, klatki = 0, suma = 0, stopien = 0;
+  let uzyjPotoku = true;
+
+  function zmierz(dt) {
+    if (stopien >= 2 || rozgrzewka-- > 0) return;
+    suma += dt; klatki++;
+    if (klatki < 90) return;
+    const fps = klatki / suma;
+    klatki = 0; suma = 0;
+    if (fps >= PROG_KLATEK) return;
+
+    if (stopien === 0) {
+      renderer.setPixelRatio(1);
+      renderer.setSize(innerWidth, innerHeight);
+    } else {
+      uzyjPotoku = false;          // koniec z bloomem, smugami i winietą
+    }
+    stopien++;
+    window.__kosmos.poziomJakosci = stopien;
+  }
+
   return {
     poziom: "pelny",
-    renderuj: () => post.renderAsync(),
+    stopienDegradacji: () => stopien,
+    renderuj: (dt = 0) => {
+      zmierz(dt);
+      return uzyjPotoku ? post.renderAsync() : renderer.render(scene, camera);
+    },
     ustawTempo: (v) => { tempo.value = v; },
   };
 }

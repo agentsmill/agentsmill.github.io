@@ -25,7 +25,13 @@ let renderer, backend;
 
 try {
   renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: WYMUS_WEBGL });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  /* Gęstość pikseli to NAJWIĘKSZA dźwignia na telefonie i najtańsza wizualnie.
+     Telefon o devicePixelRatio 3 przy limicie 1.75 liczy ~3x więcej pikseli niż
+     przy 1.0 — a scena jest pełnoekranowa i przechodzi przez postprocessing,
+     więc każdy piksel płaci podwójnie. Na ekranie dotykowym schodzimy do 1.25:
+     przy gęstości 3 różnicy praktycznie nie widać, a koszt spada o ponad połowę. */
+  const dotykowy = matchMedia("(pointer: coarse)").matches;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, dotykowy ? 1.25 : 1.75));
   renderer.setSize(innerWidth, innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;

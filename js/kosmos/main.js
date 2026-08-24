@@ -80,7 +80,7 @@ async function petla() {
   /* Sprawdzenie NA POCZĄTKU klatki, przed aktualizacją rakiety — inaczej rakieta
      przesunie się jeszcze o jedną klatkę po pokazaniu ekranu zakończenia. */
   if (hud.czyZamrozony()) {
-    await obraz.renderuj();
+    await obraz.renderuj(0);   // zamrożony świat nie dokłada się do pomiaru klatek
     return;
   }
 
@@ -122,6 +122,6 @@ async function petla() {
   aktualizujCele(camera);
 
   obraz.ustawTempo(rakieta.tempoWzgledne());
-  await obraz.renderuj();
+  await obraz.renderuj(dt);
 }
 petla();
