@@ -127,15 +127,22 @@ export function zbudujCele() {
   return { sondy, licznik };
 }
 
-export function najblizszaNieodwiedzona(poz) {
+/* Jedna pętla dla obu pytań. Nawigacja pyta o nieodwiedzone (bo prowadzi do tego,
+   czego gracz jeszcze nie widział), a tabliczka o dowolną najbliższą (bo do sondy
+   wolno wrócić i przeczytać ją drugi raz). Dwie osobne pętle rozjechałyby się
+   przy pierwszej zmianie definicji „najbliższej". */
+function szukaj(poz, pomijajOdwiedzone) {
   let naj = null, najD = Infinity;
   for (const s of sondy) {
-    if (s.odwiedzona) continue;
+    if (pomijajOdwiedzone && s.odwiedzona) continue;
     const d = poz.distanceTo(s.pozycja);
     if (d < najD) { najD = d; naj = s; }
   }
   return naj ? { sonda: naj, dystans: najD } : null;
 }
+
+export function najblizszaNieodwiedzona(poz) { return szukaj(poz, true); }
+export function najblizsza(poz) { return szukaj(poz, false); }
 
 /* Eksportowany (poza literą interfejsu z briefu), żeby main.js — jedyne miejsce, gdzie
    kamera faktycznie się porusza — porównywało z TĄ SAMĄ liczbą, a nie duplikowało 90

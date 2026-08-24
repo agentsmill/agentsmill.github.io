@@ -59,3 +59,152 @@ body { font-family: var(--k-mono); color: var(--k-tekst); }
   font-size: .62rem; letter-spacing: .2em; text-transform: uppercase;
   color: rgba(201, 232, 238, .45);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HUD — Zadanie 7
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Atrybut hidden musi wygrywać z każdą regułą display: w tym pliku. Bez tego element
+   z hidden i własnym display: grid zostaje widoczny, a testy sprawdzające stan
+   JavaScriptu tego nie zauważą — el.hidden === true przechodzi także wtedy, gdy
+   element zasłania pół ekranu. Ta jedna linia zamyka całą klasę błędów naraz.
+   Reguła #k-brak-webgpu[hidden] wyżej jest od teraz nadmiarowa; zostaje jako zapis
+   tego, jak usterka wyglądała, gdy wystąpiła w Zadaniu 1. */
+[hidden] { display: none !important; }
+
+/* ── Licznik ────────────────────────────────────────────────────────────── */
+.k-licznik-blok {
+  position: fixed; left: 1.1rem; bottom: 1rem; z-index: 30;
+  display: grid; gap: .1rem;
+}
+.k-licznik {
+  font-family: "Syne", var(--k-mono);
+  font-weight: 800; font-size: 2.6rem; line-height: 1;
+  color: #fff; letter-spacing: -.02em;
+  text-shadow: 0 0 22px rgba(92, 200, 219, .55);
+  font-variant-numeric: tabular-nums;
+}
+.k-licznik-etykieta {
+  font-size: .58rem; letter-spacing: .24em; text-transform: uppercase;
+  color: rgba(201, 232, 238, .5);
+}
+
+/* ── Epoka ──────────────────────────────────────────────────────────────── */
+.k-epoka { display: grid; justify-items: center; gap: .12rem; text-align: center; }
+.k-epoka-numer {
+  font-size: .56rem; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--k-akcent);
+}
+.k-epoka-tytul {
+  font-family: "Syne", var(--k-mono);
+  font-weight: 700; font-size: 1.05rem; letter-spacing: .01em;
+  text-transform: none; color: #fff;
+}
+.k-epoka-zakres {
+  font-size: .56rem; letter-spacing: .2em;
+  color: rgba(201, 232, 238, .45);
+}
+/* Wejście nazwy epoki przy przekroczeniu granicy powłoki — bez tego zmiana
+   w rogu ekranu przechodzi niezauważona. */
+@keyframes k-wejscie-epoki {
+  from { opacity: 0; transform: translateY(-.5rem); letter-spacing: .3em; }
+  to   { opacity: 1; transform: none; }
+}
+.k-epoka.k-wchodzi { animation: k-wejscie-epoki .55s ease-out; }
+
+/* ── Nawigacja do najbliższej sondy ─────────────────────────────────────── */
+.k-nawigacja {
+  position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: .6rem;
+  padding: .45rem .9rem;
+  background: rgba(6, 20, 28, .72);
+  border: 1px solid rgba(92, 200, 219, .28);
+  font-size: .66rem; letter-spacing: .12em;
+}
+.k-nawigacja-strzalka { color: var(--k-akcent); font-size: .9rem; line-height: 1; }
+.k-nawigacja-nazwa { color: #fff; text-transform: uppercase; }
+.k-nawigacja-dystans { color: rgba(201, 232, 238, .55); font-variant-numeric: tabular-nums; }
+
+/* ── Tabliczka projektu ─────────────────────────────────────────────────── */
+.k-tabliczka {
+  position: fixed; right: 1.1rem; top: 50%; transform: translateY(-50%); z-index: 40;
+  width: min(23rem, calc(100vw - 2.2rem));
+  display: grid; gap: .55rem;
+  padding: 1.1rem 1.2rem;
+  background: rgba(4, 14, 20, .9);
+  border: 1px solid rgba(92, 200, 219, .3);
+  border-left: 2px solid var(--k-akcent);
+  backdrop-filter: blur(7px);
+}
+.k-t-tytul {
+  margin: 0; font-family: "Syne", var(--k-mono);
+  font-weight: 700; font-size: 1.25rem; line-height: 1.15; color: #fff;
+}
+.k-t-opis { margin: 0; font-size: .74rem; line-height: 1.6; color: rgba(201, 232, 238, .82); }
+.k-t-tech {
+  margin: 0; font-size: .58rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--k-akcent);
+}
+.k-t-linki { display: flex; flex-wrap: wrap; gap: .45rem; }
+.k-t-linki a {
+  font-size: .58rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--k-akcent); text-decoration: none;
+  padding: .32rem .6rem; border: 1px solid rgba(92, 200, 219, .35);
+}
+.k-t-linki a:hover { background: rgba(92, 200, 219, .14); color: #fff; }
+
+/* ── Panel źródeł ───────────────────────────────────────────────────────── */
+.k-zrodla {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  padding: 2rem; background: rgba(2, 6, 11, .84);
+}
+.k-zrodla-panel {
+  display: grid; gap: .9rem;
+  width: min(40rem, 100%); max-height: 80vh; overflow-y: auto;
+  padding: 1.6rem 1.7rem;
+  background: rgba(4, 14, 20, .96);
+  border: 1px solid rgba(92, 200, 219, .3);
+}
+.k-zrodla-panel h2 {
+  margin: 0; font-family: "Syne", var(--k-mono);
+  font-weight: 700; font-size: 1.3rem; color: #fff;
+}
+.k-zrodla-lista { margin: 0; padding-left: 1.1rem; display: grid; gap: .5rem; }
+.k-zrodlo { font-size: .68rem; line-height: 1.55; color: rgba(201, 232, 238, .82); }
+.k-zrodla-panel .k-przycisk { justify-self: start; }
+
+/* ── Zakończenie ────────────────────────────────────────────────────────── */
+.k-koniec {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; place-content: center; justify-items: center; gap: 1rem;
+  padding: 2rem; text-align: center;
+  background: radial-gradient(ellipse at center, rgba(8, 26, 34, .93), rgba(2, 5, 12, .985));
+}
+.k-koniec h1 {
+  margin: 0; font-family: "Syne", var(--k-mono);
+  font-weight: 800; font-size: clamp(1.9rem, 6vw, 3.8rem);
+  letter-spacing: .04em; color: #fff;
+  text-shadow: 0 0 40px rgba(92, 200, 219, .45);
+}
+.k-koniec p { margin: 0; font-size: .8rem; letter-spacing: .1em; color: rgba(201, 232, 238, .72); }
+
+/* ── Podpowiedź sterowania ──────────────────────────────────────────────── */
+.k-sterowanie {
+  /* 5.4rem, nie 4.2rem: blok epoki ma TRZY wiersze (numer, tytuł, zakres) i przy
+     dopełnieniu nagłówka zajmuje ~4.65rem. Przy 4.2rem podpowiedź wchodziła na zakres
+     dat — widoczne wyłącznie na zrzucie, bo oba elementy mają poprawny układ osobno. */
+  position: fixed; left: 50%; top: 5.4rem; transform: translateX(-50%); z-index: 25;
+  margin: 0; white-space: nowrap;
+  font-size: .56rem; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(201, 232, 238, .38);
+  transition: opacity .8s ease;
+}
+.k-sterowanie b { color: var(--k-akcent); font-weight: 500; }
+.k-sterowanie.k-znika { opacity: 0; }
+
+@media (max-width: 640px) {
+  .k-licznik { font-size: 1.9rem; }
+  .k-tabliczka { top: auto; bottom: 4.6rem; transform: none; right: .6rem; left: .6rem; width: auto; }
+  .k-sterowanie { white-space: normal; text-align: center; width: min(92vw, 30rem); }
+}

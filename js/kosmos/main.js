@@ -1,10 +1,14 @@
 import * as THREE from "three";
 import { renderer, camera, loader, backend } from "kosmos/render.js";
-import { zbudujSwiat } from "kosmos/swiat.js";
+import { zbudujSwiat, powlokaDlaPromienia } from "kosmos/swiat.js";
 import { zbudujNiebo, zbudujPyl } from "kosmos/mglawica.js";
-import { zbudujCele, najblizszaNieodwiedzona, oznaczOdwiedzona, PROG_ODWIEDZENIA } from "kosmos/cele.js";
+import {
+  zbudujCele, najblizszaNieodwiedzona, najblizsza,
+  oznaczOdwiedzona, PROG_ODWIEDZENIA,
+} from "kosmos/cele.js";
 import { zbudujRakiete, wlaczSterowanieMysza } from "kosmos/rakieta.js";
 import { zbudujObraz } from "kosmos/obraz.js";
+import { zbudujHud } from "kosmos/hud.js";
 
 zbudujSwiat();
 zbudujNiebo();
@@ -15,8 +19,8 @@ const ILE_PYLU = backend === "WebGPU" ? 20000 : 6000;
 const pyl = zbudujPyl(ILE_PYLU);
 
 /* 49 sond z danych portfolio — jedna na projekt, deterministycznie na powłokach epok.
-   sondy/licznik dopisane do window.__kosmos (stworzonego w render.js) dla diagnostyki
-   i przyszłych zadań; renderer/scene/camera/backend zostają nietknięte. */
+   sondy/licznik dopisane do window.__kosmos (stworzonego w render.js) dla diagnostyki;
+   renderer/scene/camera/backend zostają nietknięte. */
 const { sondy, licznik } = zbudujCele();
 
 /* Rakieta powstaje PO zbudujSwiat() i zbudujCele(), bo dystansDoNajblizszego() czyta
@@ -26,18 +30,57 @@ const { sondy, licznik } = zbudujCele();
 const rakieta = zbudujRakiete();
 wlaczSterowanieMysza(renderer.domElement);
 
+const hud = zbudujHud();
+hud.ustawLicznik(licznik.odwiedzonych, licznik.wszystkich);
+
 /* Warstwa obrazu powstaje NA KOŃCU: pass(scene, camera) zapamiętuje scenę, więc
    wszystko, co ma być widoczne, musi już w niej stać. */
 const obraz = zbudujObraz();
 
-Object.assign(window.__kosmos, { sondy, licznik, rakieta, obraz });
+Object.assign(window.__kosmos, { sondy, licznik, rakieta, obraz, hud });
 
 loader.classList.add("gotowe");
+
+/* Podpowiedź sterowania znika po pierwszym ruchu gracza — jest instrukcją, nie
+   elementem kadru, a kadr jest tu treścią. */
+let podpowiedzZnikla = false;
+function schowajPodpowiedz() {
+  if (podpowiedzZnikla) return;
+  podpowiedzZnikla = true;
+  document.getElementById("k-sterowanie").classList.add("k-znika");
+}
+addEventListener("keydown", schowajPodpowiedz, { once: true });
+addEventListener("mousedown", schowajPodpowiedz, { once: true });
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Tabliczka: kiedy się pokazuje i kiedy znika
+
+   Plan podaje pokazTabliczke() i schowajTabliczke(), ale świadomie nie mówi, KIEDY
+   je wołać — a to decyzja o odczuciu z gry, nie detal techniczny. Wybrane tutaj:
+   tabliczka pojawia się w promieniu czytania i znika po wyjściu z niego, więc jest
+   informacją o TYM, obok czego właśnie jesteś, a nie ostatnim, co minąłeś.
+
+   Dwa różne progi (histereza) są konieczne, nie ozdobne: przy jednym progu sonda
+   mijana dokładnie na granicy właczałaby i wyłączała tabliczkę co klatkę, dając
+   migotanie. Pokazujemy przy 260, chowamy dopiero przy 340.
+
+   Alternatywa, gdyby to miało być muzeum, a nie lot: zatrzasnąć tabliczkę do czasu
+   zbliżenia się do NASTĘPNEJ sondy — wtedy zawsze da się dokończyć czytanie, kosztem
+   tego, że w kadrze wisi opis czegoś, co jest już daleko za plecami. */
+const PROMIEN_CZYTANIA = 260;
+const PROMIEN_SCHOWANIA = 340;
 
 const zegar = new THREE.Clock();
 
 async function petla() {
   requestAnimationFrame(petla);
+
+  /* Sprawdzenie NA POCZĄTKU klatki, przed aktualizacją rakiety — inaczej rakieta
+     przesunie się jeszcze o jedną klatkę po pokazaniu ekranu zakończenia. */
+  if (hud.czyZamrozony()) {
+    await obraz.renderuj();
+    return;
+  }
 
   /* Klamrowanie dt: karta w tle wstrzymuje requestAnimationFrame, a po powrocie
      pierwsza klatka miałaby dt liczone w sekundach. Rakieta przeskoczyłaby wtedy
@@ -48,12 +91,26 @@ async function petla() {
   rakieta.aktualizuj(dt);
   pyl.aktualizuj(camera);
 
+  const poz = rakieta.pozycja();
+
   /* Odległość mierzona od RAKIETY, nie od kamery. Kamera stoi 34 jednostki za
      statkiem i 11 nad nim, więc przy progu 90 zaliczenie wypadałoby z opóźnieniem
      i niesymetrycznie — sonda mijana z przodu liczyłaby się później niż ta sama
      sonda mijana od tyłu. */
-  const najblizsza = najblizszaNieodwiedzona(rakieta.pozycja());
-  if (najblizsza && najblizsza.dystans < PROG_ODWIEDZENIA) oznaczOdwiedzona(najblizsza.sonda);
+  const nieodwiedzona = najblizszaNieodwiedzona(poz);
+  if (nieodwiedzona && nieodwiedzona.dystans < PROG_ODWIEDZENIA) {
+    if (oznaczOdwiedzona(nieodwiedzona.sonda)) {
+      hud.ustawLicznik(licznik.odwiedzonych, licznik.wszystkich);
+      if (licznik.odwiedzonych >= licznik.wszystkich) hud.zwyciestwo();
+    }
+  }
+
+  hud.ustawEpoke(powlokaDlaPromienia(poz.length()));
+  hud.ustawKierunek(nieodwiedzona?.sonda ?? null, nieodwiedzona?.dystans ?? 0);
+
+  const przy = najblizsza(poz);
+  if (przy && przy.dystans < PROMIEN_CZYTANIA) hud.pokazTabliczke(przy.sonda.projekt);
+  else if (!przy || przy.dystans > PROMIEN_SCHOWANIA) hud.schowajTabliczke();
 
   obraz.ustawTempo(rakieta.tempoWzgledne());
   await obraz.renderuj();
