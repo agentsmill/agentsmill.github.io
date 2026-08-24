@@ -1,9 +1,10 @@
 import * as THREE from "three";
-import { renderer, scene, camera, loader, backend } from "kosmos/render.js";
+import { renderer, camera, loader, backend } from "kosmos/render.js";
 import { zbudujSwiat } from "kosmos/swiat.js";
 import { zbudujNiebo, zbudujPyl } from "kosmos/mglawica.js";
 import { zbudujCele, najblizszaNieodwiedzona, oznaczOdwiedzona, PROG_ODWIEDZENIA } from "kosmos/cele.js";
 import { zbudujRakiete, wlaczSterowanieMysza } from "kosmos/rakieta.js";
+import { zbudujObraz } from "kosmos/obraz.js";
 
 zbudujSwiat();
 zbudujNiebo();
@@ -25,13 +26,17 @@ const { sondy, licznik } = zbudujCele();
 const rakieta = zbudujRakiete();
 wlaczSterowanieMysza(renderer.domElement);
 
-Object.assign(window.__kosmos, { sondy, licznik, rakieta });
+/* Warstwa obrazu powstaje NA KOŃCU: pass(scene, camera) zapamiętuje scenę, więc
+   wszystko, co ma być widoczne, musi już w niej stać. */
+const obraz = zbudujObraz();
+
+Object.assign(window.__kosmos, { sondy, licznik, rakieta, obraz });
 
 loader.classList.add("gotowe");
 
 const zegar = new THREE.Clock();
 
-function petla() {
+async function petla() {
   requestAnimationFrame(petla);
 
   /* Klamrowanie dt: karta w tle wstrzymuje requestAnimationFrame, a po powrocie
@@ -50,6 +55,7 @@ function petla() {
   const najblizsza = najblizszaNieodwiedzona(rakieta.pozycja());
   if (najblizsza && najblizsza.dystans < PROG_ODWIEDZENIA) oznaczOdwiedzona(najblizsza.sonda);
 
-  renderer.render(scene, camera);
+  obraz.ustawTempo(rakieta.tempoWzgledne());
+  await obraz.renderuj();
 }
 petla();

@@ -249,6 +249,10 @@ export function zbudujRakiete() {
     aktualizuj,
     pozycja: () => pozycja,
     predkosc: () => tempo,
+    /* Tempo 0..1 dla warstwy obrazu. Liczone TUTAJ, żeby TEMPO_MAX zostało
+       prywatne — gdyby obraz.js dzielił przez własną kopię tej stałej, smugi
+       nasycałyby się przy innej prędkości, niż rakieta faktycznie osiąga. */
+    tempoWzgledne: () => Math.min(Math.abs(tempo) / TEMPO_MAX, 1),
     /* Na potrzeby testu blokady osi z planu: pozwala wymusić orientację bez
        udawania dwóch sekund ruchu myszą. Sterowania tym NIE testujemy. */
     ustawOrientacje: (q) => { obrot.copy(q).normalize(); kierunek.set(0, 0, -1).applyQuaternion(obrot); },
