@@ -10,6 +10,7 @@ import { vec3, float, uniform, mix, time, positionLocal, mx_noise_float } from "
 import { scene, camera, zasob } from "kosmos/render.js";
 import { POWLOKI, PROMIEN_PLANETY } from "kosmos/swiat.js";
 import { sondy } from "kosmos/cele.js";
+import { dotyk } from "kosmos/dotyk.js";
 
 /* Obrót podkręcony z 1.8: przy poprzedniej wartości zawrócenie do minietej sondy
    zajmowało blisko dwie sekundy i sterowanie sprawiało wrażenie ciężkiego. */
@@ -123,21 +124,28 @@ function poMartwymPolu(v) {
 
 function wejscie() {
   const wcisniety = (kod) => (klawisze.has(kod) ? 1 : 0);
-  const swobodna = !document.pointerLockElement && mysz.obecna;
+  /* Na ekranie dotykowym `mousemove` bywa emulowany przy dotknięciu; gdyby
+     tryb swobodny myszy zostawał włączony, ostatnie dotknięcie zapisywałoby
+     stałe wychylenie kursora i rakieta skręcałaby bez przerwy po puszczeniu palca. */
+  const swobodna = !document.pointerLockElement && mysz.obecna && !dotyk.aktywny;
 
   const zMyszyPochylenie = swobodna ? poMartwymPolu(mysz.y) : mysz.wzgledna.pochylenie;
   const zMyszyOdchylenie = swobodna ? poMartwymPolu(mysz.x) : mysz.wzgledna.odchylenie;
 
+  /* Trzy źródła wejścia — klawiatura, mysz, dotyk — SUMUJĄ się, a klamrowanie
+     jest jedno, na samym końcu. To nie jest kosmetyka: dokładnie tutaj poprzednia
+     gra straciła całą klawiaturę, bo warstwy wejścia scalano rozproszeniem
+     ({...klawisze, ...dotyk}) i warstwa dotykowa nadpisywała prawdziwe
+     wciśnięcia swoimi zerami. Suma nie potrafi wyzerować cudzego wciśnięcia. */
   return {
-    ciag: wcisniety("KeyW") - wcisniety("KeyS"),
+    ciag: THREE.MathUtils.clamp(
+      wcisniety("KeyW") - wcisniety("KeyS") + dotyk.ciag, -1, 1),
     przechyl: wcisniety("KeyQ") - wcisniety("KeyE"),
-    dopalacz: klawisze.has("ShiftLeft") || klawisze.has("ShiftRight"),
-    /* Strzałki SUMUJĄ się z myszą i klamrowanie jest jedno, na końcu. Sumowanie
-       nie potrafi wyzerować prawdziwego wciśnięcia — nadpisanie potrafiło. */
+    dopalacz: klawisze.has("ShiftLeft") || klawisze.has("ShiftRight") || dotyk.dopalacz,
     pochylenie: THREE.MathUtils.clamp(
-      zMyszyPochylenie + wcisniety("ArrowDown") - wcisniety("ArrowUp"), -1, 1),
+      zMyszyPochylenie + wcisniety("ArrowDown") - wcisniety("ArrowUp") + dotyk.pochylenie, -1, 1),
     odchylenie: THREE.MathUtils.clamp(
-      zMyszyOdchylenie + wcisniety("ArrowRight") - wcisniety("ArrowLeft"), -1, 1),
+      zMyszyOdchylenie + wcisniety("ArrowRight") - wcisniety("ArrowLeft") + dotyk.odchylenie, -1, 1),
   };
 }
 

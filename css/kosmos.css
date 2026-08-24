@@ -231,3 +231,55 @@ body { font-family: var(--k-mono); color: var(--k-tekst); }
     linear-gradient(rgba(92, 200, 219, .75), rgba(92, 200, 219, .75)) center/1px 8px no-repeat,
     linear-gradient(rgba(92, 200, 219, .75), rgba(92, 200, 219, .75)) center/8px 1px no-repeat;
 }
+
+/* ── Sterowanie dotykiem ─────────────────────────────────────────────────────
+   Ukryte do pierwszego dotknięcia ekranu: na komputerze przyciski byłyby tylko
+   szumem w kadrze, a kadr jest tu treścią. Pokazuje je zbudujDotyk(). */
+.k-drazek {
+  position: fixed; z-index: 35; pointer-events: none;
+  width: 128px; height: 128px; margin: -64px 0 0 -64px;
+  border: 1px solid rgba(92, 200, 219, .3);
+  border-radius: 50%;
+  background: rgba(6, 20, 28, .35);
+}
+.k-drazek-kciuk {
+  position: absolute; left: 50%; top: 50%;
+  width: 46px; height: 46px; margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(92, 200, 219, .55);
+  box-shadow: 0 0 18px rgba(92, 200, 219, .45);
+  transition: transform .05s linear;
+}
+
+.k-dotyk {
+  position: fixed; right: 1rem; bottom: 4.6rem; z-index: 35;
+  display: flex; align-items: center; gap: .6rem;
+}
+.k-dotyk-przycisk {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;                 /* bez tego przeglądarka przewija stronę zamiast dawać ciąg */
+  user-select: none;
+  display: grid; place-items: center;
+  font: inherit; color: var(--k-akcent);
+  background: rgba(6, 20, 28, .8);
+  border: 1px solid rgba(92, 200, 219, .38);
+  border-radius: 50%;
+}
+/* 64px i 84px to nie estetyka, tylko minimum dla kciuka — mniejsze cele
+   trafia się obok, a rakieta wtedy gaśnie w środku manewru. */
+.k-dotyk-maly { width: 64px; height: 64px; font-size: 1.1rem; }
+.k-dotyk-duzy {
+  width: 84px; height: 84px;
+  font-size: .58rem; letter-spacing: .14em; text-transform: uppercase;
+}
+.k-dotyk-przycisk.wcisniety {
+  background: rgba(92, 200, 219, .28); color: #fff;
+  box-shadow: 0 0 26px rgba(92, 200, 219, .5);
+}
+
+/* Na ekranie dotykowym licznik i nawigacja ustępują miejsca przyciskom. */
+@media (pointer: coarse) {
+  .k-nawigacja { bottom: 10.5rem; }
+  .k-licznik-blok { bottom: 1rem; }
+  .k-tabliczka { bottom: 11rem; }
+}

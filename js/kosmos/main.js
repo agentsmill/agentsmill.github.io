@@ -9,6 +9,7 @@ import {
 import { zbudujRakiete, wlaczSterowanieMysza } from "kosmos/rakieta.js";
 import { zbudujObraz } from "kosmos/obraz.js";
 import { zbudujHud } from "kosmos/hud.js";
+import { zbudujDotyk } from "kosmos/dotyk.js";
 
 zbudujSwiat();
 zbudujNiebo();
@@ -31,6 +32,7 @@ const rakieta = zbudujRakiete();
 wlaczSterowanieMysza(renderer.domElement);
 
 const hud = zbudujHud();
+zbudujDotyk();
 hud.ustawLicznik(licznik.odwiedzonych, licznik.wszystkich);
 
 /* Warstwa obrazu powstaje NA KOŃCU: pass(scene, camera) zapamiętuje scenę, więc

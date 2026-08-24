@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-<link rel="stylesheet" href="css/kosmos.css?v=202608240012">
+<link rel="stylesheet" href="css/kosmos.css?v=202608240013">
 </head>
 <body>
 
@@ -65,6 +65,16 @@
   <a class="k-przycisk" href="index.html">Wróć do karty budowania</a>
 </div>
 
+<div class="k-drazek" id="k-drazek" hidden aria-hidden="true">
+  <span class="k-drazek-kciuk" id="k-drazek-kciuk"></span>
+</div>
+
+<div class="k-dotyk" id="k-dotyk" hidden>
+  <button class="k-dotyk-przycisk k-dotyk-maly" id="k-btn-wstecz" type="button" aria-label="Wstecz">&#9660;</button>
+  <button class="k-dotyk-przycisk k-dotyk-duzy" id="k-btn-ciag" type="button" aria-label="Ciąg">CIĄG</button>
+  <button class="k-dotyk-przycisk k-dotyk-maly" id="k-btn-dopalacz" type="button" aria-label="Dopalacz">&#187;</button>
+</div>
+
 <p class="k-sterowanie" id="k-sterowanie">
   <b>mysz</b> ster — odsuń kursor od środka · <b>W</b> ciąg · <b>S</b> wstecz ·
   <b>Q/E</b> przechył · <b>Shift</b> dopalacz · <b>klik</b> przechwytuje kursor
@@ -72,7 +82,7 @@
 
 <p class="k-plakietka" id="k-backend"></p>
 
-<script src="js/projects-data.js?v=202608240012"></script>
+<script src="js/projects-data.js?v=202608240013"></script>
 <script type="importmap">
 {
   "imports": {
@@ -80,17 +90,18 @@
     "three/webgpu":  "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
     "three/tsl":     "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
-    "kosmos/render.js":   "./js/kosmos/render.js?v=202608240012",
-    "kosmos/swiat.js":    "./js/kosmos/swiat.js?v=202608240012",
-    "kosmos/gwiazda.js":  "./js/kosmos/gwiazda.js?v=202608240012",
-    "kosmos/obraz.js":    "./js/kosmos/obraz.js?v=202608240012",
-    "kosmos/mglawica.js": "./js/kosmos/mglawica.js?v=202608240012",
-    "kosmos/cele.js":     "./js/kosmos/cele.js?v=202608240012",
-    "kosmos/rakieta.js":  "./js/kosmos/rakieta.js?v=202608240012",
-    "kosmos/hud.js":      "./js/kosmos/hud.js?v=202608240012"
+    "kosmos/render.js":   "./js/kosmos/render.js?v=202608240013",
+    "kosmos/swiat.js":    "./js/kosmos/swiat.js?v=202608240013",
+    "kosmos/gwiazda.js":  "./js/kosmos/gwiazda.js?v=202608240013",
+    "kosmos/obraz.js":    "./js/kosmos/obraz.js?v=202608240013",
+    "kosmos/mglawica.js": "./js/kosmos/mglawica.js?v=202608240013",
+    "kosmos/cele.js":     "./js/kosmos/cele.js?v=202608240013",
+    "kosmos/rakieta.js":  "./js/kosmos/rakieta.js?v=202608240013",
+    "kosmos/hud.js":      "./js/kosmos/hud.js?v=202608240013",
+    "kosmos/dotyk.js":    "./js/kosmos/dotyk.js?v=202608240013"
   }
 }
 </script>
-<script type="module" src="js/kosmos/main.js?v=202608240012"></script>
+<script type="module" src="js/kosmos/main.js?v=202608240013"></script>
 </body>
 </html>
