@@ -312,3 +312,62 @@ tej gry, bo `index.html` jest nietykalny, ale wraca przy każdym projekcie opart
 - Fizyka orbitalna, grawitacja i proca grawitacyjna. Właściciel wybrał lot bez oporu.
 - Odnośnik do gry z `index.html`. To plik nietykalny; dodanie odnośnika jest osobną decyzją
   właściciela po obejrzeniu gotowej gry.
+
+## Wynik wdrożenia (24 VIII 2026)
+
+Osiem zadań z planu wykonane, plus dopisane w trakcie **Zadanie 9: warstwa obrazu**
+(rendering filmowy na życzenie właściciela, przy nienaruszonym swobodnym locie).
+
+**Pomiary końcowe** (Playwright, 1440×900, `innerWidth` 1440, oba backendy):
+
+| | WebGPU (poziom pełny) | WebGL 2 (poziom prosty) | próg |
+|---|---|---|---|
+| wywołania rysowania | 128 | 116 | < 200 |
+| trójkąty | 104 332 | 104 320 | > 5 000 |
+| klatki, spoczynek | 121 | 121 | ≥ 60 |
+| klatki, dopalacz | 121 | 121 | ≥ 60 |
+| przelot przez sześć powłok | 10,1 s | 10,1 s | jeden ciąg |
+| nieudane żądania sieciowe | 0 | 0 | 0 |
+| błędy konsoli | 0 | 0 | 0 |
+| `window.__bledy` | puste | puste | puste |
+
+Zero nieudanych żądań to bezpośredni dowód poprawności listy `ZRZUTY` w `cele.js`:
+każde żądanie po nieistniejący zrzut pojawiłoby się w tym pomiarze.
+
+**Przechodniość potwierdzona prawdziwym lotem**, nie wywołaniem funkcji: trzy sondy
+z rzędu odwiedzone przez trzymanie `W` (licznik 0 → 1 → 2 → 3), na WebGL 2 również.
+
+**Budżet:** `assets/kosmos/` 1,8 MB (limit 3 MB), `assets/` 3,7 MB (limit 5 MB).
+
+**Pliki nietykalne:** żaden commit gałęzi `kosmos` ich nie ruszył. Sprawdzone pytaniem
+o commity, nie różnicą gałęzi; kontrola pozytywna przyrządu wypisała 15 commitów.
+
+### Czego nauczyła ta praca
+
+**Pomiar stanu nie zastąpi zrzutu ekranu.** Trzy usterki przeszły przez komplet
+zielonych pomiarów i wyszły dopiero na obrazku: gwiazda rozpalona do białej plamy na
+cały ekran, atmosfery planet w formie ostrego obrysu zamiast poświaty, podpowiedź
+sterowania nachodząca na blok epoki. W każdym z tych przypadków `window.__bledy` było
+puste, stan sceny poprawny, a element miał poprawny układ **osobno**.
+
+**Pułapka z pamięcią podręczną ma czwarty wariant.** Zmiana adresu strony (`?bust=N`)
+nie wystarczyła: pliki NOWE przyszły świeże, a `swiat.js` — zmieniony, ale pod
+niezmienionym `?v=` — przyszedł stary. Objawem był brak efektu przy CZĘŚCI zmian.
+Skutecznym środkiem jest podbicie stempla `?v=` w `kosmos.html`.
+
+### Decyzje podjęte poza literą planu
+
+- `camera.up` liczone z kwaternionu rakiety. Domyślne `(0,1,0)` degeneruje bazę
+  `lookAt` przy locie pionowo — lot byłby poprawny, a kadr wyglądałby na zablokowany
+  na osi, czyli dokładnie jak usterka, której Zadanie 6 miało zapobiec.
+- Zaliczanie sond mierzone od rakiety, nie od kamery (kamera stoi 34 jedn. za statkiem).
+- Tabliczka projektu: promień czytania z histerezą (260 pokaż / 340 schowaj). Plan
+  celowo nie rozstrzygał, KIEDY ją wołać; wybrano „mówi o tym, obok czego jesteś".
+
+## Otwarte decyzje po wdrożeniu
+
+- **Odnośnik do gry z `index.html`.** Nadal nie dodany — `index.html` jest nietykalny,
+  a decyzja należy do właściciela po obejrzeniu gotowej gry. Bez tego odnośnika
+  `kosmos.html` istnieje, ale nikt do niego nie trafi.
+- **Scalenie do `main`.** Nie wykonane, zgodnie z ograniczeniem globalnym: GitHub Pages
+  buduje z `main`, więc scalenie jest wdrożeniem na żywo.
