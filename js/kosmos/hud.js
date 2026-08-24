@@ -20,7 +20,8 @@ const ZRODLA_POZOSTALE = [
   { plik: "planety/*.webp",     tytul: "Mapy Merkurego, Wenus, Marsa i Plutona", autor: "USGS Astrogeology Science Center",   licencja: "domena publiczna" },
   { plik: "planety/ziemia.webp", tytul: "Blue Marble",                            autor: "NASA Earth Observatory",             licencja: "domena publiczna" },
   { plik: "planety/jowisz.webp", tytul: "Mapa walcowa Jowisza (Cassini)",         autor: "NASA/JPL/Space Science Institute",   licencja: "domena publiczna" },
-  { plik: "rakieta.glb",         tytul: "Model statku — sonda Voyager",           autor: "NASA 3D Resources",                  licencja: "domena publiczna" },
+  { plik: "rakieta.glb",         tytul: "Model statku — rakieta Saturn V",        autor: "NASA 3D Resources",                  licencja: "domena publiczna" },
+  { plik: "okladki/*.webp",      tytul: "Okładki 27 projektów bez zrzutu ekranu — WIZUALIZACJE, nie zrzuty działających produktów", autor: "wygenerowane modelem Krea 2 turbo", licencja: "wytworzone na potrzeby tej strony" },
 ];
 
 function budujZrodla() {

@@ -19,6 +19,18 @@ const ZRZUTY = new Set([
   "wdrozenie-ai.jpeg", "wspolnik.jpeg",
 ]);
 
+/* Okładki wygenerowane modelem (Krea 2 na GB10) dla projektów bez zrzutu ekranu.
+   Ta sama zasada co przy ZRZUTY: lista siedzi tutaj, bo js/projects-data.js jest
+   nietykalny. Dzięki nim 27 światów przestaje być bryłami bez ekranu — a że to
+   ilustracje, a nie zrzuty działających produktów, panel źródeł mówi o tym wprost. */
+const OKLADKI = new Set([
+  "akordy-zmierzchu", "aule-v1", "bielik", "flexmarket", "grafiki", "greensolver",
+  "krwawy-biznes", "latent-weather", "mansa-musa", "math-garden", "mistrz-promptow",
+  "naszwhisper", "neooffice", "npl", "oko-saurona", "omniportfolio", "orthank",
+  "petent", "pokemate-engine", "pokescale", "pokesolver", "processor", "robotami",
+  "silnik-bess", "stockcast", "stoik", "szkolenia-bank",
+]);
+
 /* Ziarno z identyfikatora projektu. Math.random() jest zabroniony: gracz ma móc wrócić
    do zapamiętanego celu, a przy losowaniu ten sam projekt leżałby gdzie indziej
    po każdym odświeżeniu. */
@@ -115,7 +127,10 @@ function sonda(projekt) {
      Obracany w aktualizujCele(). */
   let ekran = null;
   const plik = projekt.shot || `${projekt.id}.jpeg`;
-  if (ZRZUTY.has(plik)) {
+  const zrodloEkranu = ZRZUTY.has(plik)
+    ? `assets/shots/${plik}`
+    : (OKLADKI.has(projekt.id) ? `assets/okladki/${projekt.id}.webp` : null);
+  if (zrodloEkranu) {
     ekran = new THREE.Mesh(
       new THREE.PlaneGeometry(promien * 1.5, promien * 0.94),
       new THREE.MeshBasicMaterial({ color: 0x8899aa, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
@@ -124,7 +139,7 @@ function sonda(projekt) {
     ekran.name = "ekran";
     grupa.add(ekran);
 
-    new THREE.TextureLoader().load(zasob(`assets/shots/${plik}`), (t) => {
+    new THREE.TextureLoader().load(zasob(zrodloEkranu), (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
       ekran.material.map = t;
       ekran.material.opacity = 1;
@@ -132,8 +147,9 @@ function sonda(projekt) {
       ekran.material.needsUpdate = true;
     });
   }
-  // 27 projektów bez zrzutu zostaje z samym światem i pierścieniem — nigdy z pustką
-  // i nigdy z żądaniem po nieistniejący plik.
+  // Każdy z 49 światów ma teraz ekran: 22 ze zrzutem działającego produktu,
+  // 27 z okładką wygenerowaną modelem. Nigdy pustka i nigdy żądanie po plik,
+  // którego nie ma — obie listy są jawne i sprawdzane przed użyciem.
 
   grupa.name = `sonda-${projekt.id}`;
   grupa.userData.projekt = projekt;
