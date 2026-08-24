@@ -150,6 +150,43 @@ export function schowajTabliczke() {
    Zakończenie
    ──────────────────────────────────────────────────────────────────────────── */
 
+/* ────────────────────────────────────────────────────────────────────────────
+   Start i pauza
+
+   Gra NIE zaczyna się sama. Powód jest konkretny: sterowanie myszą działa bez
+   przechwytywania kursora (żeby było odkrywalne od pierwszej sekundy), a to
+   znaczy, że kursor leżący gdziekolwiek poza środkiem ekranu steruje bez
+   przerwy. Bez bramki wejściowej rakieta zaczynała wirować, zanim gracz zdążył
+   cokolwiek zrozumieć — i wirowała dalej, gdy odchodził od komputera.
+
+   Esc wraca do tego samego ekranu, więc pauza i instrukcja to jedno miejsce.
+   ──────────────────────────────────────────────────────────────────────────── */
+let pauza = true;              // gra startuje wstrzymana, na ekranie startowym
+let bylStart = false;
+
+export function czyPauza() { return pauza; }
+
+export function pokazStart() {
+  pauza = true;
+  const el = document.getElementById("k-start");
+  el.hidden = false;
+  document.getElementById("k-btn-start").textContent = bylStart ? "Wróć do lotu" : "Rozpocznij lot";
+  document.getElementById("k-celownik")?.setAttribute("hidden", "");
+  document.exitPointerLock?.();
+}
+
+export function wznow() {
+  if (zamrozony) return;       // po zakończeniu nie ma do czego wracać
+  pauza = false;
+  bylStart = true;
+  document.getElementById("k-start").hidden = true;
+  /* Celownik wraca tylko tam, gdzie steruje mysz — na dotyku zabiera miejsce
+     i nie odpowiada niczemu, czym gracz steruje. */
+  if (!matchMedia("(pointer: coarse)").matches) {
+    document.getElementById("k-celownik")?.removeAttribute("hidden");
+  }
+}
+
 /* Zakończenie zamraża świat. Wzorzec z poprzedniej gry: ekran NIE MA metody chowającej
    i nie reaguje na Escape ani na kliknięcie obok — jedyne wyjście to odnośnik. Dzięki
    temu nie da się przypadkiem wrócić do zamrożonej gry i zobaczyć nieruchomego kosmosu. */
@@ -175,10 +212,25 @@ export function zbudujHud() {
   document.getElementById("k-btn-zrodla").addEventListener("click", pokazZrodla);
   document.getElementById("k-zrodla-zamknij").addEventListener("click", schowajZrodla);
 
-  /* Escape zamyka panel źródeł. Ekranu zakończenia NIE dotyczy — ten wychodzi
-     wyłącznie odnośnikiem, zgodnie z wzorcem powyżej. */
+  document.getElementById("k-btn-start").addEventListener("click", wznow);
+
+  /* Escape ma jedno znaczenie na raz, w kolejności od najwęższego kontekstu:
+     otwarty panel źródeł zamyka się pierwszy, a dopiero potem Esc wstrzymuje lot.
+     Ekranu zakończenia NIE dotyczy — ten wychodzi wyłącznie odnośnikiem. */
   addEventListener("keydown", (e) => {
-    if (e.code === "Escape") schowajZrodla();
+    if (e.code !== "Escape") return;
+    const zrodla = document.getElementById("k-zrodla");
+    if (!zrodla.hidden) { schowajZrodla(); return; }
+    if (zamrozony) return;
+    pauza ? wznow() : pokazStart();
+  });
+
+  /* Utrata przechwycenia kursora wstrzymuje lot. Przeglądarka przechwytuje Esc
+     na własne potrzeby, gdy kursor jest złapany, więc samo zdarzenie keydown
+     może w ogóle nie dojść — bez tej gałęzi Esc działałby w jednym trybie
+     sterowania, a w drugim nie. */
+  addEventListener("pointerlockchange", () => {
+    if (!document.pointerLockElement && !pauza && !zamrozony) pokazStart();
   });
 
   return {
@@ -186,5 +238,6 @@ export function zbudujHud() {
     pokazTabliczke, schowajTabliczke,
     pokazZrodla, schowajZrodla,
     zwyciestwo, czyZamrozony,
+    pokazStart, wznow, czyPauza,
   };
 }

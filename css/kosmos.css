@@ -283,3 +283,38 @@ body { font-family: var(--k-mono); color: var(--k-tekst); }
   .k-licznik-blok { bottom: 1rem; }
   .k-tabliczka { bottom: 11rem; }
 }
+
+/* ── Ekran startu i pauzy ────────────────────────────────────────────────────
+   Ten sam panel obsługuje start i pauzę: gracz uczy się go raz, a potem wraca
+   do znajomego miejsca zamiast do drugiego, obcego ekranu. */
+.k-start {
+  position: fixed; inset: 0; z-index: 85;
+  display: grid; place-items: center; padding: 1.5rem;
+  background: radial-gradient(ellipse at center, rgba(6, 20, 28, .82), rgba(2, 5, 12, .95));
+  backdrop-filter: blur(3px);
+}
+.k-start-panel {
+  display: grid; justify-items: start; gap: .85rem;
+  width: min(30rem, 100%);
+  padding: 1.8rem;
+  background: rgba(4, 14, 20, .9);
+  border: 1px solid rgba(92, 200, 219, .3);
+  border-left: 2px solid var(--k-akcent);
+}
+.k-start-nadtytul {
+  margin: 0; font-size: .56rem; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--k-akcent);
+}
+.k-start-panel h1 {
+  margin: 0; font-family: "Syne", var(--k-mono);
+  font-weight: 800; font-size: clamp(1.6rem, 5vw, 2.4rem);
+  line-height: 1.05; color: #fff;
+}
+.k-start-opis { margin: 0; font-size: .76rem; line-height: 1.6; color: rgba(201, 232, 238, .8); }
+.k-start-sterowanie {
+  margin: .2rem 0 0; padding: 0; list-style: none;
+  display: grid; gap: .3rem;
+  font-size: .64rem; letter-spacing: .06em; color: rgba(201, 232, 238, .58);
+}
+.k-start-sterowanie b { color: var(--k-akcent); font-weight: 500; }
+.k-start-btn { font-size: .74rem; padding: .6rem 1.2rem; margin-top: .4rem; }

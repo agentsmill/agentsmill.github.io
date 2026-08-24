@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-<link rel="stylesheet" href="css/kosmos.css?v=202608240014">
+<link rel="stylesheet" href="css/kosmos.css?v=202608250001">
 </head>
 <body>
 
@@ -27,6 +27,24 @@
   <div class="k-epoka" id="k-epoka" aria-live="polite"></div>
   <button class="k-przycisk" id="k-btn-zrodla" type="button">Źródła</button>
 </header>
+
+<div class="k-start" id="k-start" hidden>
+  <div class="k-start-panel">
+    <p class="k-start-nadtytul">Eksperyment</p>
+    <h1>Kosmos budowania</h1>
+    <p class="k-start-opis">
+      Czterdzieści dziewięć projektów jako światy na sześciu orbitach.
+      Im dalej od gwiazdy, tym później powstały.
+    </p>
+    <ul class="k-start-sterowanie">
+      <li><b>mysz</b> ster — odsuń kursor od środka</li>
+      <li><b>W</b> ciąg · <b>S</b> wstecz · <b>Shift</b> dopalacz</li>
+      <li><b>Q</b> / <b>E</b> przechył · <b>strzałki</b> ster</li>
+      <li><b>Esc</b> pauza</li>
+    </ul>
+    <button class="k-przycisk k-start-btn" id="k-btn-start" type="button">Rozpocznij lot</button>
+  </div>
+</div>
 
 <div class="k-celownik" id="k-celownik" aria-hidden="true">
   <span class="k-celownik-pole"></span>
@@ -82,7 +100,7 @@
 
 <p class="k-plakietka" id="k-backend"></p>
 
-<script src="js/projects-data.js?v=202608240014"></script>
+<script src="js/projects-data.js?v=202608250001"></script>
 <script type="importmap">
 {
   "imports": {
@@ -90,18 +108,18 @@
     "three/webgpu":  "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
     "three/tsl":     "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
-    "kosmos/render.js":   "./js/kosmos/render.js?v=202608240014",
-    "kosmos/swiat.js":    "./js/kosmos/swiat.js?v=202608240014",
-    "kosmos/gwiazda.js":  "./js/kosmos/gwiazda.js?v=202608240014",
-    "kosmos/obraz.js":    "./js/kosmos/obraz.js?v=202608240014",
-    "kosmos/mglawica.js": "./js/kosmos/mglawica.js?v=202608240014",
-    "kosmos/cele.js":     "./js/kosmos/cele.js?v=202608240014",
-    "kosmos/rakieta.js":  "./js/kosmos/rakieta.js?v=202608240014",
-    "kosmos/hud.js":      "./js/kosmos/hud.js?v=202608240014",
-    "kosmos/dotyk.js":    "./js/kosmos/dotyk.js?v=202608240014"
+    "kosmos/render.js":   "./js/kosmos/render.js?v=202608250001",
+    "kosmos/swiat.js":    "./js/kosmos/swiat.js?v=202608250001",
+    "kosmos/gwiazda.js":  "./js/kosmos/gwiazda.js?v=202608250001",
+    "kosmos/obraz.js":    "./js/kosmos/obraz.js?v=202608250001",
+    "kosmos/mglawica.js": "./js/kosmos/mglawica.js?v=202608250001",
+    "kosmos/cele.js":     "./js/kosmos/cele.js?v=202608250001",
+    "kosmos/rakieta.js":  "./js/kosmos/rakieta.js?v=202608250001",
+    "kosmos/hud.js":      "./js/kosmos/hud.js?v=202608250001",
+    "kosmos/dotyk.js":    "./js/kosmos/dotyk.js?v=202608250001"
   }
 }
 </script>
-<script type="module" src="js/kosmos/main.js?v=202608240014"></script>
+<script type="module" src="js/kosmos/main.js?v=202608250001"></script>
 </body>
 </html>

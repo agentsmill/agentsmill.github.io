@@ -497,3 +497,7 @@ h2 {
   .archive-list, .index-grid { columns: 1; }
   #ekg-chart { height: 96px; }
 }
+
+/* Znacznik przy Kosmosie. Mniejszy i przygaszony, bo to dopisek do etykiety,
+   a nie druga etykieta — ma uprzedzać, nie krzyczeć. */
+.cta-tag { text-transform: none; letter-spacing: 0.04em; opacity: 0.72; }

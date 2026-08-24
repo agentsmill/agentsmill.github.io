@@ -42,6 +42,7 @@ const obraz = zbudujObraz();
 Object.assign(window.__kosmos, { sondy, licznik, rakieta, obraz, hud });
 
 loader.classList.add("gotowe");
+hud.pokazStart();   // gra czeka na „Rozpocznij lot", nie startuje sama
 
 /* Podpowiedź sterowania znika po pierwszym ruchu gracza — jest instrukcją, nie
    elementem kadru, a kadr jest tu treścią. */
@@ -87,8 +88,17 @@ async function petla() {
   /* Klamrowanie dt: karta w tle wstrzymuje requestAnimationFrame, a po powrocie
      pierwsza klatka miałaby dt liczone w sekundach. Rakieta przeskoczyłaby wtedy
      kilkaset metrów w jednym kroku, minęła sondy bez zaliczenia i mogłaby wylądować
-     w środku planety. */
+     w środku planety. Ten sam odczyt obsługuje powrót z pauzy. */
   const dt = Math.min(zegar.getDelta(), 0.1);
+
+  /* Pauza wstrzymuje AKTUALIZACJĘ, nie rysowanie: kadr zostaje żywy pod panelem,
+     a rakieta stoi. Kluczowe, że nie wołamy rakieta.aktualizuj() — to jedyne
+     miejsce, które czyta mysz, więc kursor odłożony przy krawędzi ekranu
+     przestaje kręcić statkiem. */
+  if (hud.czyPauza()) {
+    await obraz.renderuj(0);
+    return;
+  }
 
   rakieta.aktualizuj(dt);
   pyl.aktualizuj(camera);
