@@ -1,7 +1,7 @@
 # Licencje — assety Kosmosu
 
-Wszystkie dwanaście plików pochodzi z instytucji publicznych (USGS, NASA/JPL, NASA Earth
-Observatory, ESA/Hubble). Żaden plik nie pochodzi ze sklepu Unity ani z innego źródła
+Wszystkie trzynaście plików pochodzi z instytucji publicznych (USGS, NASA/JPL, NASA Earth
+Observatory, NASA ARC, ESA/Hubble). Żaden plik nie pochodzi ze sklepu Unity ani z innego źródła
 komercyjnego. Poniżej pełna dokumentacja źródła, autorstwa i licencji dla każdego pliku.
 
 ## Planety (`planety/`)
@@ -157,9 +157,23 @@ zdjęć ESA/Hubble).
 - **Oryginał:** JPEG 1280×730, 176 975 B
 - **Po konwersji:** WebP q82, 1280×730, 104 602 B
 
+## Rakieta (`rakieta.glb`)
+
+### rakieta.glb
+
+- **Źródło:** https://github.com/nasa/NASA-3D-Resources — `3D Models/Voyager Probe (A)/Voyager Probe (A).glb`
+- **Adres bezpośredni:** https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Voyager%20Probe%20(A)/Voyager%20Probe%20(A).glb
+- **Obiekt:** sonda Voyager — model statku, którym leci gracz
+- **Autor / Credit:** NASA 3D Resources (NASA Ames Research Center)
+- **Licencja:** domena publiczna — README repozytorium: assety są „free and without
+  copyright"; obowiązują wytyczne NASA Media Usage Guidelines
+- **Format:** glTF 2.0 binarny (glb), 285 936 B, pobrany bez konwersji
+- **Weryfikacja:** nagłówek `glTF` wersja 2, deklarowana długość równa faktycznej
+
 ## Podsumowanie budżetu
 
 - `assets/kosmos/planety/`: 6 plików, ~808 KB
 - `assets/kosmos/mglawice/`: 6 plików, ~708 KB
-- `assets/kosmos/` razem: ~1,5 MB (limit: 3 MB)
-- `assets/` razem (z istniejącym `museum/` i `shots/`): ~3,4 MB (limit: 5 MB)
+- `assets/kosmos/rakieta.glb`: 1 plik, ~279 KB
+- `assets/kosmos/` razem: ~1,8 MB (limit: 3 MB)
+- `assets/` razem (z istniejącym `museum/` i `shots/`): ~3,7 MB (limit: 5 MB)
