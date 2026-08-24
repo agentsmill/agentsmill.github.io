@@ -2,7 +2,7 @@
    Promień powłoki rośnie z datą — lot na zewnątrz jest lotem w przód przez historię autora. */
 
 import * as THREE from "three";
-import { scene } from "kosmos/render.js";
+import { scene, zasob } from "kosmos/render.js";
 import { zbudujGwiazde, atmosfera } from "kosmos/gwiazda.js";
 
 /* Sześć powłok. Promień rośnie z datą — lot na zewnątrz jest lotem w przód przez historię.
@@ -39,7 +39,7 @@ function planeta(nazwa, barwaOtoczki) {
   const siatka = new THREE.Mesh(geo, mat);
 
   teksturomat.load(
-    `assets/kosmos/planety/${nazwa}.webp`,
+    zasob(`assets/kosmos/planety/${nazwa}.webp`),
     (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; mat.map = t; mat.needsUpdate = true; },
     undefined,
     () => window.__bledy.push(`brak mapy planety: ${nazwa}`)

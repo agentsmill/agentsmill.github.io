@@ -208,3 +208,26 @@ body { font-family: var(--k-mono); color: var(--k-tekst); }
   .k-tabliczka { top: auto; bottom: 4.6rem; transform: none; right: .6rem; left: .6rem; width: auto; }
   .k-sterowanie { white-space: normal; text-align: center; width: min(92vw, 30rem); }
 }
+
+/* ── Celownik ───────────────────────────────────────────────────────────────
+   Dwa zadania naraz. Krzyżyk w środku mówi, GDZIE jest „prosto przed siebie" —
+   bez niego, przy kamerze z zewnątrz i braku horyzontu, nie da się wycelować
+   w sondę inaczej niż na wyczucie. Elipsa to granica martwego pola myszy:
+   kursor w środku = lot prosto, kursor poza elipsą = skręt. Jej rozmiar musi
+   odpowiadać MARTWE_POLE z rakieta.js (0.12 połowy okna w każdą stronę),
+   stąd 12vw × 12vh, a nie okrąg o stałym promieniu. */
+.k-celownik {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 20; pointer-events: none;
+  display: grid; place-items: center;
+}
+.k-celownik-pole {
+  width: 12vw; height: 12vh; border-radius: 50%;
+  border: 1px dashed rgba(92, 200, 219, .22);
+}
+.k-celownik-srodek {
+  position: absolute; width: 22px; height: 22px;
+  background:
+    linear-gradient(rgba(92, 200, 219, .75), rgba(92, 200, 219, .75)) center/1px 8px no-repeat,
+    linear-gradient(rgba(92, 200, 219, .75), rgba(92, 200, 219, .75)) center/8px 1px no-repeat;
+}

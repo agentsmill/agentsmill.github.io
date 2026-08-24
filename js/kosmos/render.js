@@ -53,6 +53,26 @@ addEventListener("resize", () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-window.__kosmos = { renderer, scene, camera, backend };
+/* ────────────────────────────────────────────────────────────────────────────
+   Stempel wersji dla ZASOBÓW BINARNYCH (glb, webp, jpeg).
+
+   Import mapa w kosmos.html stempluje moduły JS i CSS, ale pliki assetów
+   wczytywane są z gołych ścieżek — a więc nie da się ich nigdy odświeżyć
+   u wracającego odwiedzającego. Wykryte przy podmianie modelu statku: nowy
+   plik leżał na serwerze, a przeglądarka uparcie podawała stary z pamięci.
+   To nie jest problem testów, tylko wdrożenia: po podmianie mapy planety
+   wszyscy wracający widzieliby starą już zawsze.
+
+   Wersję czytamy z WŁASNEGO adresu modułu, który import mapa już ostemplowała.
+   Dzięki temu nadal istnieje dokładnie jedno miejsce z numerem wersji —
+   kosmos.html — i ograniczenie globalne („żaden import w js/kosmos/*.js nie
+   stempluje ścieżki") zostaje spełnione co do sensu i co do litery. */
+export const WERSJA = new URL(import.meta.url).searchParams.get("v") ?? "";
+
+export function zasob(sciezka) {
+  return WERSJA ? `${sciezka}?v=${WERSJA}` : sciezka;
+}
+
+window.__kosmos = { renderer, scene, camera, backend, WERSJA };
 
 export { renderer, scene, camera, backend, host, loader };

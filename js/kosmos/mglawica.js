@@ -4,7 +4,7 @@
 
 import * as THREE from "three";
 import { vec3, uniform, instanceIndex, hash, smoothstep, float, uv, texture } from "three/tsl";
-import { scene } from "kosmos/render.js";
+import { scene, zasob } from "kosmos/render.js";
 
 export const ZRODLA = [
   { plik: "filary.webp",       tytul: "Filary Stworzenia (Mgławica Orzeł, M16)", autor: "NASA, ESA/Hubble", licencja: "CC BY 4.0" },
@@ -51,7 +51,7 @@ export function zbudujNiebo() {
     mat.opacityNode = float(0.0);
 
     teksturomat.load(
-      `assets/kosmos/mglawice/${z.plik}`,
+      zasob(`assets/kosmos/mglawice/${z.plik}`),
       (t) => {
         t.colorSpace = THREE.SRGBColorSpace;
         mat.colorNode = texture(t, w);

@@ -4,7 +4,7 @@
    nie kod: zero importów z js/groza/ i js/museum/. */
 
 import * as THREE from "three";
-import { scene } from "kosmos/render.js";
+import { scene, zasob } from "kosmos/render.js";
 import { POWLOKI } from "kosmos/swiat.js";
 
 /* Zrzuty, które FAKTYCZNIE leżą w assets/shots. Ta lista siedzi tutaj, a nie w danych,
@@ -57,46 +57,135 @@ function kolorProjektu(p) {
   return KOLORY[p.cat?.[0]] ?? new THREE.Color(0x8899aa);
 }
 
+/* Promień świata projektu. Zakres, nie stała: pole 49 jednakowych kul wygląda
+   jak wysypane koraliki. Ziarno z identyfikatora, więc ten sam projekt ma zawsze
+   ten sam rozmiar. Górna granica trzyma się wyraźnie poniżej PROMIEN_PLANETY (130):
+   planety epok mają zostać większe od projektów, bo to one dzielą historię na
+   rozdziały. */
+const PROMIEN_MIN = 42;
+const PROMIEN_MAX = 78;
+
+/* Nierówność powierzchni z sumy sinusoid — gładka, deterministyczna i bez tablic
+   szumu. Trzy oktawy wystarczają, żeby sylwetka przestała być idealną kulą:
+   to sylwetka, nie tekstura, decyduje, czy obiekt czyta się jako świat. */
+function garb(x, y, z, f, faza) {
+  return Math.sin(x * f + faza) * Math.sin(y * f * 1.31 + faza * 1.7) * Math.sin(z * f * 0.89 + faza * 2.3);
+}
+
+function ukształtuj(geo, promien, nasiono) {
+  const poz = geo.attributes.position;
+  const faza = nasiono * 31.4;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < poz.count; i++) {
+    v.fromBufferAttribute(poz, i).normalize();
+    const g =
+      garb(v.x, v.y, v.z, 1.7, faza) * 0.13 +
+      garb(v.x, v.y, v.z, 3.4, faza * 1.6) * 0.06 +
+      garb(v.x, v.y, v.z, 6.9, faza * 2.2) * 0.03;
+    v.multiplyScalar(promien * (1 + g));
+    poz.setXYZ(i, v.x, v.y, v.z);
+  }
+  poz.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* Jeden projekt = jeden świat, do którego warto podlecieć: bryła o własnym
+   kształcie, pierścień w barwie kategorii i — gdy istnieje zrzut — ekran nad
+   biegunem. Wcześniej projekt był płaskim panelem 40x25 z cienką obręczą, czyli
+   niczym, do czego dałoby się polecieć. */
 function sonda(projekt) {
   const grupa = new THREE.Group();
   const kolor = kolorProjektu(projekt);
+  const nasiono = ziarno(projekt.id);
+  const promien = PROMIEN_MIN + nasiono * (PROMIEN_MAX - PROMIEN_MIN);
 
-  // Ramka — zawsze, niezależnie od tego, czy jest zrzut.
-  const ramka = new THREE.Mesh(
-    new THREE.TorusGeometry(30, 1.4, 8, 4),
-    new THREE.MeshBasicMaterial({ color: kolor })
+  const glob = new THREE.Mesh(
+    ukształtuj(new THREE.IcosahedronGeometry(promien, 3), promien, nasiono),
+    new THREE.MeshStandardMaterial({
+      color: kolor.clone().multiplyScalar(0.55),
+      roughness: 0.88, metalness: 0.08, flatShading: false,
+    })
   );
-  ramka.rotation.z = Math.PI / 4;
-  grupa.add(ramka);
+  glob.name = "glob";
+  grupa.add(glob);
 
+  /* Ekran ze zrzutem stoi nad biegunem i ZAWSZE zwraca się do kamery: gracz
+     nadlatuje z dowolnej strony, a zrzut ma być czytelny, nie ustawiony bokiem.
+     Obracany w aktualizujCele(). */
+  let ekran = null;
   const plik = projekt.shot || `${projekt.id}.jpeg`;
-  const panel = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 25),
-    new THREE.MeshBasicMaterial({ color: kolor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
-  );
-  grupa.add(panel);
-
   if (ZRZUTY.has(plik)) {
-    new THREE.TextureLoader().load(`assets/shots/${plik}`, (t) => {
+    ekran = new THREE.Mesh(
+      new THREE.PlaneGeometry(promien * 1.5, promien * 0.94),
+      new THREE.MeshBasicMaterial({ color: 0x8899aa, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+    );
+    ekran.position.y = promien * 1.75;
+    ekran.name = "ekran";
+    grupa.add(ekran);
+
+    new THREE.TextureLoader().load(zasob(`assets/shots/${plik}`), (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
-      panel.material.map = t;
-      panel.material.opacity = 1;
-      panel.material.color.set(0xffffff);
-      panel.material.needsUpdate = true;
+      ekran.material.map = t;
+      ekran.material.opacity = 1;
+      ekran.material.color.set(0xffffff);
+      ekran.material.needsUpdate = true;
     });
   }
-  // 27 projektów bez zbioru zostaje z barwnym panelem i ramką — nigdy z pustką
+  // 27 projektów bez zrzutu zostaje z samym światem i pierścieniem — nigdy z pustką
   // i nigdy z żądaniem po nieistniejący plik.
 
   grupa.name = `sonda-${projekt.id}`;
   grupa.userData.projekt = projekt;
-  return grupa;
+  return { grupa, promien, kolor, nasiono, ekran };
 }
 
 /* Stan modułu — mutowany w miejscu (nie przypisywany na nowo), żeby importy przez
    nazwaną wartość (Zadanie 6: `import { sondy } from "kosmos/cele.js"`) zawsze widziały
    aktualną zawartość. */
 export const sondy = [];
+
+/* Pierścienie wszystkich 49 światów w JEDNYM wywołaniu rysowania.
+
+   Osobne siatki kosztowały 49 wywołań i podbijały licznik do 218, czyli ponad
+   próg 200 z Zadania 8. Torus jest dla każdego świata ten sam co do kształtu —
+   różni się wyłącznie położeniem, nachyleniem, skalą i barwą, a to wszystko
+   mieści się w macierzy instancji i w barwie instancji. Dokładnie ten zabieg
+   przewidywał plan („Panele sond przez InstancedMesh"). */
+export let pierscienie = null;
+
+function zbudujPierscienie(lista) {
+  /* Torus o promieniu 1: całą wielkość niesie skala instancji, więc jedna
+     geometria obsługuje światy o promieniach od 42 do 78. */
+  const geo = new THREE.TorusGeometry(1, 0.0226, 8, 48);
+  const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.82 });
+
+  const siatka = new THREE.InstancedMesh(geo, mat, lista.length);
+  siatka.name = "pierscienie";
+  siatka.frustumCulled = false;   // instancje rozsiane po całym układzie
+  siatka.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const e = new THREE.Euler();
+  const skala = new THREE.Vector3();
+
+  lista.forEach((s, i) => {
+    /* Nachylenie z ziarna — pole równoległych pierścieni wyglądałoby jak wydruk,
+       nie jak układ. */
+    e.set(Math.PI / 2 + (s.nasiono - 0.5) * 1.1, 0, s.nasiono * Math.PI);
+    q.setFromEuler(e);
+    skala.setScalar(s.promien * 1.55);
+    m.compose(s.pozycja, q, skala);
+    siatka.setMatrixAt(i, m);
+    siatka.setColorAt(i, s.kolor);
+    s.indeksPierscienia = i;
+  });
+  siatka.instanceMatrix.needsUpdate = true;
+  siatka.instanceColor.needsUpdate = true;
+  scene.add(siatka);
+  return siatka;
+}
 export const licznik = { wszystkich: 0, odwiedzonych: 0 };
 
 /* Buduje 49 sond z PROJECTS, grupuje po epoce (nie po kolejności w tablicy — projekty
@@ -114,12 +203,14 @@ export function zbudujCele() {
     const projekty = poEpokach.get(powloka.epoka) || [];
     projekty.forEach((projekt, indeks) => {
       const pozycja = pozycjaSondy(projekt, indeks, projekty.length, powloka);
-      const grupa = sonda(projekt);
+      const { grupa, promien, kolor, nasiono, ekran } = sonda(projekt);
       grupa.position.copy(pozycja);
       scene.add(grupa);
-      sondy.push({ projekt, grupa, odwiedzona: false, pozycja });
+      sondy.push({ projekt, grupa, odwiedzona: false, pozycja, promien, kolor, nasiono, ekran });
     });
   }
+
+  pierscienie = zbudujPierscienie(sondy);
 
   licznik.wszystkich = sondy.length;
   licznik.odwiedzonych = 0;
@@ -144,15 +235,32 @@ function szukaj(poz, pomijajOdwiedzone) {
 export function najblizszaNieodwiedzona(poz) { return szukaj(poz, true); }
 export function najblizsza(poz) { return szukaj(poz, false); }
 
-/* Eksportowany (poza literą interfejsu z briefu), żeby main.js — jedyne miejsce, gdzie
-   kamera faktycznie się porusza — porównywało z TĄ SAMĄ liczbą, a nie duplikowało 90
-   jako drugą magiczną stałą, która mogłaby się z czasem rozjechać. */
-export const PROG_ODWIEDZENIA = 90;   // metry sceny; sonda ma promień ramki 30
+/* Próg liczony NAD POWIERZCHNIĄ świata, nie od jego środka. Światy mają teraz
+   promienie 42..78, więc stała liczona od środka zaliczałaby mały świat z daleka,
+   a przy dużym kazałaby wlecieć w grunt. */
+export const PROG_ODWIEDZENIA = 85;   // metry nad powierzchnią
+
+export function wysokoscNad(sonda, dystansOdSrodka) {
+  return dystansOdSrodka - sonda.promien;
+}
+
+/* Ekrany zwrócone do kamery. 49 obrotów na klatkę to koszt pomijalny, a bez tego
+   zrzut oglądany z boku jest niewidoczny — czyli dokładnie wtedy, gdy gracz
+   dolatuje, żeby go obejrzeć. */
+export function aktualizujCele(kamera) {
+  for (const s of sondy) {
+    if (s.ekran) s.ekran.lookAt(kamera.position);
+  }
+}
 
 export function oznaczOdwiedzona(s) {
   if (s.odwiedzona) return false;
   s.odwiedzona = true;
   licznik.odwiedzonych++;
-  s.grupa.children[0].material.color.multiplyScalar(2.2);   // ramka rozjaśnia się na stałe
+  /* Barwa instancji, nie materiału: materiał jest wspólny dla wszystkich 49
+     pierścieni, więc zmiana na nim rozjaśniłaby cały układ naraz. */
+  s.kolor.multiplyScalar(2.4);
+  pierscienie.setColorAt(s.indeksPierscienia, s.kolor);
+  pierscienie.instanceColor.needsUpdate = true;
   return true;                                              // true = to była nowa sonda
 }

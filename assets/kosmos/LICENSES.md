@@ -161,19 +161,21 @@ zdjęć ESA/Hubble).
 
 ### rakieta.glb
 
-- **Źródło:** https://github.com/nasa/NASA-3D-Resources — `3D Models/Voyager Probe (A)/Voyager Probe (A).glb`
-- **Adres bezpośredni:** https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Voyager%20Probe%20(A)/Voyager%20Probe%20(A).glb
-- **Obiekt:** sonda Voyager — model statku, którym leci gracz
+- **Źródło:** https://github.com/nasa/NASA-3D-Resources — `3D Models/Saturn V/Saturn V.glb`
+- **Adres bezpośredni:** https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Saturn%20V/Saturn%20V.glb
+- **Obiekt:** Saturn V — rakieta, którą leci gracz
 - **Autor / Credit:** NASA 3D Resources (NASA Ames Research Center)
 - **Licencja:** domena publiczna — README repozytorium: assety są „free and without
   copyright"; obowiązują wytyczne NASA Media Usage Guidelines
-- **Format:** glTF 2.0 binarny (glb), 285 936 B, pobrany bez konwersji
+- **Format:** glTF 2.0 binarny (glb), 927 212 B, pobrany bez konwersji
 - **Weryfikacja:** nagłówek `glTF` wersja 2, deklarowana długość równa faktycznej
+- **Historia:** do 24 VIII 2026 w tym miejscu stała sonda Voyager (285 936 B).
+  Wymieniona na życzenie właściciela: „to nie jest rakieta, tylko jakiś dziwny obiekt".
 
 ## Podsumowanie budżetu
 
 - `assets/kosmos/planety/`: 6 plików, ~808 KB
 - `assets/kosmos/mglawice/`: 6 plików, ~708 KB
-- `assets/kosmos/rakieta.glb`: 1 plik, ~279 KB
-- `assets/kosmos/` razem: ~1,8 MB (limit: 3 MB)
-- `assets/` razem (z istniejącym `museum/` i `shots/`): ~3,7 MB (limit: 5 MB)
+- `assets/kosmos/rakieta.glb`: 1 plik, ~905 KB
+- `assets/kosmos/` razem: ~2,4 MB (limit: 3 MB)
+- `assets/` razem (z istniejącym `museum/` i `shots/`): ~4,3 MB (limit: 5 MB)

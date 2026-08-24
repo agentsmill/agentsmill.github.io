@@ -3,8 +3,8 @@ import { renderer, camera, loader, backend } from "kosmos/render.js";
 import { zbudujSwiat, powlokaDlaPromienia } from "kosmos/swiat.js";
 import { zbudujNiebo, zbudujPyl } from "kosmos/mglawica.js";
 import {
-  zbudujCele, najblizszaNieodwiedzona, najblizsza,
-  oznaczOdwiedzona, PROG_ODWIEDZENIA,
+  zbudujCele, najblizszaNieodwiedzona, najblizsza, aktualizujCele,
+  oznaczOdwiedzona, wysokoscNad, PROG_ODWIEDZENIA,
 } from "kosmos/cele.js";
 import { zbudujRakiete, wlaczSterowanieMysza } from "kosmos/rakieta.js";
 import { zbudujObraz } from "kosmos/obraz.js";
@@ -67,8 +67,8 @@ addEventListener("mousedown", schowajPodpowiedz, { once: true });
    Alternatywa, gdyby to miało być muzeum, a nie lot: zatrzasnąć tabliczkę do czasu
    zbliżenia się do NASTĘPNEJ sondy — wtedy zawsze da się dokończyć czytanie, kosztem
    tego, że w kadrze wisi opis czegoś, co jest już daleko za plecami. */
-const PROMIEN_CZYTANIA = 260;
-const PROMIEN_SCHOWANIA = 340;
+const PROMIEN_CZYTANIA = 240;
+const PROMIEN_SCHOWANIA = 330;
 
 const zegar = new THREE.Clock();
 
@@ -98,7 +98,7 @@ async function petla() {
      i niesymetrycznie — sonda mijana z przodu liczyłaby się później niż ta sama
      sonda mijana od tyłu. */
   const nieodwiedzona = najblizszaNieodwiedzona(poz);
-  if (nieodwiedzona && nieodwiedzona.dystans < PROG_ODWIEDZENIA) {
+  if (nieodwiedzona && wysokoscNad(nieodwiedzona.sonda, nieodwiedzona.dystans) < PROG_ODWIEDZENIA) {
     if (oznaczOdwiedzona(nieodwiedzona.sonda)) {
       hud.ustawLicznik(licznik.odwiedzonych, licznik.wszystkich);
       if (licznik.odwiedzonych >= licznik.wszystkich) hud.zwyciestwo();
@@ -106,11 +106,18 @@ async function petla() {
   }
 
   hud.ustawEpoke(powlokaDlaPromienia(poz.length()));
-  hud.ustawKierunek(nieodwiedzona?.sonda ?? null, nieodwiedzona?.dystans ?? 0);
+  hud.ustawKierunek(nieodwiedzona?.sonda ?? null,
+    nieodwiedzona ? Math.max(0, wysokoscNad(nieodwiedzona.sonda, nieodwiedzona.dystans)) : 0);
 
+  /* Także mierzone nad powierzchnią: przy świecie o promieniu 78 próg liczony
+     od środka zapalałby tabliczkę, gdy gracz jest jeszcze 160 m nad gruntem,
+     a przy najmniejszym dopiero po wlocie w bryłę. */
   const przy = najblizsza(poz);
-  if (przy && przy.dystans < PROMIEN_CZYTANIA) hud.pokazTabliczke(przy.sonda.projekt);
-  else if (!przy || przy.dystans > PROMIEN_SCHOWANIA) hud.schowajTabliczke();
+  const wysokosc = przy ? wysokoscNad(przy.sonda, przy.dystans) : Infinity;
+  if (przy && wysokosc < PROMIEN_CZYTANIA) hud.pokazTabliczke(przy.sonda.projekt);
+  else if (wysokosc > PROMIEN_SCHOWANIA) hud.schowajTabliczke();
+
+  aktualizujCele(camera);
 
   obraz.ustawTempo(rakieta.tempoWzgledne());
   await obraz.renderuj();
