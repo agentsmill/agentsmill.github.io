@@ -4,3 +4,9 @@
 .superpowers/
 *.jpeg
 !assets/shots/*.jpeg
+
+# Zrzuty referencyjne robione przy researchu lądują w korzeniu, gdy Playwright
+# dostanie względną nazwę pliku. To cudze strony — nie mają czego szukać ani
+# w repozytorium, ani tym bardziej na wdrożonej stronie publicznej.
+/ref-*.png
+/page-*.png
