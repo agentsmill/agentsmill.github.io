@@ -91,9 +91,34 @@
     }
   }
 
+  /* Plansze epok. Oś czasu dzieli się na sześć rozdziałów i każdy dostaje szeroki
+     pas nad nagłówkiem — ta sama rola co karta tytułowa rozdziału w książce.
+     Nagłówek epoki znajdujemy po numerze rozdziału w kolejności renderowania,
+     bo main.js buduje .era dokładnie w kolejności tablicy ERAS. */
+  function ozdobEpoki() {
+    const epoki = document.querySelectorAll(".timeline-section .era");
+    epoki.forEach((era, i) => {
+      const nr = i + 1;
+      if (nr > 6 || era.querySelector(".epoka-plansza")) return;
+      const ramka = document.createElement("span");
+      ramka.className = "epoka-plansza shot-okladka";
+      const img = document.createElement("img");
+      img.src = `assets/epoki/epoka-${nr}.webp`;
+      img.alt = window.__jezyk === "en"
+        ? `AI-generated chapter plate for era ${nr}`
+        : `Plansza epoki ${nr} wygenerowana modelem AI`;
+      img.loading = "lazy"; img.decoding = "async";
+      const znacznik = document.createElement("span");
+      znacznik.className = "shot-znacznik";
+      znacznik.textContent = PODPIS[window.__jezyk === "en" ? "en" : "pl"];
+      ramka.append(img, znacznik);
+      era.prepend(ramka);
+    });
+  }
+
   /* main.js buduje karty na DOMContentLoaded; ten plik ładuje się PO nim, więc
      jego uchwyt wykona się później i zastanie gotowy DOM. Dodatkowy
      requestAnimationFrame domyka przypadek, w którym main.js dokłada coś
      jeszcze w tej samej klatce. */
-  addEventListener("DOMContentLoaded", () => requestAnimationFrame(() => { podmien(); ozdobOsCzasu(); }));
+  addEventListener("DOMContentLoaded", () => requestAnimationFrame(() => { podmien(); ozdobOsCzasu(); ozdobEpoki(); }));
 })();

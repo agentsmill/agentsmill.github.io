@@ -98,6 +98,19 @@
     "h3.watki": "Threads running across",
     "h3.ekspres": "Leon's Fire Engine Express",
     "h3.jozef": "Józef on the robot Richie",
+    "wideo.lokalne": "Generated here",
+    "wideo.lokalneOpis":
+      "The shots below were not made in the cloud. MiniMax Hailuo 3 produced them on a machine " +
+      "standing in this flat — an NVIDIA GB10 with 121 GB of memory. All the generated material " +
+      "on this page: 33 images and 2 video shots.",
+    "wideo.mglawica": "A drift through a nebula",
+    "wideo.mglawicaOpis": "5.2 s · 768×448 · generated in 64 s",
+    "wideo.orbita": "A pass over the terminator",
+    "wideo.orbitaOpis": "5.2 s · 768×448 · generated in 50 s",
+    "wideo.czasy":
+      "Generation times on the GB10: a 1024×576 image — 10 s; an era plate at 1024×384 — 8 s; " +
+      "a 5.2 s video shot at 768×448 — between 48 and 64 s. In total 27 project covers " +
+      "(4 min 30 s), 6 era plates (56 s) and 3 video shots (2 min 42 s).",
     "przelacznik.tytul": "Switch language",
   };
 
