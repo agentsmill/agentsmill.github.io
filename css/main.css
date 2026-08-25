@@ -661,9 +661,19 @@ h2 {
   box-shadow: 0 2px 8px rgba(0,0,0,.5);
 }
 .gramofon-ramie::after {
+  /* Wkładka na końcu ramienia — to ona „siada" na rowkach. */
   content: ""; position: absolute; left: -3px; bottom: -4px;
   width: 10px; height: 12px; border-radius: 2px;
   background: #8a90a2;
+}
+.gramofon-ramie::before {
+  /* Oś obrotu ramienia. Bez niej ramię wygląda jak patyk zawieszony w powietrzu,
+     a nie jak część gramofonu — punkt mocowania jest tym, co czyni z linii ramię. */
+  content: ""; position: absolute; left: 50%; top: -9px;
+  transform: translateX(-50%);
+  width: 20px; height: 20px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7d8496, #40454f 70%);
+  box-shadow: 0 2px 8px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.09);
 }
 .gramofon.gra .gramofon-ramie { transform: rotate(-6deg); }
 
