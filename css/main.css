@@ -531,18 +531,9 @@ h2 {
 }
 .cta-wideo:hover { color: var(--ink); border-color: var(--ink); }
 
-/* Przełącznik języka. Oba kody widoczne naraz, aktywny podświetlony — czytelniej
-   niż jedna etykieta, przy której nie wiadomo, czy pokazuje stan, czy akcję. */
-.lang-switch {
-  display: flex; gap: .35rem; align-items: center;
-  margin-left: 1.1rem; padding: .25rem .5rem;
-  background: transparent; border: 1px solid var(--line);
-  border-radius: 99px; cursor: pointer;
-  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .08em;
-}
-.lang-switch span { color: var(--ink-faint); transition: color .15s ease; }
-.lang-switch span.on { color: var(--pulse); }
-.lang-switch:hover { border-color: var(--pulse-dim); }
+/* Wygląd przełącznika języka mieszka w js/i18n.js razem z komponentem —
+   karta budowania i muzeum ładują różne arkusze, a jedna kopia reguł
+   w dwóch plikach rozjechałaby się przy pierwszej poprawce. */
 
 /* Okładka generowana modelem — wizualnie odróżniona od zrzutu ekranu.
    Podpis jest wymogiem uczciwości, nie ozdobą: karta nie może sugerować,

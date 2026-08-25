@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/museum.css?v=202608060321">
+  <link rel="stylesheet" href="css/museum.css?v=202608250004">
 </head>
 <body>
 
@@ -21,7 +21,7 @@
     <path d="M0 20 L28 20 L36 6 L46 30 L54 14 L58 20 L120 20"
           fill="none" stroke="#F2C46D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <p>Otwieram muzeum…</p>
+  <p data-i18n="muz.laduje">Otwieram muzeum…</p>
 </div>
 
 <!-- HUD -->
@@ -29,18 +29,18 @@
      strzałkę i skrót. Pełna nazwa zostaje w aria-label, więc czytnik ekranu nic nie
      traci. Przycisku „Oprowadź mnie" to nie dotyczy — jego treść przepisuje main.js. -->
 <header class="hud-top">
-  <a class="hud-back" href="index.html" aria-label="Wróć do karty budowania">←<span class="hud-tekst"> Karta budowania</span></a>
+  <a class="hud-back" href="index.html" aria-label="Wróć do karty budowania">←<span class="hud-tekst" data-i18n="muz.powrot"> Karta budowania</span></a>
   <div class="hud-era" id="hud-era" aria-live="polite"></div>
-  <button class="hud-list" id="btn-tura" type="button">Oprowadź mnie</button>
-  <button class="hud-list" id="btn-list" type="button" aria-label="Lista eksponatów">Lista<span class="hud-tekst"> eksponatów</span></button>
+  <button class="hud-list" id="btn-tura" type="button" data-i18n="muz.tura">Oprowadź mnie</button>
+  <button class="hud-list" id="btn-list" type="button" aria-label="Lista eksponatów"><span data-i18n="muz.lista">Lista</span><span class="hud-tekst" data-i18n="muz.listaPelna"> eksponatów</span></button>
 </header>
 
 <!-- Dwa warianty podpowiedzi. Gość z kciukiem nie ma czego zrobić z instrukcją
      o WASD, myszce, Shifcie i klawiszu Esc — dostaje swoją. Przełącznik jest
      w museum.css i używa tego samego kryterium co joystick. -->
 <p class="hud-hint" id="hud-hint">
-  <span class="hint-mysz">Kliknij, aby wejść · <b>WASD</b> chodzi, myszka rozgląda, <b>Shift</b> biegnie · <b>Esc</b> wychodzi</span>
-  <span class="hint-dotyk">Lewy kciuk prowadzi, prawy rozgląda · dotknij eksponatu</span>
+  <span class="hint-mysz" data-i18n-html="muz.podpowiedzMysz">Kliknij, aby wejść · <b>WASD</b> chodzi, myszka rozgląda, <b>Shift</b> biegnie · <b>Esc</b> wychodzi</span>
+  <span class="hint-dotyk" data-i18n="muz.podpowiedz">Lewy kciuk prowadzi, prawy rozgląda · dotknij eksponatu</span>
 </p>
 
 <!-- Celownik trybu chodzenia. Przy zablokowanym wskaźniku raycaster celuje
@@ -57,14 +57,14 @@
   <p class="plaque-desc" id="plaque-desc"></p>
   <p class="plaque-tech" id="plaque-tech"></p>
   <p class="plaque-links" id="plaque-links"></p>
-  <button class="plaque-close" id="plaque-close" type="button">Wróć do spaceru</button>
+  <button class="plaque-close" id="plaque-close" data-i18n="muz.zamknijTabliczke" type="button">Wróć do spaceru</button>
 </aside>
 
 <!-- Lista eksponatów (dostępna bez 3D) -->
 <aside class="list-panel" id="list-panel" role="dialog" aria-labelledby="list-title" hidden>
   <div class="list-head">
-    <h2 id="list-title">Eksponaty</h2>
-    <button class="plaque-close" id="list-close" type="button">Zamknij</button>
+    <h2 id="list-title" data-i18n="muz.eksponaty">Eksponaty</h2>
+    <button class="plaque-close" id="list-close" type="button" data-i18n="muz.zamknij">Zamknij</button>
   </div>
   <div id="list-body"></div>
 </aside>
@@ -72,7 +72,7 @@
 <!-- Fallback bez WebGL. Ten sam panel obsługuje awarię ładowania (skrypt niżej):
      w obu wypadkach gość ma przed sobą wyjaśnienie i wyjście, a nie zawieszony ekran. -->
 <div id="no-webgl" hidden>
-  <p>Ta przeglądarka nie obsługuje WebGL — muzeum potrzebuje go do życia.</p>
+  <p data-i18n="muz.brakWebgl">Ta przeglądarka nie obsługuje WebGL — muzeum potrzebuje go do życia.</p>
   <p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>
 </div>
 
@@ -113,23 +113,24 @@
 })();
 </script>
 
-<script src="js/projects-data.js?v=202608060321"></script>
+<script src="js/projects-data.js?v=202608250004"></script>
 <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-      "muzeum/render.js":   "./js/museum/render.js?v=202608060321",
-      "muzeum/textures.js": "./js/museum/textures.js?v=202608060321",
-      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202608060321",
-      "muzeum/world.js":    "./js/museum/world.js?v=202608060321",
-      "muzeum/building.js": "./js/museum/building.js?v=202608060321",
-      "muzeum/ui.js":       "./js/museum/ui.js?v=202608060321",
-      "muzeum/player.js":   "./js/museum/player.js?v=202608060321",
-      "muzeum/perf.js":     "./js/museum/perf.js?v=202608060321"
+      "muzeum/render.js":   "./js/museum/render.js?v=202608250004",
+      "muzeum/textures.js": "./js/museum/textures.js?v=202608250004",
+      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202608250004",
+      "muzeum/world.js":    "./js/museum/world.js?v=202608250004",
+      "muzeum/building.js": "./js/museum/building.js?v=202608250004",
+      "muzeum/ui.js":       "./js/museum/ui.js?v=202608250004",
+      "muzeum/player.js":   "./js/museum/player.js?v=202608250004",
+      "muzeum/perf.js":     "./js/museum/perf.js?v=202608250004"
     }
   }
 </script>
-<script type="module" src="js/museum/main.js?v=202608060321"></script>
+<script src="js/i18n.js?v=202608250003"></script>
+<script type="module" src="js/museum/main.js?v=202608250004"></script>
 </body>
 </html>

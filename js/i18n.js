@@ -111,6 +111,18 @@
       "Generation times on the GB10: a 1024×576 image — 10 s; an era plate at 1024×384 — 8 s; " +
       "a 5.2 s video shot at 768×448 — between 48 and 64 s. In total 27 project covers " +
       "(4 min 30 s), 6 era plates (56 s) and 3 video shots (2 min 42 s).",
+    "muz.laduje": "Opening the museum…",
+    "muz.powrot": " Building record",
+    "muz.tura": "Show me around",
+    "muz.lista": "List",
+    "muz.listaPelna": " of exhibits",
+    "muz.podpowiedz": "Left thumb walks, right thumb looks · tap an exhibit",
+    "muz.podpowiedzMysz": "Click to enter · <b>WASD</b> walks, mouse looks, <b>Shift</b> runs · <b>Esc</b> exits",
+    "muz.zamknijTabliczke": "Back to the walk",
+    "muz.eksponaty": "Exhibits",
+    "muz.zamknij": "Close",
+    "muz.brakWebgl": "This browser has no WebGL — the museum needs it to exist.",
+    "muz.wrocKarta": "Back to the building record",
     "przelacznik.tytul": "Switch language",
   };
 
@@ -226,8 +238,32 @@
     }
   }
 
+  /* Przełącznik NIESIE WŁASNY WYGLĄD. Powód wyszedł z pomiaru: karta budowania
+     ładuje css/main.css, muzeum css/museum.css, a przycisk mieszkał tylko w tym
+     pierwszym — w muzeum wstawiał się poprawnie i był praktycznie niewidoczny.
+     Kopiowanie tych samych reguł do dwóch arkuszy skończyłoby się ich
+     rozjechaniem przy pierwszej poprawce, więc styl idzie razem z komponentem. */
+  function wstrzyknijStyl() {
+    if (document.getElementById("lang-switch-styl")) return;
+    const st = document.createElement("style");
+    st.id = "lang-switch-styl";
+    st.textContent = `
+      .lang-switch{display:flex;gap:.35rem;align-items:center;margin-left:1.1rem;
+        padding:.28rem .55rem;background:rgba(10,14,22,.72);
+        border:1px solid rgba(255,255,255,.16);border-radius:99px;cursor:pointer;
+        font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.68rem;
+        letter-spacing:.08em;line-height:1;flex:0 0 auto}
+      .lang-switch span{color:rgba(255,255,255,.42);transition:color .15s ease}
+      .lang-switch span.on{color:#F2C46D}
+      .lang-switch:hover{border-color:rgba(242,196,109,.55)}`;
+    document.head.appendChild(st);
+  }
+
   function zbudujPrzelacznik() {
-    const nav = document.querySelector(".topbar");
+    wstrzyknijStyl();
+    /* Karta budowania ma .topbar, muzeum .hud-top — jeden przełącznik
+       obsługuje oba, więc nie ma dwóch kopii tej samej logiki. */
+    const nav = document.querySelector(".topbar, .hud-top");
     if (!nav) return;
     const btn = document.createElement("button");
     btn.className = "lang-switch";

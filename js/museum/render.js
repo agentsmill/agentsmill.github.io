@@ -42,7 +42,12 @@ const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 12
 camera.position.set(0, 1.6, 6);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+/* Gęstość pikseli zależna od urządzenia. Na telefonie o devicePixelRatio 3
+   limit 1.75 znaczy ponad dwa razy więcej pikseli na klatkę niż 1.25 — a muzeum
+   liczy jeszcze cienie i poświatę, więc każdy piksel płaci podwójnie. Ten sam
+   zabieg, który w Kosmosie zdjął 49% pracy fragmentów. */
+const dotykowy = matchMedia("(pointer: coarse)").matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio, dotykowy ? 1.25 : 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;

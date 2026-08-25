@@ -308,21 +308,43 @@ const ZRZUTY = new Set([
   "token-drag-race.jpeg", "token-golf.jpeg", "wdrozenie-ai.jpeg", "wspolnik.jpeg",
 ]);
 
-/* Oprawiony zrzut ekranu — ładowany asynchronicznie, znika jeśli pliku brak. */
+/* Okładki wygenerowane modelem dla 27 projektów, które nie mają zrzutu ekranu.
+   Ta sama lista i ta sama zasada co w js/kosmos/cele.js i js/okladki.js: siedzi
+   tutaj, bo js/projects-data.js jest poza zasięgiem tej poprawki.
+
+   Do tej pory te 27 eksponatów wisiało w muzeum jako sama tabliczka bez obrazu —
+   ściana z dziurami. Teraz każdy ma co pokazać. */
+const OKLADKI = new Set([
+  "akordy-zmierzchu", "aule-v1", "bielik", "flexmarket", "grafiki", "greensolver",
+  "krwawy-biznes", "latent-weather", "mansa-musa", "math-garden", "mistrz-promptow",
+  "naszwhisper", "neooffice", "npl", "oko-saurona", "omniportfolio", "orthank",
+  "petent", "pokemate-engine", "pokescale", "pokesolver", "processor", "robotami",
+  "silnik-bess", "stockcast", "stoik", "szkolenia-bank",
+]);
+
+/* Oprawiony obraz — zrzut ekranu albo okładka. Ładowany asynchronicznie,
+   znika, jeśli nie ma czego pokazać. */
 const texLoader = new THREE.TextureLoader();
 function framedShot(p, w = 2.2) {
   const g = new THREE.Group();
   const file = p.shot || `${p.id}.jpeg`;
-  if (!ZRZUTY.has(file)) return g;     // nie ma pliku — nie zawracamy głowy serwerowi
+  const okladka = !ZRZUTY.has(file) && OKLADKI.has(p.id);
+  const src = ZRZUTY.has(file) ? `assets/shots/${file}`
+            : (okladka ? `assets/okladki/${p.id}.webp` : null);
+  if (!src) return g;                  // nie ma pliku — nie zawracamy głowy serwerowi
+  g.userData.okladka = okladka;
   texLoader.load(
-    `assets/shots/${file}`,
+    src,
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = 4;
       const ar = (tex.image?.width || 16) / (tex.image?.height || 10);
       const h = w / ar;
       const frame = bx(w + 0.12, h + 0.12, 0.05, M.body(0x0a0e16));
-      const edge = bx(w + 0.16, h + 0.16, 0.02, M.glow(0x2a3550, 1));
+      /* Okładka dostaje ciepłofioletową ramę zamiast niebieskiej: zwiedzający
+         ma widzieć różnicę między zrzutem działającego produktu a ilustracją
+         jeszcze zanim podejdzie i przeczyta tabliczkę. */
+      const edge = bx(w + 0.16, h + 0.16, 0.02, M.glow(okladka ? 0x4a3a6b : 0x2a3550, 1));
       edge.position.z = -0.02;
       const pic = new THREE.Mesh(
         new THREE.PlaneGeometry(w, h),
