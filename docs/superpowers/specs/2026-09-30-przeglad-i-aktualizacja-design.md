@@ -89,6 +89,8 @@ wszystkich 60 adresach ze strony; wytyczne Vercel Web Interface Guidelines.
 - `xtb-replika` jest **publiczna**: replika serwisu prawdziwej firmy maklerskiej
   z nazwą klienta. README zawiera zastrzeżenie, ale publiczny klon interfejsu
   instytucji finansowej to ryzyko wizerunkowe — warto zmienić repo na prywatne.
+  **Zrobione 30 IX:** repo jest prywatne (0 gwiazdek, 0 forków, bez Pages — nic nie
+  przepadło); niezalogowany gość dostaje 404.
 - Kosmos: three.js 0.185.1 zgłasza trzy przestarzałe API (`PostProcessing`, `Clock`,
   `renderAsync`). Wersja jest przypięta, więc nic się nie psuje; do zrobienia przy
   najbliższej aktualizacji three.js.
@@ -108,7 +110,7 @@ albo od dat plików na dysku, nie od daty utworzenia repozytorium.
 | AutoCompany | prywatne | 24 VI | 99 | nowy projekt, bez linku |
 | perfectgym (Poligon) | prywatne | 9 VII | 129 | nowy projekt; tylko domena, bez szczegółów — README zastrzega kod |
 | poz-engine | prywatne | 3 IX | 36 | tylko w kardiogramie |
-| xtb-replika, xtb-kwadrat | publiczne / prywatne | 27 IX | 34 / 1 | tylko w kardiogramie; nazwa klienta nie trafia na stronę |
+| xtb-replika, xtb-kwadrat | prywatne (replika do 30 IX publiczna) | 27 IX | 34 / 1 | tylko w kardiogramie; nazwa klienta nie trafia na stronę |
 | OZEgen (Lumen Drift), pokemate-spike | prywatne | 25 VI | 3 / 21 | bez zmian — kardiogram VI 2026 już je liczy |
 | krs-bot, enrichment | prywatne | IV 2026 (pliki) | 1 / 1 | bez zmian — kopia starszej pracy |
 | mansa-musa, mansa-musa-app, reachy-stoic | prywatne | — | — | już na stronie (Mansa Musa, Stoik) |
