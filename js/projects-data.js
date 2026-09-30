@@ -1,42 +1,51 @@
 // ── Dane portfolio ────────────────────────────────────────────────────────────
 // Edytuj śmiało: to zwykłe tablice JS, strona renderuje się z nich przy load.
 // cat: gry | sztuka | produkty | aiml | leon | robotyka
-// date: "YYYY-MM" (miesiąc pierwszego commitu / utworzenia repo)
-// links: {live, repo, npm, tg} — WSZYSTKIE zweryfikowane curl-em 4 VIII 2026 (HTTP 200).
+// date: "YYYY-MM" (miesiąc pierwszego commitu — nie utworzenia repo: kopie zapasowe
+//   wypychane hurtem dostają datę wypchnięcia, a praca zaczęła się dużo wcześniej)
+// links: {live, repo, npm, tg} — WSZYSTKIE zweryfikowane curl-em 30 IX 2026 (HTTP 200).
 //   Nie linkuj repo prywatnych — gościom pokazują 404. Zamiast tego: access: "repo prywatne".
 // access: krótka informacja, dlaczego nie ma linku (repo prywatne / działa lokalnie / u klienta).
 // badge: fly|npm|kaggle|cf
+// wakes: aplikacja śpi, gdy nikt z niej nie korzysta; liczba = zmierzone sekundy budzenia
+//   (true = ok. 10 s).
+// Obraz projektu — jedno z dwóch, nigdy oba:
+//   shot: "plik.jpeg"  zrzut działającej rzeczy, plik leży w assets/shots/
+//   cover: true        okładka wygenerowana modelem, plik assets/okladki/{id}.webp
+//   Bez żadnego z nich projekt nie ma obrazu. Karta, muzeum i Kosmos czytają to
+//   wyłącznie przez obrazProjektu() na końcu tego pliku.
 
+// plansza: karta tytułowa rozdziału nad epoką na osi czasu, plik w assets/epoki/.
 const ERAS = [
   {
-    id: 1, range: "III–IV 2025", title: "Pierwsze eksperymenty",
+    id: 1, range: "III–IV 2025", title: "Pierwsze eksperymenty", plansza: "epoka-1.webp",
     rhythm: "15 repozytoriów w 2 miesiące",
     lead: "Dwa tygodnie po research preview Claude Code powstaje pierwsze repo. Gry, prompty, satelity — wszystko naraz, żeby sprawdzić, co ta technologia właściwie umie."
   },
   {
-    id: 2, range: "V–VI 2025", title: "Pierwsze cuda z MCP",
+    id: 2, range: "V–VI 2025", title: "Pierwsze cuda z MCP", plansza: "epoka-2.webp",
     rhythm: "mniej projektów, dziwniejsze pomysły",
     lead: "Claude 4 wychodzi 22 maja. Cztery dni później Opus komponuje przez MCP w Ableton Live „nieznane arcydzieło Mieczysława Fogga na koniec świata”."
   },
   {
-    id: 3, range: "VII–X 2025", title: "Narzędzia domenowe",
+    id: 3, range: "VII–X 2025", title: "Narzędzia domenowe", plansza: "epoka-3.webp",
     rhythm: "13 repozytoriów w 4 miesiące",
     lead: "Pierwszy token w Claude Code (lipiec) — i w tym samym miesiącu Bajarz, pierwszy pełny system agentowy. Energia, biuro, matematyka: AI zaczyna robić rzeczy, które mają zawodowy sens."
   },
   {
-    id: 4, range: "XI 2025 – II 2026", title: "W stronę produktów",
+    id: 4, range: "XI 2025 – II 2026", title: "W stronę produktów", plansza: "epoka-4.webp",
     rhythm: "cisza przed burzą",
     lead: "Mniej repozytoriów, więcej myślenia. Prototyp Aule Energy, nowy Mac i początek lokalnej historii sesji — fundamenty pod rok 2026."
   },
   {
-    id: 5, range: "III–VI 2026", title: "Rok agentów",
+    id: 5, range: "III–VI 2026", title: "Rok agentów", plansza: "epoka-5.webp",
     rhythm: "25+ projektów w 4 miesiące",
-    lead: "Modele wychodzą co tydzień, a projekty co kilka dni: hackathon Kaggle, gra dla Leona, klon Tibii, sztuka generatywna i 249 gwiazdek na GitHubie."
+    lead: "Modele wychodzą co tydzień, a projekty co kilka dni: hackathon Kaggle, gra dla Leona, klon Tibii, sztuka generatywna i ponad 250 gwiazdek na GitHubie."
   },
   {
-    id: 6, range: "VII–VIII 2026", title: "Studio jednoosobowe",
-    rhythm: "20+ projektów w 5 tygodni",
-    lead: "Claude Code, Codex i Kimi CLI pracują równolegle. Powstają płacące platformy, gra na Steam, roboty — i ta strona."
+    id: 6, range: "VII–IX 2026", title: "Studio jednoosobowe", plansza: "epoka-6.webp",
+    rhythm: "27 projektów w 3 miesiące",
+    lead: "Claude Code, Codex i Kimi CLI pracują równolegle. Powstają płacące platformy, gra szykowana na Steam, roboty i ta strona — a po lipcowym szczycie trenażer do LEK-u, gra o grzybach dla Leona, mapa nalotów na Ukrainę i symulacja AI dla zarządu."
   },
 ];
 
@@ -54,39 +63,41 @@ const MILESTONES = [
   { date: "2026-05", era: 5, label: "Gemma 4 — otwarty model, hackathon „Gemma 4 Good”" },
   { date: "2026-06", era: 5, label: "Claude Fable 5 / Mythos 5 — pierwszy publiczny model klasy Mythos (9 VI)" },
   { date: "2026-07", era: 6, label: "Claude Opus 5 (24 VII)" },
+  { date: "2026-09", era: 6, label: "Claude Fable 5.1 (1 IX) · GPT-6 Astra (3 IX)" },
+  { date: "2026-09", era: 6, label: "Claude Opus 5.5 (22 IX) · Claude Sonnet 5.5 (28 IX)" },
 ];
 
 const PROJECTS = [
   // ── Era 1: III–IV 2025 ──────────────────────────────────────────────────────
   {
-    id: "oze-developer-manager", title: "OZE Developer Manager", date: "2025-03", era: 1,
+    id: "oze-developer-manager", title: "OZE Developer Manager", date: "2025-03", era: 1, shot: "oze-developer-manager.jpeg",
     cat: ["gry", "produkty"],
     desc: "Pierwsza gra: zarządzasz developerką odnawialnych źródeł energii. Początek wszystkiego — repo nr 1.",
     tech: ["JavaScript"],
     links: { live: "https://agentsmill.github.io/oze-developer-manager/", repo: "https://github.com/agentsmill/oze-developer-manager" }
   },
   {
-    id: "oko-saurona", title: "Oko Saurona", date: "2025-03", era: 1,
+    id: "oko-saurona", title: "Oko Saurona", date: "2025-03", era: 1, cover: true,
     cat: ["produkty"],
     desc: "Platforma danych satelitarnych: pozyskiwanie, wizualizacja i analiza obrazów. (repo prywatne)",
     tech: ["TypeScript"], access: "repo prywatne", links: {}
   },
   {
-    id: "orthank", title: "Orthank", date: "2025-03", era: 1,
+    id: "orthank", title: "Orthank", date: "2025-03", era: 1, cover: true,
     cat: ["produkty", "aiml"],
     desc: "System analizy dokumentów planistycznych dla polskich gmin — AI czyta plany zagospodarowania.",
     tech: ["Python", "JavaScript"],
     links: { repo: "https://github.com/agentsmill/orthank-deployment" }
   },
   {
-    id: "krwawy-biznes", title: "Krwawy Biznes", date: "2025-03", era: 1,
+    id: "krwawy-biznes", title: "Krwawy Biznes", date: "2025-03", era: 1, cover: true,
     cat: ["gry"],
     desc: "Turowa gra o zarządzaniu centrum krwiodawstwa — lekarskie korzenie w formie strategii.",
     tech: ["JavaScript"],
     links: { repo: "https://github.com/agentsmill/krwawy-biznes" }
   },
   {
-    id: "mistrz-promptow", title: "Mistrz Promptów", date: "2025-04", era: 1,
+    id: "mistrz-promptow", title: "Mistrz Promptów", date: "2025-04", era: 1, cover: true,
     cat: ["gry", "aiml"],
     desc: "Interaktywny kurs prompt engineeringu na przykładach z energetyki — lekcje, zadania, punktacja. Trzy iteracje w trzy tygodnie.",
     tech: ["JavaScript"],
@@ -95,7 +106,7 @@ const PROJECTS = [
 
   // ── Era 2: V–VI 2025 ────────────────────────────────────────────────────────
   {
-    id: "akordy-zmierzchu", title: "Akordy Zmierzchu", date: "2025-05", era: 2,
+    id: "akordy-zmierzchu", title: "Akordy Zmierzchu", date: "2025-05", era: 2, cover: true,
     cat: ["sztuka"],
     desc: "Kompozycja stworzona przez Claude 4 Opus sterującego Ableton Live przez MCP: „Mieczysław Fogg gra swoje największe nieznane arcydzieło w trakcie końca świata”. Cztery dni po premierze modelu.",
     tech: ["Ableton Live", "MCP", "Claude 4 Opus"],
@@ -104,28 +115,28 @@ const PROJECTS = [
 
   // ── Era 3: VII–X 2025 ───────────────────────────────────────────────────────
   {
-    id: "greensolver", title: "GreenSolver", date: "2025-07", era: 3,
+    id: "greensolver", title: "GreenSolver", date: "2025-07", era: 3, cover: true,
     cat: ["produkty", "aiml"],
     desc: "Solver zielonej energii — cztery podejścia do tego samego problemu w cztery tygodnie, od prototypu do wersji Final. Nauka iterowania.",
     tech: ["Python", "TypeScript"],
     links: { repo: "https://github.com/agentsmill/GreenSolver_Final" }
   },
   {
-    id: "bajarz", title: "Agent AI Bajarz", date: "2025-07", era: 3, featured: true, shot: "bajarz.jpeg",
+    id: "bajarz", title: "Agent AI Bajarz", date: "2025-07", era: 3, featured: 5, shot: "bajarz.jpeg",
     cat: ["gry", "aiml"],
     desc: "„Kroniki Mrocznego Świata” — mistrz gry RPG w świecie Wiedźmina, prowadzący sesję na mechanice *Wiedźmin: Gra Wyobraźni*. Tworzenie postaci, zapisywane sesje po ID, narracja głosowa i protokół AG-UI v2.0. Zbudowany w lipcu 2025 — najstarsze wdrożenie, które wciąż odpowiada.",
     tech: ["TypeScript", "AG-UI Protocol", "TTS", "Vercel"], access: "repo prywatne",
     links: { live: "https://dawne-czasy.vercel.app/" }
   },
   {
-    id: "korpolajf", title: "KorpoLajf RPG", date: "2025-08", era: 3,
+    id: "korpolajf", title: "KorpoLajf RPG", date: "2025-08", era: 3, shot: "korpolajf.jpeg",
     cat: ["gry"],
     desc: "Pixel-artowa satyra biurowa: zbierasz dane, pijesz kawę, zarządzasz stresem i zdążasz z raportem na zarząd o 17:30.",
     tech: ["JavaScript", "Canvas"],
     links: { live: "https://agentsmill.github.io/KorpoLajfRPG/", repo: "https://github.com/agentsmill/KorpoLajfRPG" }
   },
   {
-    id: "math-garden", title: "Math Garden", date: "2025-08", era: 3,
+    id: "math-garden", title: "Math Garden", date: "2025-08", era: 3, cover: true,
     cat: ["aiml"],
     desc: "Ogród matematyki — eksperyment edukacyjny w Pythonie. (repo prywatne)",
     tech: ["Python"], access: "repo prywatne", links: {}
@@ -133,13 +144,13 @@ const PROJECTS = [
 
   // ── Era 4: XI 2025 – II 2026 ────────────────────────────────────────────────
   {
-    id: "aule-v1", title: "Aule Energy — prototyp", date: "2025-12", era: 4,
+    id: "aule-v1", title: "Aule Energy — prototyp", date: "2025-12", era: 4, cover: true,
     cat: ["produkty"],
-    desc: "Pierwsze podejście do asystenta zakupu energii. Cztery commity, które rok później urosną do produktu z 236 commitami.",
+    desc: "Pierwsze podejście do asystenta zakupu energii. Cztery commity, które rok później urosną do produktu z ponad 330 commitami.",
     tech: ["JavaScript", "Vite"], access: "poprzednik Aule Energy", links: {}
   },
   {
-    id: "pokemate-hub", title: "Pokemate TCG Hub", date: "2026-02", era: 4,
+    id: "pokemate-hub", title: "Pokemate TCG Hub", date: "2026-02", era: 4, shot: "pokemate-hub.jpeg",
     cat: ["produkty"],
     desc: "Sklep i hub kolekcjonerski Pokémon TCG — szybki e-commerce budowany low-code (Lovable) z własnymi poprawkami. Działa pod własną domeną.",
     tech: ["React", "Vite", "Lovable"],
@@ -148,119 +159,119 @@ const PROJECTS = [
 
   // ── Era 5: III–VI 2026 ──────────────────────────────────────────────────────
   {
-    id: "mansa-musa", title: "Mansa Musa", date: "2026-04", era: 5,
+    id: "mansa-musa", title: "Mansa Musa", date: "2026-04", era: 5, cover: true,
     cat: ["produkty", "aiml"],
     desc: "Osobisty agent finansowy: Telegram + Claude Agent SDK, w całości lokalnie na Mac mini za Tailscale. Żadna instytucja nie widzi danych.",
     tech: ["Claude Agent SDK", "Telegram", "SQLite"], access: "działa lokalnie", links: {}
   },
   {
-    id: "pokescale", title: "POKESCALE", date: "2026-04", era: 5,
+    id: "pokescale", title: "POKESCALE", date: "2026-04", era: 5, cover: true,
     cat: ["aiml", "gry"],
     desc: "Pokédexowa waga porównawcza na czujnikach Force Touch trackpada MacBooka — szereguje przedmioty od najlżejszego do najcięższego bez ważenia w gramach.",
     tech: ["Python", "Force Touch"], access: "działa lokalnie", links: {}
   },
   {
-    id: "flexmarket", title: "FlexMarket", date: "2026-04", era: 5,
+    id: "flexmarket", title: "FlexMarket", date: "2026-04", era: 5, cover: true,
     cat: ["produkty"],
     desc: "B2B SaaS transzowego zakupu energii z TGE: modularny monolit Next.js + NestJS z kolejkami i websocketami. Architektoniczna wprawka przed większymi produktami.",
     tech: ["Next.js", "NestJS", "Prisma", "RabbitMQ"], access: "repo prywatne", links: {}
   },
   {
-    id: "lastbox", title: "LastBox", date: "2026-04", era: 5, featured: true,
+    id: "lastbox", title: "LastBox", date: "2026-04", era: 5, featured: 10, shot: "lastbox.jpeg",
     cat: ["aiml"],
     desc: "Offline'owy asystent przetrwania: Raspberry Pi 5 + radio LoRa + własny fine-tuning Gemma 4 E2B. Zgłoszenie na hackathon Kaggle „Gemma 4 Good” — dwa miesiące pracy od pomysłu do działającego urządzenia.",
     tech: ["Python", "Gemma 4", "LoRa", "Raspberry Pi"], badge: "kaggle",
     links: { live: "https://agentsmill.github.io/lastbox/", repo: "https://github.com/agentsmill/lastbox" }
   },
   {
-    id: "bilans-tokenow", title: "Bilans tokenów Polski", date: "2026-06", era: 5,
+    id: "bilans-tokenow", title: "Bilans tokenów Polski", date: "2026-06", era: 5, shot: "bilans-tokenow.jpeg",
     cat: ["sztuka", "aiml"],
     desc: "Symulator data center AI: realna infrastruktura GPU w Polsce (Helios, Athena, PIAST-AI) kontra zapowiedziane 5 GW — cały model w jednym pliku HTML.",
     tech: ["HTML", "Canvas"],
     links: { live: "https://agentsmill.github.io/bilans-tokenow-polski/", repo: "https://github.com/agentsmill/bilans-tokenow-polski" }
   },
   {
-    id: "reverie", title: "Reverie", date: "2026-06", era: 5, featured: true,
+    id: "reverie", title: "Reverie", date: "2026-06", era: 5, featured: 7, shot: "reverie.jpeg",
     cat: ["sztuka"],
     desc: "„Umysł, który rośnie ku twojej uwadze”. Zasiej myśl, poruszaj kursorem — świetlista struktura kolonizuje przestrzeń wokół uwagi. Każde odświeżenie zaczyna od zera.",
     tech: ["JavaScript", "Canvas", "generative art"],
     links: { live: "https://agentsmill.github.io/reverie/", repo: "https://github.com/agentsmill/reverie" }
   },
   {
-    id: "ekspres-leona", title: "Strażacki Ekspres Leona", date: "2026-06", era: 5, featured: true,
+    id: "ekspres-leona", title: "Strażacki Ekspres Leona", date: "2026-06", era: 5, featured: 8, shot: "ekspres-leona.jpeg",
     cat: ["leon", "gry"],
     desc: "Wyścigówka pociągów dla 5-latka: Leon gasi pożary wodą, zbiera gwiazdki i rozwiązuje quiz z 36 prawdziwych znaków drogowych. Bez „game over”, ale przegrać się da — sprawiedliwe wyzwanie.",
     tech: ["HTML5 Canvas", "vanilla JS", "zero zależności"],
     links: { live: "https://agentsmill.github.io/strazacki-ekspres-leona/", repo: "https://github.com/agentsmill/strazacki-ekspres-leona" }
   },
   {
-    id: "tibijka", title: "Tibijka", date: "2026-06", era: 5,
+    id: "tibijka", title: "Tibijka", date: "2026-06", era: 5, shot: "tibijka.jpeg",
     cat: ["gry"],
     desc: "Przeglądarkowy klon Tibii w jednym pliku HTML — dowód, że nostalgia mieści się w 200 kilobajtach.",
     tech: ["HTML", "Canvas"],
     links: { live: "https://agentsmill.github.io/tibijka/", repo: "https://github.com/agentsmill/tibijka" }
   },
   {
-    id: "age-of-agents", title: "Age of Agents", date: "2026-06", era: 5, featured: true,
+    id: "age-of-agents", title: "Age of Agents", date: "2026-06", era: 5, featured: 1, shot: "age-of-agents.jpeg",
     cat: ["sztuka", "produkty"],
-    desc: "Twoje sesje Claude Code jako spokojne pixel-artowe królestwo: sesja = osadnik, narzędzia = warsztaty, tokeny = spichlerz. 318 commitów, paczka npm, 249★ na GitHubie.",
-    tech: ["PixiJS", "Fastify", "npm"], badge: "npm", stars: 249,
+    desc: "Twoje sesje Claude Code jako spokojne pixel-artowe królestwo: sesja = osadnik, narzędzia = warsztaty, tokeny = spichlerz. Ponad 300 commitów i paczka npm.",
+    tech: ["PixiJS", "Fastify", "npm"], badge: "npm", stars: 263,
     links: { live: "https://agentsmill.github.io/age-of-agents/", repo: "https://github.com/agentsmill/age-of-agents", npm: "https://www.npmjs.com/package/age-of-agents" }
   },
   {
-    id: "pokemate-engine", title: "Pokemate", date: "2026-06", era: 5,
+    id: "pokemate-engine", title: "Pokemate", date: "2026-06", era: 5, cover: true,
     cat: ["aiml"],
     desc: "Hybrydowy silnik do Kaggle Pokémon TCG AI Battle Challenge: heurystyki → determinizowany ISMCTS → sieć self-play.",
     tech: ["Python", "MCTS"], badge: "kaggle", access: "zgłoszenie na Kaggle", links: {}
   },
   {
-    id: "naszwhisper", title: "NaszWhisper", date: "2026-06", era: 5, featured: true, shot: false,
+    id: "naszwhisper", title: "NaszWhisper", date: "2026-06", era: 5, featured: 11, cover: true,
     cat: ["produkty"],
     desc: "Natywna apka macOS do dyktowania po polsku — w pełni lokalnie, na Apple Neural Engine (Parakeet 0.6B). Tapnięcie ⌘, mówisz, tekst wkleja się tam, gdzie kursor.",
     tech: ["Swift", "Core ML", "Parakeet"],
     links: { repo: "https://github.com/agentsmill/naszwhisper" }
   },
   {
-    id: "aog-game", wakes: true, featured: true, shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
+    id: "aog-game", wakes: 30, featured: 6, shot: "token-golf.jpeg", title: "Age of Agents: The Game → Token Golf", date: "2026-06", era: 5,
     cat: ["gry", "aiml"],
     desc: "Turowe 4X uczące projektowania systemów agentowych (pamięć, narzędzia, MCP, subagenci jako drzewko technologii) — z pivotem do Token Golf: platformera prompt-golfa z fine-tunowanym Qwen3 0.6B liczącym wynik w przeglądarce przez WebGPU.",
     tech: ["TypeScript", "Qwen3 ONNX", "WebGPU"], badge: "fly",
     links: { live: "https://aog-token-golf.fly.dev" }
   },
   {
-    id: "open-droids", title: "Open Droids", date: "2026-06", era: 5,
+    id: "open-droids", title: "Open Droids", date: "2026-06", era: 5, shot: "open-droids.jpeg",
     cat: ["produkty", "robotyka"],
     desc: "Agentowy e-commerce robotyki open-source: Medusa v2 + własne serwery MCP (sklep, admin, core) pod własną domeną.",
     tech: ["Medusa", "MCP", "Node"],
     links: { live: "https://opendroids.pl" }
   },
   {
-    id: "bielik", title: "Eksperymenty z Bielikiem", date: "2026-06", era: 5,
+    id: "bielik", title: "Eksperymenty z Bielikiem", date: "2026-06", era: 5, cover: true,
     cat: ["aiml", "gry"],
     desc: "Benchmarki polskiego modelu Bielik — w tym Snake pisany na czas jako test prędkości generacji.",
     tech: ["Python", "Bielik"], access: "eksperyment lokalny", links: {}
   },
   {
-    id: "silnik-bess", title: "Silnik ROI BESS", date: "2026-06", era: 5,
+    id: "silnik-bess", title: "Silnik ROI BESS", date: "2026-06", era: 5, cover: true,
     cat: ["produkty"],
     desc: "Silnik opłacalności magazynów energii dla przemysłowego klienta: arbitraż cenowy, autokonsumpcja PV, rynek mocy i moc umowna → NPV, IRR, LCOS.",
     tech: ["Python", "Monte Carlo", "Streamlit"], access: "wdrożenie u klienta", links: {}
   },
   {
-    id: "npl", title: "Radar przetargów i grafiki lekarskie", date: "2026-06", era: 5,
+    id: "npl", title: "Radar przetargów i grafiki lekarskie", date: "2026-06", era: 5, cover: true,
     cat: ["produkty"],
     desc: "Self-hostowany system dla klienta z sektora medycznego: monitoring przetargów NFZ + planowanie obsad lekarskich. 99 commitów, wciąż rozwijany.",
     tech: ["Python", "Docker"], access: "wdrożenie u klienta", links: {}
   },
   {
-    id: "token-drag-race", wakes: true, title: "Token Drag Race", date: "2026-06", era: 5, featured: true,
+    id: "token-drag-race", wakes: true, title: "Token Drag Race", date: "2026-06", era: 5, featured: 9, shot: "token-drag-race.jpeg",
     cat: ["aiml", "gry"],
     desc: "Wyścigi LLM-ów w pikselowej Warszawie nocą: auta jadą w rytm streamowanych tokenów, czas mierzy serwer przy każdym chunku, nie klient. Globalny leaderboard, własne modele przez OpenRouter.",
     tech: ["Python", "OpenRouter", "Upstash"], badge: "fly", access: "repo prywatne",
     links: { live: "https://hidden-breeze-443.fly.dev/" }
   },
   {
-    id: "szkolenia-bank", title: "Pakiet szkoleniowy AI dla banku", date: "2026-06", era: 5,
+    id: "szkolenia-bank", title: "Pakiet szkoleniowy AI dla banku", date: "2026-06", era: 5, cover: true,
     cat: ["produkty"],
     desc: "Materiały szkoleniowe opakowane w świat sci-fi „rok 3000”: scenariusze, generatory danych i materiały dla prowadzących.",
     tech: ["Gemini", "NotebookLM"], access: "materiały dla klienta", links: {}
@@ -268,14 +279,20 @@ const PROJECTS = [
   {
     id: "aule-v2", shot: "aule-energy.jpeg", title: "Aule Energy", date: "2026-04", era: 5,
     cat: ["produkty"],
-    desc: "Chat-first asystent doboru ofert energii dla domów i mikrofirm: analiza faktur OCR, pełny rachunek roczny, deterministyczny silnik obliczeń („LLM nigdy nie liczy”). 236 commitów.",
+    desc: "Chat-first asystent doboru ofert energii dla domów i mikrofirm: analiza faktur OCR, pełny rachunek roczny, deterministyczny silnik obliczeń („LLM nigdy nie liczy”). Ponad 330 commitów i wciąż rośnie.",
     tech: ["Next.js", "Supabase", "OpenRouter"],
     links: { live: "https://aule.energy" }
   },
-
-  // ── Era 6: VII–VIII 2026 ────────────────────────────────────────────────────
   {
-    id: "slyd", wakes: true, title: "SLYD", date: "2026-07", era: 6,
+    id: "autocompany", title: "AutoCompany", date: "2026-06", era: 5,
+    cat: ["produkty", "aiml"],
+    desc: "Szkielet firmy prowadzonej przez agentów, z człowiekiem na pętli: plan dziesięciu działów z narzędziami, które agent naprawdę obsłuży, sprawdzony przez 46 agentów — w tym przebieg, który próbował obalić każde twierdzenie (123 sprawdzone, 6 obalonych). Pierwszą działającą częścią jest fabryka kanału wideo z historią alternatywną: jeden długi film i jeden Short dziennie, lektor Kokoro TTS, publikacja przez Postiz i panel z wykresami. 99 commitów.",
+    tech: ["Hermes Agent", "Kokoro TTS", "Postiz", "Python"], access: "repo prywatne", links: {}
+  },
+
+  // ── Era 6: VII–IX 2026 ──────────────────────────────────────────────────────
+  {
+    id: "slyd", wakes: true, title: "SLYD", date: "2026-07", era: 6, shot: "slyd.jpeg",
     cat: ["gry"],
     desc: "Neonowa gra slope-like w three.js: kula, zbocze, coraz szybciej. Jeden link, zero instalacji, wbudowane pętle „pobij mnie”.",
     tech: ["three.js", "Vite", "TypeScript"], badge: "fly",
@@ -289,107 +306,141 @@ const PROJECTS = [
     links: { live: "https://wdrozenie.ai" }
   },
   {
-    id: "empowerher", wakes: true, title: "EmpowerHer", date: "2026-07", era: 6, featured: true,
+    id: "empowerher", wakes: true, title: "EmpowerHer", date: "2026-07", era: 6, featured: 3, shot: "empowerher.jpeg",
     cat: ["produkty"],
     desc: "Platforma treningowa dla kobiet: wideo-treningi, osobisty plan, rezerwacje sesji 1:1 z kalendarzem i płatnością przy bookingu. Działa komercyjnie. 138 commitów.",
     tech: ["Next.js", "Supabase", "Stripe"], badge: "fly",
     links: { live: "https://empowerher.fly.dev" }
   },
   {
-    id: "wspolnik", featured: true, title: "Wspólnik", date: "2026-07", era: 6,
+    id: "wspolnik", featured: 2, title: "Wspólnik", date: "2026-07", era: 6, shot: "wspolnik.jpeg",
     cat: ["produkty"],
     desc: "AI-wspólnik dla polskich MŚP: partner biznesowy na czacie (Telegram-first) — pilnuje kosztów, czyta polskie rejestry, przynosi codzienny brief i zwołuje radę mentorów. Płatności Stripe, faktury z KSeF. Pilot z pierwszymi użytkownikami.",
     tech: ["TypeScript", "Claude", "Stripe", "KSeF"],
     links: { live: "https://app.wspolnik.com/", tg: "https://t.me/WspolnikBot" }
   },
   {
-    id: "szkola-claude", title: "Polska Szkoła Claude", date: "2026-07", era: 6,
+    id: "szkola-claude", title: "Polska Szkoła Claude", date: "2026-07", era: 6, shot: "szkola-claude.jpeg",
     cat: ["produkty", "sztuka"],
     desc: "Landing centrum kompetencji AI z „Kulą Wiedzy” — WebGL-ową chmurą tysięcy świecących punktów (z fallbackiem do Canvas 2D). Zero build stepu.",
     tech: ["Three.js", "WebGL"], badge: "cf",
     links: { live: "https://szkola-claude.pages.dev" }
   },
   {
-    id: "anatomy", title: "Anatomy of a Thought", date: "2026-07", era: 6, featured: true,
+    id: "anatomy", title: "Anatomy of a Thought", date: "2026-07", era: 6, featured: 12, shot: "anatomy.jpeg",
     cat: ["sztuka", "aiml"],
     desc: "Autoportret Claude'a: siedem rozdziałów przez jeden forward pass — tokenizacja, atencja, strumień rezydualny, sampling. Prawdziwa matematyka (softmax, entropia Shannona), zabawkowe wagi — i strona uczciwie o tym mówi.",
     tech: ["Three.js", "jeden plik HTML"],
     links: { live: "https://agentsmill.github.io/anatomy-of-a-thought/", repo: "https://github.com/agentsmill/anatomy-of-a-thought" }
   },
   {
-    id: "residual-stream", title: "The Residual Stream", date: "2026-07", era: 6,
+    id: "residual-stream", title: "The Residual Stream", date: "2026-07", era: 6, shot: "residual-stream.jpeg",
     cat: ["sztuka", "aiml"],
     desc: "Bliźniaczy autoportret transformera — ta sama idea wykonana przez model Kimi. Porównanie „jak różne modele opowiadają o sobie” jako eksperyment artystyczny.",
     tech: ["HTML", "Kimi"],
     links: { live: "https://agentsmill.github.io/residual-stream/", repo: "https://github.com/agentsmill/residual-stream" }
   },
   {
-    id: "robotami", title: "Robotami + Józef", date: "2026-07", era: 6,
+    id: "robotami", title: "Robotami + Józef", date: "2026-07", era: 6, cover: true,
     cat: ["robotyka", "leon"],
     desc: "Mózg-obserwator dla robota Reachy Mini („Richie”): percepcja, model świata, planowanie — najpierw w symulacji MuJoCo. Na pokładzie Józef: głosowy kompan Leona z wake-wordem „Hej Józef”.",
     tech: ["Python", "MuJoCo", "GStreamer"], access: "repo prywatne", links: {}
   },
   {
-    id: "stoik", title: "Stoik", date: "2026-07", era: 6,
+    id: "stoik", title: "Stoik", date: "2026-07", era: 6, cover: true,
     cat: ["robotyka"],
     desc: "Stoicki kompanion dnia codziennego na Reachy Mini: obserwuje otoczenie, mówi po polsku i gani za gapienie się w telefon.",
     tech: ["Python", "Reachy Mini"], access: "działa na robocie", links: {}
   },
   {
-    id: "petent", title: "PETENT", date: "2026-07", era: 6,
+    id: "petent", title: "PETENT", date: "2026-07", era: 6, cover: true,
     cat: ["gry"],
     desc: "Komediowa gra głosowa: przekonaj Grażynę — urzędniczkę-LLM — żeby podbiła pieczątkę, zanim urząd zamkną o 15:00. „Papers, Please × Kafka × improwizacja”, 100% lokalnej inferencji. Szykowana na Steam, strona sklepu jeszcze przed nami.",
     tech: ["Unity", "LLMUnity", "Chatterbox TTS"], access: "w produkcji", links: {}
   },
   {
-    id: "neooffice", title: "NeoOffice", date: "2026-07", era: 6,
+    id: "neooffice", title: "NeoOffice", date: "2026-07", era: 6, cover: true,
     cat: ["produkty"],
     desc: "Chatowy pakiet biurowy: agent tworzy i edytuje prawdziwe pliki .docx / .xlsx / .pptx przez serwery MCP, a aplikacja Tauri pokazuje podgląd na żywo z ręczną edycją bloków.",
     tech: ["Tauri", "Rust", "MCP", "React"], access: "działa lokalnie", links: {}
   },
   {
-    id: "latent-weather", title: "Latent Weather", date: "2026-07", era: 6,
+    id: "latent-weather", title: "Latent Weather", date: "2026-07", era: 6, cover: true,
     cat: ["aiml"],
     desc: "Kontrolowany eksperyment badawczy: czy latentny model pogody (w duchu JEPA) degraduje się wolniej w długich rolloutach niż równy mu model pikselowy na danych ERA5?",
     tech: ["Python", "PyTorch", "ERA5"],
     access: "eksperyment badawczy · repo prywatne", links: {}
   },
   {
-    id: "stockcast", title: "StockCast", date: "2026-07", era: 6,
+    id: "stockcast", title: "StockCast", date: "2026-07", era: 6, cover: true,
     cat: ["aiml"],
     desc: "Benchmark modelu TiRex-2 na prognozach pogody i polskich cen energii — notebooki, raporty, wnioski.",
     tech: ["Python", "TiRex-2"], access: "badanie lokalne", links: {}
   },
   {
-    id: "pokesolver", title: "PokeSolver", date: "2026-07", era: 6,
+    id: "pokesolver", title: "PokeSolver", date: "2026-07", era: 6, cover: true,
     cat: ["aiml"],
     desc: "System badawczy percepcji gier karcianych: deterministyczny silnik reguł, odczyt stanu gry z ekranu i modelowanie przeciwnika — pięć rozdzielonych warstw architektury.",
     tech: ["Python"], access: "badanie lokalne", links: {}
   },
   {
-    id: "processor", title: "Processor", date: "2026-06", era: 5,
+    id: "processor", title: "Processor", date: "2026-06", era: 5, cover: true,
     cat: ["produkty", "aiml"],
     desc: "Task mining → BPMN: zdarzenia z ekranu zamieniane w aktywności, sprawy i diagramy procesów. 84 commity PoC.",
     tech: ["Python", "pm4py", "ollama"], access: "repo prywatne", links: {}
   },
   {
-    id: "grafiki", title: "Grafiki", date: "2026-07", era: 6,
+    id: "grafiki", title: "Grafiki", date: "2026-07", era: 6, cover: true,
     cat: ["produkty"],
-    desc: "Multi-tenant SaaS do grafików dyżurów zespołów medycznych: izolacja organizacji wymuszona przez Postgres Row-Level Security na poziomie bazy, nie dyscypliny zapytań. Najświeższy projekt — commity z dziś.",
+    desc: "Multi-tenant SaaS do grafików dyżurów zespołów medycznych: izolacja organizacji wymuszona przez Postgres Row-Level Security na poziomie bazy, nie dyscypliny zapytań.",
     tech: ["FastAPI", "Postgres RLS", "Docker"], access: "wdrożenie u klienta", links: {}
   },
   {
-    id: "ai-video-portfolio", title: "Portfolio wideo i obrazu AI", date: "2026-08", era: 6,
+    id: "ai-video-portfolio", title: "Portfolio wideo i obrazu AI", date: "2026-08", era: 6, shot: "ai-video-portfolio.jpeg",
     cat: ["produkty", "sztuka"],
     desc: "Siostrzana strona: produkcja wideo i obrazu AI dla klientów MŚP — showreel, klip UGC, koszty jednostkowe i ryzyka regulacyjne.",
     tech: ["HTML", "GitHub Pages"],
     links: { live: "https://agentsmill.github.io/ai-video-portfolio/", repo: "https://github.com/agentsmill/ai-video-portfolio" }
   },
   {
-    id: "omniportfolio", title: "Omniportfolio", date: "2026-08", era: 6, meta: true,
+    id: "poligon", title: "Poligon", date: "2026-07", era: 6,
+    cat: ["aiml", "produkty"],
+    desc: "Platforma środowisk do oceniania i trenowania agentów LLM na zadaniach biznesowych — na początek polska księgowość: KSeF 2.0, VAT i faktury FA(3). Ponad 120 commitów.",
+    tech: ["Python", "Next.js", "RL"], access: "kod zamknięty", links: {}
+  },
+  {
+    id: "lek-trener", title: "Trener LEK", date: "2026-08", era: 6, featured: 4,
+    cat: ["produkty", "aiml"],
+    desc: "Trenażer do Lekarskiego Egzaminu Końcowego na pełnej, oficjalnej bazie 3052 pytań CEM: plan nauki do dnia egzaminu, powtórki Leitnera, 413 fiszek i egzamin próbny w proporcjach LEK-u. CEM nie publikuje klucza, więc każde pytanie rozwiązały na ślepo dwa różne modele, a rozbieżności rozstrzygali niezależni arbitrzy — pytania sporne są oznaczone, nie ukryte.",
+    tech: ["vanilla JS", "offline", "Claude Opus 5 × Fable 5"],
+    links: { live: "https://agentsmill.github.io/lek-trener/", repo: "https://github.com/agentsmill/lek-trener" }
+  },
+  {
+    id: "naloty-ukraina", title: "Naloty na Ukrainę 2022–2026", date: "2026-09", era: 6,
     cat: ["sztuka"],
-    desc: "Ta strona i muzeum obok niej. Zbudował ją Claude Fable 5 na podstawie 65 repozytoriów i historii tysięcy sesji pracy. Kardiogram to prawdziwe dane.",
-    tech: ["Claude Fable 5", "Three.js", "vanilla JS"],
+    desc: "Trójwymiarowa mapa rosyjskiej kampanii powietrznej przeciw Ukrainie od 24 lutego 2022, zbudowana wokół jednego pytania: ile z tego dociera na zachód kraju. Każda warstwa ma podaną skalę i źródło, a od sierpnia 2026 liczby aktualizują się same, codziennie, z porannych komunikatów ukraińskich Sił Powietrznych.",
+    tech: ["three.js", "GitHub Actions", "jeden plik HTML"],
+    links: { live: "https://agentsmill.github.io/naloty-ukraina/", repo: "https://github.com/agentsmill/naloty-ukraina" }
+  },
+  {
+    id: "wiewiorka-leona", title: "Wiewiórka Leona", date: "2026-09", era: 6,
+    cat: ["leon", "gry"],
+    desc: "Gra 3D dla dzieci w wieku 4–7 lat: wiewiórka przemierza leśny labirynt i zbiera borowiki, a muchomor czerwony, sromotnikowy i goryczak trzeba rozpoznać samemu — grzyby nie mają żadnych znaczników. Pomyłka kończy się kichnięciem i atlasem ze zdjęciem, nie ekranem porażki. Modele i dźwięki powstają w kodzie.",
+    tech: ["three.js", "Vite", "grafika proceduralna"],
+    links: { live: "https://agentsmill.github.io/WiewiorkiLeona/", repo: "https://github.com/agentsmill/WiewiorkiLeona" }
+  },
+  {
+    id: "dzwignia", title: "Dźwignia AI", date: "2026-09", era: 6,
+    cat: ["gry", "produkty"],
+    desc: "Symulacja transformacji AI dla zarządu, zbudowana na warsztat dla kadry kierowniczej: każdy uczestnik prowadzi swój pion przez osiem kwartałów w jednej wspólnej firmie — Second Brain, automatyzacje, pilotaże, kolejka IT i ryzyko regulacyjne. Tablica na projektor z kodem QR i wspólny ranking na żywo.",
+    tech: ["jeden plik HTML", "Supabase", "multiplayer"],
+    links: { live: "https://agentsmill.github.io/dzwignia/", repo: "https://github.com/agentsmill/dzwignia" }
+  },
+  {
+    id: "omniportfolio", title: "Omniportfolio", date: "2026-08", era: 6, meta: true, cover: true,
+    cat: ["sztuka"],
+    desc: "Ta strona, a obok niej muzeum i Kosmos. Pierwszą wersję zbudował Claude Fable 5 z 65 repozytoriów i historii sesji pracy (4 VIII 2026), aktualizację z 30 IX — już z 88 repozytoriów — Claude Opus 5.5. Kardiogram to prawdziwe dane.",
+    tech: ["Claude Fable 5", "Claude Opus 5.5", "Three.js", "vanilla JS"],
     links: { live: "https://agentsmill.github.io/museum.html", repo: "https://github.com/agentsmill/agentsmill.github.io" }
   },
 ];
@@ -505,12 +556,13 @@ const LINEAGES = [
   {
     id: "zdrowie",
     title: "Powrót do medycyny — od strony systemów",
-    note: "Wykształcenie lekarskie wraca jako domena: przetargi, obsady dyżurów i izolacja danych wymuszona przez bazę.",
+    note: "Wykształcenie lekarskie wraca jako domena: przetargi, obsady dyżurów, izolacja danych wymuszona przez bazę — i trenażer do egzaminu, który otwiera zawód.",
     chain: [
       { title: "Krwawy Biznes", date: "2025-03", pid: "krwawy-biznes" },
       { title: "Radar + grafiki lekarskie", date: "2026-06", pid: "npl" },
       { title: "Analizy POZ", date: "2026-07" },
       { title: "Grafiki (RLS)", date: "2026-07", pid: "grafiki" },
+      { title: "Trener LEK", date: "2026-08", pid: "lek-trener" },
     ],
   },
 ];
@@ -518,34 +570,37 @@ const LINEAGES = [
 // Wątki przecinające portfolio w poprzek — nie chronologia, tylko obsesje.
 const THREADS = [
   {
-    label: "Model działa lokalnie",
+    id: "lokalnie", label: "Model działa lokalnie",
     note: "Powracająca zasada: inferencja na urządzeniu, bez chmury. Apple Neural Engine, WebGPU, Raspberry Pi, Unity.",
     items: ["NaszWhisper", "LastBox", "Token Golf", "PETENT", "Mansa Musa", "Bielik"],
   },
   {
-    label: "Agent z narzędziami (MCP)",
+    id: "mcp", label: "Agent z narzędziami (MCP)",
     note: "Od pierwszej kompozycji przez MCP w Ableton Live po serwery MCP pisane samodzielnie.",
     items: ["Akordy Zmierzchu", "Age of Agents", "Open Droids", "NeoOffice", "Wspólnik", "Processor"],
   },
   {
-    label: "Policz to uczciwie",
-    note: "Liczby nigdy nie wychodzą z modelu językowego — zawsze z deterministycznego silnika obok niego.",
-    items: ["Aule Energy", "Silnik ROI BESS", "GreenSolver", "StockCast", "Bilans tokenów Polski"],
+    id: "uczciwie", label: "Policz to uczciwie",
+    note: "Ani liczba, ani odpowiedź nie wychodzi z jednego modelu na słowo: liczy deterministyczny silnik, podaje źródło albo sprawdzają dwa niezależne modele z arbitrem — a to, co niepewne, dostaje etykietę.",
+    items: ["Aule Energy", "Silnik ROI BESS", "GreenSolver", "StockCast", "Bilans tokenów Polski", "Trener LEK", "Naloty na Ukrainę"],
   },
   {
-    label: "Wyjaśnić, jak to działa",
+    id: "wyjasnic", label: "Wyjaśnić, jak to działa",
     note: "Sztuka i edukacja jako to samo zadanie: pokazać wnętrze maszyny, nie tylko jej wynik.",
     items: ["Anatomy of a Thought", "The Residual Stream", "Mistrz Promptów", "Polska Szkoła Claude", "Token Drag Race"],
   },
 ];
 
-// Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → VIII 2026)
+// Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → IX 2026).
+// Liczy się miesiąc pierwszego commitu. Miesiąc zamyka się dopiero po jego końcu —
+// wpis bieżącego miesiąca to stan na dzień aktualizacji.
 const HEARTBEAT = [
   { m: "III 25", n: 9 }, { m: "IV 25", n: 6 }, { m: "V 25", n: 2 }, { m: "VI 25", n: 0 },
   { m: "VII 25", n: 4 }, { m: "VIII 25", n: 8 }, { m: "IX 25", n: 1 }, { m: "X 25", n: 0 },
   { m: "XI 25", n: 1 }, { m: "XII 25", n: 1 }, { m: "I 26", n: 5 }, { m: "II 26", n: 1 },
   { m: "III 26", n: 3 }, { m: "IV 26", n: 8 }, { m: "V 26", n: 4 }, { m: "VI 26", n: 20 },
-  { m: "VII 26", n: 17 }, { m: "VIII 26", n: 3 },
+  { m: "VII 26", n: 17 }, { m: "VIII 26", n: 4 },
+  { m: "IX 26", n: 6 },
 ];
 
 const CATEGORIES = {
@@ -556,3 +611,14 @@ const CATEGORIES = {
   leon:     { label: "Zabawy z Leonem",      color: "#F28B82" },
   robotyka: { label: "Robotyka",             color: "#9AA7BC" },
 };
+
+// ── Obraz projektu ───────────────────────────────────────────────────────────
+// Jedyne miejsce, które wie, gdzie leżą pliki. Czytają je karta (js/main.js),
+// muzeum (js/museum/exhibits.js) i Kosmos (js/kosmos/cele.js), więc nowy zrzut
+// albo okładka to jedno pole w projekcie, nie trzy listy do pilnowania.
+// Zwraca null, gdy projekt nie ma obrazu — wtedy nikt nie pyta serwera o plik.
+function obrazProjektu(p) {
+  if (p.shot) return { src: `assets/shots/${p.shot}`, okladka: false, w: 900, h: 562 };
+  if (p.cover) return { src: `assets/okladki/${p.id}.webp`, okladka: true, w: 1024, h: 576 };
+  return null;
+}

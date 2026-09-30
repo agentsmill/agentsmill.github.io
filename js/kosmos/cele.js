@@ -1,4 +1,4 @@
-/* Cele Kosmosu: 49 sond zbudowanych z prawdziwych danych portfolio, jedna na projekt.
+/* Cele Kosmosu: sondy zbudowane z prawdziwych danych portfolio, jedna na projekt.
    PROJECTS/ERAS/CATEGORIES przychodzą jako globalne (wczytane zwykłym <script> przed
    modułami w kosmos.html) — nie importujemy ich, bo nie są modułem. Dzielimy dane,
    nie kod: zero importów z js/groza/ i js/museum/. */
@@ -7,29 +7,9 @@ import * as THREE from "three";
 import { scene, zasob } from "kosmos/render.js";
 import { POWLOKI } from "kosmos/swiat.js";
 
-/* Zrzuty, które FAKTYCZNIE leżą w assets/shots. Ta lista siedzi tutaj, a nie w danych,
-   bo js/projects-data.js jest plikiem nietykalnym.
-   PRZY DODAWANIU ZRZUTU: wrzuć plik do assets/shots ORAZ dopisz nazwę poniżej. */
-const ZRZUTY = new Set([
-  "age-of-agents.jpeg", "ai-video-portfolio.jpeg", "anatomy.jpeg", "aule-energy.jpeg",
-  "bajarz.jpeg", "bilans-tokenow.jpeg", "ekspres-leona.jpeg", "empowerher.jpeg",
-  "korpolajf.jpeg", "lastbox.jpeg", "open-droids.jpeg", "oze-developer-manager.jpeg",
-  "pokemate-hub.jpeg", "residual-stream.jpeg", "reverie.jpeg", "slyd.jpeg",
-  "szkola-claude.jpeg", "tibijka.jpeg", "token-drag-race.jpeg", "token-golf.jpeg",
-  "wdrozenie-ai.jpeg", "wspolnik.jpeg",
-]);
-
-/* Okładki wygenerowane modelem (Krea 2 na GB10) dla projektów bez zrzutu ekranu.
-   Ta sama zasada co przy ZRZUTY: lista siedzi tutaj, bo js/projects-data.js jest
-   nietykalny. Dzięki nim 27 światów przestaje być bryłami bez ekranu — a że to
-   ilustracje, a nie zrzuty działających produktów, panel źródeł mówi o tym wprost. */
-const OKLADKI = new Set([
-  "akordy-zmierzchu", "aule-v1", "bielik", "flexmarket", "grafiki", "greensolver",
-  "krwawy-biznes", "latent-weather", "mansa-musa", "math-garden", "mistrz-promptow",
-  "naszwhisper", "neooffice", "npl", "oko-saurona", "omniportfolio", "orthank",
-  "petent", "pokemate-engine", "pokescale", "pokesolver", "processor", "robotami",
-  "silnik-bess", "stockcast", "stoik", "szkolenia-bank",
-]);
+/* Obraz na ekranie świata wybiera obrazProjektu() z js/projects-data.js — zrzut
+   działającej rzeczy albo okładka wygenerowana modelem (Krea 2 na GB10). Listy, które
+   tu wcześniej stały, były kopiami list z karty i muzeum i zdążyły się rozjechać. */
 
 /* Ziarno z identyfikatora projektu. Math.random() jest zabroniony: gracz ma móc wrócić
    do zapamiętanego celu, a przy losowaniu ten sam projekt leżałby gdzie indziej
@@ -126,10 +106,7 @@ function sonda(projekt) {
      nadlatuje z dowolnej strony, a zrzut ma być czytelny, nie ustawiony bokiem.
      Obracany w aktualizujCele(). */
   let ekran = null;
-  const plik = projekt.shot || `${projekt.id}.jpeg`;
-  const zrodloEkranu = ZRZUTY.has(plik)
-    ? `assets/shots/${plik}`
-    : (OKLADKI.has(projekt.id) ? `assets/okladki/${projekt.id}.webp` : null);
+  const zrodloEkranu = obrazProjektu(projekt)?.src ?? null;
   if (zrodloEkranu) {
     ekran = new THREE.Mesh(
       new THREE.PlaneGeometry(promien * 1.5, promien * 0.94),
@@ -147,9 +124,8 @@ function sonda(projekt) {
       ekran.material.needsUpdate = true;
     });
   }
-  // Każdy z 49 światów ma teraz ekran: 22 ze zrzutem działającego produktu,
-  // 27 z okładką wygenerowaną modelem. Nigdy pustka i nigdy żądanie po plik,
-  // którego nie ma — obie listy są jawne i sprawdzane przed użyciem.
+  // Świat bez obrazu (projekt nie ma ani zrzutu, ani okładki) zostaje bryłą bez
+  // ekranu — nigdy nie pyta serwera o plik, którego nie ma.
 
   grupa.name = `sonda-${projekt.id}`;
   grupa.userData.projekt = projekt;
@@ -273,7 +249,7 @@ export function oznaczOdwiedzona(s) {
   if (s.odwiedzona) return false;
   s.odwiedzona = true;
   licznik.odwiedzonych++;
-  /* Barwa instancji, nie materiału: materiał jest wspólny dla wszystkich 49
+  /* Barwa instancji, nie materiału: materiał jest wspólny dla wszystkich
      pierścieni, więc zmiana na nim rozjaśniłaby cały układ naraz. */
   s.kolor.multiplyScalar(2.4);
   pierscienie.setColorAt(s.indeksPierscienia, s.kolor);

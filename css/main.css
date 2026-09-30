@@ -2,12 +2,13 @@
    Tokeny: noc szpitalna + bursztynowy fosfor monitora. Syne / Schibsted / Plex Mono. */
 
 :root {
+  color-scheme: dark;         /* paski przewijania i pole wyszukiwania w ciemnym motywie */
   --bg: #0C1018;
   --bg-raised: #131A28;
   --bg-raised-2: #182134;
   --ink: #E9EDF5;
   --ink-dim: #8C95A8;
-  --ink-faint: #5A6376;
+  --ink-faint: #7F889B;       /* 5,35:1 na --bg; poprzednie #5A6376 miało 3,16:1 i nie przechodziło AA */
   --pulse: #F2C46D;
   --pulse-dim: #C79A4B;
   --kosmos: #5CC8DB;          /* akcent gry Kosmos, zgodny z --k-akcent w css/kosmos.css */
@@ -31,7 +32,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+/* scroll-padding-top: lepki pasek zasłaniał nagłówek każdej sekcji po skoku z nawigacji. */
+html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 body {
@@ -47,6 +49,18 @@ body {
 
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--pulse); outline-offset: 3px; border-radius: 2px; }
+#top:focus { outline: none; }   /* cel odnośnika „przejdź do treści” — fokus programowy, nie z klawiatury */
+h1, h2, h3 { text-wrap: balance; }
+button, .chip { touch-action: manipulation; }
+
+/* Odnośnik „przejdź do treści”: niewidoczny, dopóki klawiatura na niego nie trafi. */
+.skip-link {
+  position: absolute; left: .75rem; top: -3.5rem; z-index: 60;
+  background: var(--pulse); color: var(--bg); text-decoration: none;
+  font-family: var(--font-mono); font-size: .8rem; letter-spacing: .04em;
+  padding: .55rem .95rem; border-radius: 8px;
+}
+.skip-link:focus { top: .75rem; }
 
 /* ── Topbar ── */
 .topbar {
@@ -103,7 +117,7 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
   color: var(--ink-faint); text-decoration: none;
 }
 .cta-scroll:hover { color: var(--ink-dim); }
-.nav-museum { color: var(--pulse) !important; }
+.topbar nav a.nav-museum { color: var(--pulse); }
 
 /* Kosmos — druga gra. Cyjan zamiast bursztynu, bo to barwa akcentu samej gry
    (--k-akcent w css/kosmos.css): przycisk zapowiada to, do czego prowadzi.
@@ -125,7 +139,9 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
   transform: translateY(-2px); background: rgba(92, 200, 219, 0.12);
   box-shadow: 0 0 34px rgba(92, 200, 219, 0.38);
 }
-.nav-kosmos { color: var(--kosmos) !important; }
+.topbar nav a.nav-kosmos { color: var(--kosmos); }
+.topbar nav a.nav-museum:hover, .topbar nav a.nav-kosmos:hover { color: var(--ink); }
+.monogram:hover .blip { color: var(--ink); }
 
 /* Uwaga o wymaganiach sprzętowych. Nie chowamy jej w atrybucie title ani w dymku:
    gra na WebGPU potrafi nie wstać na starszym sprzęcie, a odwiedzający ma to
@@ -138,7 +154,7 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
 
 /* EKG */
 .ekg { margin: 0 0 1.6rem; }
-#ekg-chart { width: 100%; height: 130px; }
+#ekg-chart { position: relative; width: 100%; height: 130px; }
 #ekg-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .ekg-path {
   fill: none; stroke: var(--pulse); stroke-width: 1.8;
@@ -149,7 +165,11 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
   fill: none; stroke: #fff; stroke-width: 2.2; opacity: 0.9;
   stroke-linejoin: round; stroke-linecap: round;
 }
-.ekg-tick { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-faint); }
+.ekg-ticks { position: absolute; left: 0; right: 0; top: 76%; height: 0; }
+.ekg-tick {
+  position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap;
+  font-family: var(--font-mono); font-size: 10px; line-height: 1; color: var(--ink-faint);
+}
 .ekg-grid { stroke: var(--line-soft); stroke-width: 1; }
 .ekg-caption {
   font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint);
@@ -185,7 +205,7 @@ h2 {
 
 /* ── Wyróżnione ── */
 .featured-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
   gap: 1rem; margin-top: 2rem;
 }
 .fcard {
@@ -206,6 +226,23 @@ h2 {
   filter: saturate(0.92) brightness(0.9); transition: filter 0.3s ease, transform 0.4s ease;
 }
 .fcard:hover .shot img { filter: none; transform: scale(1.03); }
+.shot-brak {
+  display: flex; flex-direction: column; justify-content: flex-end; gap: .4rem;
+  padding: 1.1rem 1.25rem;
+  background:
+    radial-gradient(ellipse 120% 90% at 88% 8%, color-mix(in srgb, var(--cat, var(--pulse)) 24%, transparent), transparent 62%),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--cat, var(--pulse)) 10%, transparent) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--cat, var(--pulse)) 7%, transparent) 0 1px, transparent 1px 24px),
+    var(--bg);
+}
+.shot-brak-data {
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .14em;
+  color: var(--cat, var(--pulse));
+}
+.shot-brak-tytul {
+  font-family: var(--font-display); font-weight: 800; line-height: 1;
+  font-size: clamp(1.7rem, 3.2vw, 2.2rem); letter-spacing: -.01em; color: var(--ink);
+}
 .fcard h3 {
   font-family: var(--font-display); font-weight: 700; font-size: 1.25rem;
   line-height: 1.15; letter-spacing: -0.01em;
@@ -225,6 +262,7 @@ h2 {
 }
 .card-links a:hover { color: var(--cat, var(--pulse)); border-color: var(--cat, var(--pulse)); }
 .card-links a.live { color: var(--cat, var(--pulse)); border-color: transparent; }
+.card-links a.live:hover { border-color: currentColor; }
 
 /* ── Współpraca ── */
 .collab {
@@ -356,7 +394,7 @@ h2 {
 .tag { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); }
 
 /* ── Rodziny projektów ── */
-.lineage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1rem; margin-top: 2rem; }
+.lineage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr)); gap: 1rem; margin-top: 2rem; }
 .lineage {
   background: var(--bg-raised); border: 1px solid var(--line);
   border-radius: 12px; padding: 1.3rem 1.4rem 1.1rem;
@@ -384,7 +422,7 @@ h2 {
   font-family: var(--font-display); font-weight: 700;
   font-size: clamp(1.25rem, 3vw, 1.6rem); margin: 3.2rem 0 0.8rem;
 }
-.thread-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.6rem; }
+.thread-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1rem; margin-top: 1.6rem; }
 .thread {
   border: 1px solid var(--line); border-top: 2px solid var(--pulse-dim);
   border-radius: 10px; padding: 1.1rem 1.2rem;
@@ -401,11 +439,14 @@ h2 {
 .index-filter {
   width: 100%; max-width: 480px; margin: 0 0 1.8rem;
   font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink);
-  background: var(--bg-raised); border: 1px solid var(--line);
+  background: var(--bg-raised); border: 1px solid #636D82;   /* 3,35:1 — granica kontrolki */
   border-radius: 99px; padding: 0.65rem 1.1rem;
 }
 .index-filter::placeholder { color: var(--ink-faint); }
-.index-filter:focus { outline: none; border-color: var(--pulse-dim); background: var(--bg-raised-2); }
+.index-filter:focus { border-color: var(--pulse-dim); background: var(--bg-raised-2); }
+.index-filter:focus-visible { outline: 2px solid var(--pulse); outline-offset: 2px; }
+.index-count { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-dim); margin: -1rem 0 1.2rem; min-height: 1em; }
+.index-count:empty { display: none; }
 .index-grid { columns: 2; column-gap: 2.5rem; }
 .ix-row {
   break-inside: avoid; display: flex; align-items: baseline; gap: 0.55rem;
@@ -438,7 +479,7 @@ h2 {
     var(--bg-raised);
   border: 1px solid var(--line); border-radius: 18px;
 }
-.leon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-top: 2rem; }
+.leon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 1.2rem; margin-top: 2rem; }
 .leon-card {
   background: var(--bg); border: 1px solid color-mix(in srgb, var(--c-leon) 26%, var(--line));
   border-radius: 14px; padding: 1.5rem;
@@ -483,6 +524,9 @@ h2 {
 /* ── Reveal ── */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.55s ease, transform 0.55s ease; }
 .reveal.in { opacity: 1; transform: none; }
+/* Musi stać po .reveal.in i mieć wyższą specyficzność — inaczej odsłonięta karta
+   wraca do pełnej widoczności i filtr kategorii nic nie przygasza. */
+.card.dim, .card.dim.in { opacity: 0.16; }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   .card, .fcard { transition: none; }
@@ -490,21 +534,41 @@ h2 {
 
 /* ── Responsywność ── */
 @media (max-width: 720px) {
-  .topbar nav { gap: 0.8rem; }
-  .topbar nav a { font-size: 0.7rem; }
+  /* Dziewięć odnośników układało się w kolumnę i lepki pasek miał 264 px — trzecią
+     część ekranu telefonu. Teraz jeden rząd przewijany w poziomie; wygaszenie przy
+     prawej krawędzi mówi, że jest tam coś więcej. GitHub jest w stopce. */
+  .topbar { gap: .8rem; padding: .55rem var(--pad); }
+  .topbar nav {
+    flex: 1 1 auto; min-width: 0; margin-left: 0; gap: 1rem;
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none; padding: .45rem .9rem .45rem 0;
+    -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent);
+            mask-image: linear-gradient(90deg, #000 82%, transparent);
+  }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a { font-size: 0.7rem; white-space: nowrap; }
+  .topbar-gh { display: none; }
+  .topbar .lang-switch { margin-left: 0; }
+  .index-filter { font-size: 1rem; }
   .vitals li { padding-right: 1rem; margin-right: 1rem; }
   .vitals b { font-size: 1.25rem; }
   .archive-list, .index-grid { columns: 1; }
   #ekg-chart { height: 96px; }
 }
+@media (max-width: 520px) {
+  /* 24,8 px mieściło „to moje medium.” w jednej linii — i ginęło. Większy tytuł łamie
+     się na trzy linie; minimum trzyma „Technologia” w 320 px bez przewijania w bok. */
+  .hero h1 { font-size: clamp(1.8rem, 8.4vw, 2.6rem); }
+}
 
 /* Znacznik przy Kosmosie. Mniejszy i przygaszony, bo to dopisek do etykiety,
    a nie druga etykieta — ma uprzedzać, nie krzyczeć. */
 .cta-tag { text-transform: none; letter-spacing: 0.04em; opacity: 0.72; }
+.bez-lamania { white-space: nowrap; }   /* strzałka nie zostaje sama w drugiej linii */
 
 /* ── Wideo generatywne ───────────────────────────────────────────────────── */
 .wideo-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 1.2rem; margin-top: 2rem;
 }
 .wideo-karta {
@@ -552,7 +616,7 @@ h2 {
    żeby oba miejsca wyglądały jak jeden system, a nie dwa pomysły. */
 .karta-okladka {
   position: relative; display: block;
-  margin: -1.3rem -1.3rem .8rem; border-radius: 9px 9px 0 0; overflow: hidden;
+  margin: -1.1rem -1.25rem .8rem; border-radius: 9px 9px 0 0; overflow: hidden;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
   /* Pasek, nie plakat. Karta osi czasu jest szeroka (ok. 930 px), więc przy
@@ -562,6 +626,7 @@ h2 {
   height: clamp(120px, 18vw, 190px);
 }
 .karta-okladka img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.karta-okladka.zrzut img { object-position: top center; }   /* zrzut strony: nagłówek, nie środek */
 
 /* Plansza epoki — karta tytułowa rozdziału nad nagłówkiem epoki. Szersza
    i niższa niż okładka projektu, żeby czytała się jako otwarcie rozdziału,
@@ -591,7 +656,7 @@ h2 {
 /* ── Gramofon: „Akordy Zmierzchu” ────────────────────────────────────────── */
 .gramofon {
   position: relative; display: grid; justify-items: center; gap: .5rem;
-  margin: -1.3rem -1.3rem 1rem; padding: 1.6rem 1.3rem 1.1rem;
+  margin: -1.1rem -1.25rem 1rem; padding: 1.6rem 1.3rem 1.1rem;
   border-radius: 9px 9px 0 0;
   border-bottom: 1px solid var(--line);
   background:

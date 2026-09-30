@@ -287,51 +287,20 @@ const EXHIBIT_BUILDERS = {
   "naszwhisper": exWhisper, "anatomy": exAnatomy,
 };
 
-/* Zrzuty, które FAKTYCZNIE leżą w assets/shots.
-
-   Ścieżka pliku powstaje z `p.shot` albo — gdy go nie ma — z `${p.id}.jpeg`,
-   a 27 z 49 eksponatów nie ma własnego zrzutu. Bez tej listy każde wejście do
-   muzeum wysyłało za nie 27 osobnych żądań; GitHub Pages odpowiada na brakującą
-   ścieżkę pełną stroną 404 o wadze 9 379 bajtów, czyli ~250 kB śmieci na wizytę
-   (dziesiąta część całego budżetu assetów). Pusty `onError` niżej połykał to
-   bez jednego słowa w konsoli.
-
-   Lista siedzi tutaj, a nie w danych, bo js/projects-data.js jest poza zasięgiem
-   tej poprawki. PRZY DODAWANIU ZRZUTU: wrzuć plik do assets/shots ORAZ dopisz
-   jego nazwę poniżej — inaczej nie pojawi się w muzeum. */
-const ZRZUTY = new Set([
-  "age-of-agents.jpeg", "ai-video-portfolio.jpeg", "anatomy.jpeg", "aule-energy.jpeg",
-  "autoprocurer.jpeg", "bajarz.jpeg", "bilans-tokenow.jpeg", "ekspres-leona.jpeg",
-  "empowerher.jpeg", "korpolajf.jpeg", "lastbox.jpeg", "open-droids.jpeg",
-  "oze-developer-manager.jpeg", "pokemate-hub.jpeg", "residual-stream.jpeg",
-  "reverie.jpeg", "slyd.jpeg", "szkola-claude.jpeg", "tibijka.jpeg",
-  "token-drag-race.jpeg", "token-golf.jpeg", "wdrozenie-ai.jpeg", "wspolnik.jpeg",
-]);
-
-/* Okładki wygenerowane modelem dla 27 projektów, które nie mają zrzutu ekranu.
-   Ta sama lista i ta sama zasada co w js/kosmos/cele.js i js/okladki.js: siedzi
-   tutaj, bo js/projects-data.js jest poza zasięgiem tej poprawki.
-
-   Do tej pory te 27 eksponatów wisiało w muzeum jako sama tabliczka bez obrazu —
-   ściana z dziurami. Teraz każdy ma co pokazać. */
-const OKLADKI = new Set([
-  "akordy-zmierzchu", "aule-v1", "bielik", "flexmarket", "grafiki", "greensolver",
-  "krwawy-biznes", "latent-weather", "mansa-musa", "math-garden", "mistrz-promptow",
-  "naszwhisper", "neooffice", "npl", "oko-saurona", "omniportfolio", "orthank",
-  "petent", "pokemate-engine", "pokescale", "pokesolver", "processor", "robotami",
-  "silnik-bess", "stockcast", "stoik", "szkolenia-bank",
-]);
+/* Który plik pokazać, wie tylko obrazProjektu() z js/projects-data.js (globalny,
+   wczytany zwykłym <script> przed modułami). Wcześniej siedziały tu dwie listy —
+   zrzutów i okładek — kopiowane z karty i Kosmosu, i zdążyły się rozjechać.
+   Projekt bez obrazu nie wysyła żadnego żądania: GitHub Pages odpowiada na brakujący
+   plik pełną stroną 404 (ok. 9 kB), a muzeum pytałoby o nią przy każdym wejściu. */
 
 /* Oprawiony obraz — zrzut ekranu albo okładka. Ładowany asynchronicznie,
    znika, jeśli nie ma czego pokazać. */
 const texLoader = new THREE.TextureLoader();
 function framedShot(p, w = 2.2) {
   const g = new THREE.Group();
-  const file = p.shot || `${p.id}.jpeg`;
-  const okladka = !ZRZUTY.has(file) && OKLADKI.has(p.id);
-  const src = ZRZUTY.has(file) ? `assets/shots/${file}`
-            : (okladka ? `assets/okladki/${p.id}.webp` : null);
-  if (!src) return g;                  // nie ma pliku — nie zawracamy głowy serwerowi
+  const obraz = obrazProjektu(p);
+  if (!obraz) return g;                // nie ma pliku — nie zawracamy głowy serwerowi
+  const { src, okladka } = obraz;
   g.userData.okladka = okladka;
   texLoader.load(
     src,

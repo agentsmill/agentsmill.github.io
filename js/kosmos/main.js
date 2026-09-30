@@ -19,7 +19,7 @@ zbudujNiebo();
 const ILE_PYLU = backend === "WebGPU" ? 20000 : 6000;
 const pyl = zbudujPyl(ILE_PYLU);
 
-/* 49 sond z danych portfolio — jedna na projekt, deterministycznie na powłokach epok.
+/* Sondy z danych portfolio — jedna na projekt, deterministycznie na powłokach epok.
    sondy/licznik dopisane do window.__kosmos (stworzonego w render.js) dla diagnostyki;
    renderer/scene/camera/backend zostają nietknięte. */
 const { sondy, licznik } = zbudujCele();

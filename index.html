@@ -3,78 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mateusz Pawełczuk — 16 miesięcy budowania z AI</title>
-  <meta name="description" content="Karta budowania: gry, sztuka generatywna, produkty i zabawy z Leonem — wszystko, co powstało z AI od marca 2025, na jednej osi czasu z rozwojem technologii.">
-  <meta property="og:title" content="Mateusz Pawełczuk — 16 miesięcy budowania z AI">
-  <meta property="og:description" content="70+ projektów, 20+ wdrożeń, 4400+ sesji z AI. Kardiogram szesnastu miesięcy — od pierwszego repo do studia jednoosobowego.">
+  <title data-i18n="meta.title">Mateusz Pawełczuk — karta budowania z AI</title>
+  <meta name="description" data-i18n-attr="content:meta.desc" content="Karta budowania: gry, sztuka generatywna, produkty i zabawy z Leonem — wszystko, co powstało z AI od marca 2025, na jednej osi czasu z rozwojem technologii.">
+  <link rel="canonical" href="https://agentsmill.github.io/">
+  <meta name="theme-color" content="#0C1018">
+  <meta name="color-scheme" content="dark">
+  <!-- Podgląd linku (LinkedIn, Messenger, Slack). Boty nie uruchamiają JS, więc nie
+       ma tu liczb, które się starzeją — tylko to, co pozostaje prawdą. -->
+  <meta property="og:title" content="Mateusz Pawełczuk — karta budowania z AI">
+  <meta property="og:description" content="80+ projektów zbudowanych z AI od marca 2025 — gry, sztuka generatywna, produkty dla polskich firm i rzeczy dla syna. Kardiogram z prawdziwych danych, muzeum 3D i kosmos do przelotu.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://agentsmill.github.io/">
+  <meta property="og:site_name" content="Mateusz Pawełczuk">
+  <meta property="og:locale" content="pl_PL">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:image" content="https://agentsmill.github.io/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Technologia to moje medium — kardiogram projektów Mateusza Pawełczuka">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=202608051720">
+  <link rel="stylesheet" href="css/main.css?v=202609301200">
 </head>
 <body>
 
+<a class="skip-link" href="#top" data-i18n="a11y.skip">Przejdź do treści</a>
+
 <header class="topbar">
-  <a class="monogram" href="#top" aria-label="Do góry">MP<span class="blip">·</span></a>
-  <nav aria-label="Sekcje">
+  <a class="monogram" href="#top" aria-label="MP — do góry" data-i18n-attr="aria-label:a11y.top">MP<span class="blip" aria-hidden="true">·</span></a>
+  <nav aria-label="Sekcje" data-i18n-attr="aria-label:a11y.nav">
     <a href="#wyroznione" data-i18n="nav.wyroznione">Wyróżnione</a>
     <a href="#wspolpraca" data-i18n="nav.wspolpraca">Współpraca</a>
     <a href="#wideo" data-i18n="nav.wideo">Wideo</a>
     <a href="#os-czasu" data-i18n="nav.oscasu">Oś czasu</a>
     <a href="#rodziny" data-i18n="nav.rodziny">Rodziny</a>
-    <a href="#leon">Leon</a>
+    <a href="#leon" data-i18n="nav.leon">Leon</a>
     <a href="#spis" data-i18n="nav.spis">Spis</a>
     <a class="nav-museum" href="museum.html" data-i18n="nav.muzeum">Muzeum</a>
     <a class="nav-kosmos" href="kosmos.html" data-i18n="nav.kosmos">Kosmos</a>
   </nav>
-  <a class="topbar-gh" href="https://github.com/agentsmill" target="_blank" rel="noopener">GitHub ↗</a>
+  <a class="topbar-gh" href="https://github.com/agentsmill" target="_blank" rel="noopener">GitHub <span aria-hidden="true">↗</span></a>
 </header>
 
-<main id="top">
+<main id="top" tabindex="-1">
 
   <!-- ── Hero: karta budowania ─────────────────────────────────────────── -->
   <section class="hero">
-    <p class="eyebrow" data-i18n="hero.eyebrow">Karta budowania · III 2025 — VIII 2026</p>
+    <p class="eyebrow" id="hero-eyebrow">Karta budowania · III 2025 — IX 2026</p>
     <h1 data-i18n-html="hero.h1">Technologia<br>to moje medium.</h1>
     <p class="lead" data-i18n-html="hero.lead">
       Nazywam się Mateusz Pawełczuk. Zaczynałem od medycyny, dziś to, co mam do
-      powiedzenia, mówię przez technologię: przez szesnaście miesięcy, równolegle
+      powiedzenia, mówię przez technologię: od marca 2025, równolegle
       z kolejnymi generacjami modeli, powstały gry, sztuka generatywna, produkty
       dla polskich firm i&nbsp;kilka rzeczy dla mojego syna. Po drodze doszły
       konsultacje dla firm i&nbsp;wystąpienia na scenie. Ta strona zbiera
       wszystko w jednym miejscu.
     </p>
     <p class="hero-cta">
-      <a class="cta-museum" href="museum.html">Wejdź do muzeum <span aria-hidden="true">→</span></a>
-      <a class="cta-kosmos" href="kosmos.html">Kosmiczne portfolio <span class="cta-tag" data-i18n="hero.tag">(eksperyment)</span> <span aria-hidden="true">→</span></a>
+      <a class="cta-museum" href="museum.html"><span data-i18n="hero.ctaMuzeum">Wejdź do muzeum</span> <span aria-hidden="true">→</span></a>
+      <a class="cta-kosmos" href="kosmos.html"><span data-i18n="hero.ctaKosmos">Kosmiczne portfolio</span> <span class="bez-lamania"><span class="cta-tag" data-i18n="hero.tag">(eksperyment)</span> <span aria-hidden="true">→</span></span></a>
       <a class="cta-scroll" href="#wyroznione" data-i18n="hero.ctaScroll">albo przewiń kartę ↓</a>
     </p>
-    <p class="cta-uwaga" data-i18n="hero.uwaga">
-      Kosmiczne portfolio to gra 3D w przeglądarce — 49 projektów jako światy na sześciu
+    <p class="cta-uwaga" id="hero-uwaga">
+      Kosmiczne portfolio to gra 3D w przeglądarce — 55 projektów jako światy na sześciu
       orbitach. Potrzebuje mocniejszego komputera i nowszej przeglądarki niż reszta strony.
     </p>
 
-    <figure class="ekg" aria-label="Kardiogram: liczba projektów miesięcznie od marca 2025 do sierpnia 2026">
-      <div id="ekg-chart" role="img" aria-hidden="true"></div>
+    <figure class="ekg">
+      <div id="ekg-chart" role="img" aria-label="Kardiogram: liczba projektów miesięcznie od III 2025 do IX 2026"></div>
       <figcaption class="ekg-caption" data-i18n="hero.ekg">tętno budowania — jedno uderzenie = jeden projekt</figcaption>
     </figure>
 
-    <ul class="vitals" aria-label="Statystyki">
-      <li><b>16</b> miesięcy</li>
-      <li><b>70+</b> projektów</li>
-      <li><b>20+</b> działających wdrożeń</li>
-      <li><b>4400+</b> sesji z AI</li>
-      <li><b>249★</b> na GitHubie</li>
+    <!-- Liczby wylicza js/main.js z danych; tu tylko stan na dzień aktualizacji. -->
+    <ul class="vitals" id="vitals" aria-label="Statystyki" data-i18n-attr="aria-label:a11y.vitals">
+      <li><b>19</b> miesięcy</li>
+      <li><b>80+</b> projektów</li>
+      <li><b>263★</b> na GitHubie</li>
     </ul>
   </section>
 
   <!-- ── Wyróżnione ────────────────────────────────────────────────────── -->
   <section class="featured" id="wyroznione">
     <h2><span class="h-mono">01 /</span> <span data-i18n="sek.wyroznione">Wyróżnione</span></h2>
-    <p class="section-lead" data-i18n="lead.wyroznione">
-      Jedenaście rzeczy, które warto zobaczyć w pierwszej kolejności — to,
+    <p class="section-lead" id="featured-lead">
+      12 rzeczy, które warto zobaczyć w pierwszej kolejności — to,
       co albo działa komercyjnie, albo ma najwięcej pracy pod spodem, albo
       jest po prostu najciekawsze. Reszta czeka na osi czasu i w spisie niżej.
     </p>
@@ -82,17 +97,17 @@
   </section>
 
   <!-- ── Współpraca ────────────────────────────────────────────────────── -->
-  <aside class="collab" id="wspolpraca" aria-label="Współpraca">
+  <aside class="collab" id="wspolpraca" aria-label="Współpraca" data-i18n-attr="aria-label:a11y.collab">
     <p class="collab-kicker" data-i18n="collab.kicker">Współpraca</p>
     <h2 class="collab-title" data-i18n="collab.title">Chcesz coś takiego dla swojej firmy?</h2>
-    <p class="collab-lead" data-i18n="collab.lead">
+    <p class="collab-lead" data-i18n-html="collab.lead">
       Zlecenia — sztuka generatywna i wideo AI, doradztwo biznesowe, systemy
       agentowe i silniki obliczeniowe, szkolenia i&nbsp;wystąpienia keynote —
-      prowadzę jako freelancer, w ramach studia <b>wdrozenie.ai</b>.
+      prowadzę jako freelancer, w ramach studia <b translate="no">wdrozenie.ai</b>.
       Ta strona to kronika budowania; oferta, zakres współpracy i&nbsp;kontakt są tam.
     </p>
     <p class="collab-cta">
-      <a class="cta-collab" href="https://wdrozenie.ai" target="_blank" rel="noopener">wdrozenie.ai <span aria-hidden="true">↗</span></a>
+      <a class="cta-collab" href="https://wdrozenie.ai" target="_blank" rel="noopener" translate="no">wdrozenie.ai <span aria-hidden="true">↗</span></a>
       <a class="cta-mail" href="mailto:mateusz@wdrozenie.ai">mateusz@wdrozenie.ai</a>
     </p>
   </aside>
@@ -111,8 +126,8 @@
         <video class="wideo-plyta" controls preload="none" playsinline
                poster="https://agentsmill.github.io/ai-video-portfolio/assets/media/showreel-poster.jpg">
           <source src="https://agentsmill.github.io/ai-video-portfolio/assets/media/showreel.mp4" type="video/mp4">
-          Twoja przeglądarka nie odtworzy tego pliku.
-          <a href="https://agentsmill.github.io/ai-video-portfolio/assets/media/showreel.mp4">Pobierz wideo</a>.
+          <span data-i18n="wideo.brak">Twoja przeglądarka nie odtworzy tego pliku.</span>
+          <a href="https://agentsmill.github.io/ai-video-portfolio/assets/media/showreel.mp4" data-i18n="wideo.pobierz">Pobierz wideo</a>.
         </video>
         <figcaption>
           <b data-i18n="wideo.showreel">Showreel</b>
@@ -124,8 +139,8 @@
         <video class="wideo-plyta" controls preload="none" playsinline
                poster="https://agentsmill.github.io/ai-video-portfolio/assets/media/ugc-poster.jpg">
           <source src="https://agentsmill.github.io/ai-video-portfolio/assets/media/ugc-podcast.mp4" type="video/mp4">
-          Twoja przeglądarka nie odtworzy tego pliku.
-          <a href="https://agentsmill.github.io/ai-video-portfolio/assets/media/ugc-podcast.mp4">Pobierz wideo</a>.
+          <span data-i18n="wideo.brak">Twoja przeglądarka nie odtworzy tego pliku.</span>
+          <a href="https://agentsmill.github.io/ai-video-portfolio/assets/media/ugc-podcast.mp4" data-i18n="wideo.pobierz">Pobierz wideo</a>.
         </video>
         <figcaption>
           <b data-i18n="wideo.ugc">Klip UGC — format podcastowy</b>
@@ -171,7 +186,7 @@
 
     <p class="wideo-cta">
       <a class="cta-wideo" href="https://agentsmill.github.io/ai-video-portfolio/" target="_blank" rel="noopener">
-        Całe portfolio wideo <span aria-hidden="true">↗</span>
+        <span data-i18n="wideo.cta">Całe portfolio wideo</span> <span aria-hidden="true">↗</span>
       </a>
     </p>
   </section>
@@ -183,7 +198,7 @@
       Technologia po lewej stronie zdarzeń, projekty po prawej. Rytm każdej epoki
       zapisany jak na monitorze — bo tempo też jest częścią tej historii.
     </p>
-    <div class="filters" id="filters" role="group" aria-label="Filtruj według kategorii"></div>
+    <div class="filters" id="filters" role="group" aria-label="Filtruj według kategorii" data-i18n-attr="aria-label:a11y.filters"></div>
     <div class="timeline" id="timeline"></div>
   </section>
 
@@ -196,7 +211,7 @@
     </p>
     <div class="lineage-list" id="lineage-list"></div>
 
-    <h3 class="threads-head">Wątki w poprzek</h3>
+    <h3 class="threads-head" data-i18n="h3.watki">Wątki w poprzek</h3>
     <p class="section-lead" data-i18n="lead.watki">
       Nie chronologia, tylko powracające obsesje — widać je dopiero, gdy ułożyć
       wszystko obok siebie.
@@ -215,28 +230,42 @@
       <article class="leon-card">
         <div class="leon-emoji" aria-hidden="true">🚂</div>
         <h3 data-i18n="h3.ekspres">Strażacki Ekspres Leona</h3>
-        <p>
+        <p data-i18n="leon.ekspres">
           Wyścigówka pociągów: gasisz pożary wodą, zbierasz gwiazdki, a na stacjach
           rozwiązujesz quiz z 36 prawdziwych polskich znaków drogowych. Zaprojektowana
           tak, żeby dało się przegrać z królikami — ale nigdy nie ma „game over”,
           jest medal i zachęta. Bohater to wąsaty hydraulik-strażak. Celowo nie Mario.
         </p>
         <p class="leon-links">
-          <a href="https://agentsmill.github.io/strazacki-ekspres-leona/" target="_blank" rel="noopener">Zagraj ↗</a>
-          <a href="https://github.com/agentsmill/strazacki-ekspres-leona" target="_blank" rel="noopener">Kod</a>
+          <a href="https://agentsmill.github.io/strazacki-ekspres-leona/" target="_blank" rel="noopener"><span data-i18n="leon.zagraj">Zagraj</span> <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/agentsmill/strazacki-ekspres-leona" target="_blank" rel="noopener" data-i18n="leon.kod">Kod źródłowy</a>
         </p>
       </article>
       <article class="leon-card">
         <div class="leon-emoji" aria-hidden="true">🤖</div>
         <h3 data-i18n="h3.jozef">Józef na robocie Richie</h3>
-        <p>
+        <p data-i18n="leon.jozef">
           Reachy Mini z własnym mózgiem-obserwatorem i głosowym kompanem Józefem:
           wake-word „Hej Józef”, tłumaczenia, fonetyka, small talk — z warstwą
           bezpieczeństwa i dziennikiem dla rodzica. Robot przyjechał w lipcu,
           Leon przywitał go po imieniu.
         </p>
         <p class="leon-links">
-          <span class="leon-access">repo prywatne — robot stoi w salonie</span>
+          <span class="leon-access" data-i18n="leon.jozefAccess">repo prywatne — robot stoi w salonie</span>
+        </p>
+      </article>
+      <article class="leon-card">
+        <div class="leon-emoji" aria-hidden="true">🐿️</div>
+        <h3 data-i18n="h3.wiewiorka">Wiewiórka Leona</h3>
+        <p data-i18n="leon.wiewiorka">
+          Leśny labirynt w 3D i wiewiórka, która zbiera borowiki. Tuż obok rosną muchomory
+          i goryczaki bez żadnych znaczników, więc wybór należy do oczu. Za zły grzyb jest
+          kichnięcie i strona atlasu z prawdziwym zdjęciem — nigdy ekran porażki. Działa
+          na telefonie, pionowo i poziomo.
+        </p>
+        <p class="leon-links">
+          <a href="https://agentsmill.github.io/WiewiorkiLeona/" target="_blank" rel="noopener"><span data-i18n="leon.zagraj">Zagraj</span> <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/agentsmill/WiewiorkiLeona" target="_blank" rel="noopener" data-i18n="leon.kod">Kod źródłowy</a>
         </p>
       </article>
     </div>
@@ -246,11 +275,14 @@
   <section class="index" id="spis">
     <h2><span class="h-mono">06 /</span> <span data-i18n="sek.spis">Spis wszystkiego</span></h2>
     <p class="section-lead" id="index-lead"></p>
-    <input type="search" id="index-filter" class="index-filter"
+    <input type="search" id="index-filter" class="index-filter" name="q"
+           autocomplete="off" spellcheck="false" enterkeyhint="search"
            placeholder="Szukaj po nazwie, technologii albo opisie…"
-           aria-label="Filtruj listę projektów">
+           aria-label="Filtruj listę projektów"
+           data-i18n-attr="placeholder:ui.szukaj;aria-label:a11y.search">
+    <p class="index-count" id="index-count" role="status" aria-live="polite"></p>
     <div class="index-grid" id="index-grid"></div>
-    <p class="index-empty" id="index-empty" hidden>Nic nie pasuje do tego wyszukiwania.</p>
+    <p class="index-empty" id="index-empty" hidden data-i18n="ui.brak">Nic nie pasuje do tego wyszukiwania.</p>
   </section>
 
   <!-- ── Archiwum ──────────────────────────────────────────────────────── -->
@@ -269,14 +301,16 @@
   <div class="footer-inner">
     <p class="footer-contact">
       <a href="mailto:mateusz@wdrozenie.ai">mateusz@wdrozenie.ai</a>
-      <a href="https://github.com/agentsmill" target="_blank" rel="noopener">github.com/agentsmill</a>
-      <a href="https://wdrozenie.ai" target="_blank" rel="noopener">wdrozenie.ai</a>
-      <a href="https://pawelczuk.com" target="_blank" rel="noopener">pawelczuk.com</a>
+      <a href="https://github.com/agentsmill" target="_blank" rel="noopener" translate="no">github.com/agentsmill</a>
+      <a href="https://wdrozenie.ai" target="_blank" rel="noopener" translate="no">wdrozenie.ai</a>
+      <!-- pawelczuk.com schowany 30 IX 2026: Lovable pokazuje tam „Build incomplete” (HTTP 404).
+           Po naprawie buildu przywróć:
+           <a href="https://pawelczuk.com" target="_blank" rel="noopener" translate="no">pawelczuk.com</a> -->
     </p>
-    <p class="footer-meta">
-      Tę stronę również zbudował AI — Claude Fable 5, w jedną sesję, 4 sierpnia 2026.
-      Daty i liczby pochodzą z GitHub API oraz lokalnych historii sesji; linki
-      sprawdzone tego samego dnia. Kardiogram to prawdziwe dane.
+    <p class="footer-meta" data-i18n="footer.meta">
+      Tę stronę również zbudował AI — Claude Fable 5, w jedną sesję, 4 sierpnia 2026;
+      aktualizację z 30 września zrobił Claude Opus 5.5. Daty i liczby pochodzą z GitHub API
+      oraz lokalnych repozytoriów; linki sprawdzone 30 IX 2026. Kardiogram to prawdziwe dane.
     </p>
   </div>
 </footer>
@@ -288,10 +322,9 @@
   </p>
 </noscript>
 
-<script src="js/projects-data.js?v=202608051545"></script>
-<script src="js/i18n.js?v=202608250005"></script>
-<script src="js/main.js?v=202608051545"></script>
-<script src="js/okladki.js?v=202608250004"></script>
-<script src="js/gramofon.js?v=202608250005"></script>
+<script src="js/projects-data.js?v=202609301200"></script>
+<script src="js/i18n.js?v=202609301200"></script>
+<script src="js/main.js?v=202609301200"></script>
+<script src="js/gramofon.js?v=202609301200"></script>
 </body>
 </html>

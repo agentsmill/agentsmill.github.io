@@ -21,7 +21,7 @@ const ZRODLA_POZOSTALE = [
   { plik: "planety/ziemia.webp", tytul: "Blue Marble",                            autor: "NASA Earth Observatory",             licencja: "domena publiczna" },
   { plik: "planety/jowisz.webp", tytul: "Mapa walcowa Jowisza (Cassini)",         autor: "NASA/JPL/Space Science Institute",   licencja: "domena publiczna" },
   { plik: "rakieta.glb",         tytul: "Model statku — rakieta Saturn V",        autor: "NASA 3D Resources",                  licencja: "domena publiczna" },
-  { plik: "okladki/*.webp",      tytul: "Okładki 27 projektów bez zrzutu ekranu — WIZUALIZACJE, nie zrzuty działających produktów", autor: "wygenerowane modelem Krea 2 turbo", licencja: "wytworzone na potrzeby tej strony" },
+  { plik: "okladki/*.webp",      tytul: `Okładki ${PROJECTS.filter((p) => p.cover).length} projektów bez zrzutu ekranu — WIZUALIZACJE, nie zrzuty działających produktów`, autor: "wygenerowane modelem Krea 2 turbo", licencja: "wytworzone na potrzeby tej strony" },
 ];
 
 function budujZrodla() {

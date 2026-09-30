@@ -77,11 +77,20 @@
       document.body.appendChild(host);
 
       odtwarzacz = new YT.Player(host, {
+        /* youtube-nocookie.com — tryb ochrony prywatności: odtwarzacz nie zostawia
+           ciasteczek śledzących do chwili odtworzenia, a wczytuje się już przy
+           najechaniu, bez zgody i często przypadkiem. */
+        host: "https://www.youtube-nocookie.com",
         videoId: FILM,
         playerVars: { playsinline: 1, rel: 0 },
         events: {
           onReady: () => {
             gotowy = true;
+            /* Ukryty odtwarzacz nie może łapać fokusu: Tab za ostatnim odnośnikiem
+               stopki wpadał w niewidoczną ramkę na x = −9999. */
+            const ramka = odtwarzacz.getIframe();
+            ramka.setAttribute("tabindex", "-1");
+            ramka.setAttribute("aria-hidden", "true");
             ogloszTekst(t().podpis);
             if (!chciany) return;
             odtwarzacz.playVideo();
@@ -149,6 +158,8 @@
     const plyta = document.createElement("button");
     plyta.type = "button";
     plyta.className = "gramofon-plyta";
+    /* Przycisk przełączający: stan niesie aria-pressed, etykieta się nie zmienia.
+       Zmiana obu naraz dawała w czytniku „Zatrzymaj, wciśnięty”. */
     plyta.setAttribute("aria-label", t().graj);
     plyta.setAttribute("aria-pressed", "false");
 
@@ -167,6 +178,7 @@
 
     const podpis = document.createElement("p");
     podpis.className = "gramofon-podpis";
+    podpis.setAttribute("aria-live", "polite");   // „Wczytuję…”, „Gotowe…”, błąd
     podpis.textContent = t().podpis;
 
     const zrodlo = document.createElement("span");
@@ -188,23 +200,15 @@
       if (gra === undefined) return;
       gramofon.classList.toggle("gra", gra);
       plyta.setAttribute("aria-pressed", String(gra));
-      plyta.setAttribute("aria-label", gra ? t().stop : t().graj);
     });
     return gramofon;
   }
 
   function wstawNaKarte() {
-    if (typeof PROJECTS === "undefined") return;
-    const projekt = PROJECTS.find((p) => p.id === PROJEKT);
-    if (!projekt) return;
-    for (const karta of document.querySelectorAll(".timeline-section .card")) {
-      const h4 = karta.querySelector("h4");
-      if (!h4 || h4.textContent.trim() !== projekt.title) continue;
-      if (karta.querySelector(".gramofon")) return;
-      karta.querySelector(".karta-okladka")?.remove();
-      karta.prepend(zbudujGramofon());
-      return;
-    }
+    const karta = document.querySelector(`.timeline-section .card[data-id="${PROJEKT}"]`);
+    if (!karta || karta.querySelector(".gramofon")) return;
+    karta.querySelector(".karta-okladka")?.remove();
+    karta.prepend(zbudujGramofon());
   }
 
   /* ── TWARZ 2: przycisk na tabliczce w muzeum ─────────────────────────────
@@ -228,6 +232,7 @@
     przycisk.append(krazek, napis);
     przycisk.addEventListener("click", przelacz);
     przycisk.addEventListener("pointerenter", przygotuj, { once: true });
+    przycisk.addEventListener("focus", przygotuj, { once: true });
 
     const odswiezNapis = () => {
       napis.textContent = przycisk.getAttribute("aria-pressed") === "true"
@@ -264,7 +269,8 @@
     if (document.getElementById("plaque")) podepnijMuzeum();   // muzeum
     else wstawNaKarte();                                        // karta budowania
   }
-  /* Podwójna klatka: na karcie budowania main.js i okladki.js budują DOM na tym
-     samym zdarzeniu, a płyta zastępuje okładkę, która musi już istnieć. */
+  /* Podwójna klatka: płyta zastępuje okładkę karty, która musi już istnieć —
+     a main.js buduje oś czasu przy wczytaniu, przed DOMContentLoaded. Zapas
+     klatek zostaje dla muzeum, gdzie tabliczka powstaje później. */
   addEventListener("DOMContentLoaded", () => requestAnimationFrame(() => requestAnimationFrame(start)));
 })();

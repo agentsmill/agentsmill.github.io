@@ -2,15 +2,78 @@
 (function () {
   "use strict";
 
+  /* Napisy przez i18n.js; bez niego zostaje polski tekst podany przy wywołaniu. */
+  const t = window.__t || ((klucz, pl) => pl);
+  const en = window.__jezyk === "en";
+  const wstaw = (wzor, dane) => wzor.replace(/\{(\w+)\}/g, (_, k) => (k in dane ? dane[k] : `{${k}}`));
+
+  /* Polska odmiana liczebnika: 1 miesiąc, 2–4 miesiące (bez 12–14), 5+ miesięcy. */
+  const odmiana = (n, [jeden, kilka, wiele]) => {
+    if (n === 1) return jeden;
+    const j = n % 10, d = n % 100;
+    return j >= 2 && j <= 4 && (d < 12 || d > 14) ? kilka : wiele;
+  };
+
   const ROMAN = { "01": "I", "02": "II", "03": "III", "04": "IV", "05": "V", "06": "VI",
     "07": "VII", "08": "VIII", "09": "IX", "10": "X", "11": "XI", "12": "XII" };
 
+  /* Twarda spacja między miesiącem a rokiem: „IX” nie może zostać na końcu linii,
+     a „2026” uciec do następnej. */
   const fmtDate = (d) => {
     const [y, m] = d.split("-");
-    return `${ROMAN[m]} ${y}`;
+    return `${ROMAN[m]}\u00A0${y}`;
   };
+  /* Miesiąc kardiogramu („IX 26”) jako pełna data („IX 2026”). */
+  const pelnyMiesiac = (m) => m.replace(/ (\d\d)$/, "\u00A020$1");
 
   const catColor = (p) => `var(--c-${p.cat[0]})`;
+  const strzalka = `<span aria-hidden="true">↗</span>`;
+
+  /* ── Hero: zakres dat, uwaga o Kosmosie, parametry ───────────────────── */
+  const OD = pelnyMiesiac(HEARTBEAT[0].m);
+  const DO = pelnyMiesiac(HEARTBEAT[HEARTBEAT.length - 1].m);
+
+  /* ── Ile działających wdrożeń? ───────────────────────────────────────────
+     Liczba ląduje w pasku parametrów pod kardiogramem, więc jest publiczną
+     deklaracją — a to, co jest „działającym wdrożeniem”, to decyzja autora,
+     nie kodu. Do dyspozycji: PROJECTS (p.links.live, p.access, p.badge,
+     p.wakes, p.cat, p.meta) i ARCHIVE (a.url). Zwraca liczbę albo null —
+     null zdejmuje pozycję z paska. */
+  function policzWdrozenia() {
+    // TODO(Mateusz): co liczymy jako działające wdrożenie? (5–10 linijek)
+    return null;
+  }
+
+  function buildHero() {
+    const eyebrow = document.getElementById("hero-eyebrow");
+    if (eyebrow) eyebrow.textContent = `${t("hero.eyebrow", "Karta budowania")} · ${OD} — ${DO}`;
+
+    const uwaga = document.getElementById("hero-uwaga");
+    if (uwaga) uwaga.textContent = wstaw(t("hero.uwaga",
+      "Kosmiczne portfolio to gra 3D w przeglądarce — {n} projektów jako światy na sześciu " +
+      "orbitach. Potrzebuje mocniejszego komputera i nowszej przeglądarki niż reszta strony."),
+      { n: PROJECTS.length });
+
+    const vitals = document.getElementById("vitals");
+    if (!vitals) return;
+    const miesiecy = HEARTBEAT.length;
+    const wszystkich = PROJECTS.length + ARCHIVE.length;
+    const gwiazdki = Math.max(0, ...PROJECTS.map((p) => p.stars || 0));
+    const wdrozenia = policzWdrozenia();
+    const pozycje = [
+      [miesiecy, en ? t("vitals.miesiecy", "months")
+                    : odmiana(miesiecy, ["miesiąc", "miesiące", "miesięcy"])],
+      /* „80+”, nie „83”: spis rośnie co tydzień, a zaokrąglenie w dół pozostaje
+         prawdziwe do następnej aktualizacji. */
+      [`${Math.floor(wszystkich / 10) * 10}+`, t("vitals.projektow", "projektów")],
+    ];
+    if (Number.isFinite(wdrozenia)) {
+      pozycje.push([wdrozenia, en ? t("vitals.wdrozen", "live deployments")
+        : odmiana(wdrozenia, ["działające wdrożenie", "działające wdrożenia", "działających wdrożeń"])]);
+    }
+    if (gwiazdki) pozycje.push([`${gwiazdki}★`, t("vitals.gwiazdek", "na GitHubie")]);
+    vitals.innerHTML = pozycje.map(([b, s]) => `<li><b>${b}</b> ${s}</li>`).join("");
+  }
 
   /* ── Kardiogram hero ─────────────────────────────────────────────────── */
   function buildEKG() {
@@ -38,21 +101,28 @@
       d += ` L ${(x0 + cellW).toFixed(1)} ${BASE}`;
     });
 
-    const ticks = ["III 25", "I 26", "VI 26", "VIII 26"];
-    const tickEls = HEARTBEAT.map((mo, i) => {
-      if (!ticks.includes(mo.m)) return "";
-      const x = i * cellW + cellW / 2;
-      return `<line class="ekg-grid" x1="${x}" y1="${BASE + 14}" x2="${x}" y2="${BASE + 20}"></line>
-              <text class="ekg-tick" x="${x}" y="${BASE + 34}" text-anchor="middle">${mo.m}</text>`;
-    }).join("");
+    /* Pierwszy i ostatni miesiąc liczone z danych — nowy miesiąc w HEARTBEAT
+       przesuwa oś sam. Podpisy są w HTML, nie w SVG: preserveAspectRatio="none"
+       rozciąga tekst razem z wykresem, a na telefonie ściskał go do 7 px. */
+    const ticks = new Set([HEARTBEAT[0].m, "I 26", "VI 26", HEARTBEAT[HEARTBEAT.length - 1].m]);
+    const pozycjeTickow = HEARTBEAT.map((mo, i) => ({ m: mo.m, x: i * cellW + cellW / 2 }))
+      .filter((mo) => ticks.has(mo.m));
+    const tickEls = pozycjeTickow.map(({ x }) =>
+      `<line class="ekg-grid" x1="${x}" y1="${BASE + 14}" x2="${x}" y2="${BASE + 20}"></line>`).join("");
+    const podpisy = pozycjeTickow.map(({ m, x }) =>
+      `<span class="ekg-tick" style="left:${(x / W * 100).toFixed(2)}%">${m}</span>`).join("");
 
     host.innerHTML =
-      `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <line class="ekg-grid" x1="0" y1="${BASE}" x2="${W}" y2="${BASE}" opacity="0.35"></line>
         ${tickEls}
         <path class="ekg-path" d="${d}"></path>
         <path class="ekg-sweep" d="${d}"></path>
-      </svg>`;
+      </svg>
+      <div class="ekg-ticks" aria-hidden="true">${podpisy}</div>`;
+
+    host.setAttribute("aria-label", wstaw(
+      t("a11y.ekg", "Kardiogram: liczba projektów miesięcznie od {od} do {do}"), { od: OD, do: DO }));
 
     const sweep = host.querySelector(".ekg-sweep");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -61,11 +131,21 @@
       sweep.style.strokeDasharray = `70 ${L}`;
       const DUR = 9000;
       const t0 = performance.now();
-      (function frame(t) {
-        const p = ((t - t0) % DUR) / DUR;
+      /* Pętla śpi, gdy kardiogramu nie widać — nie ma po co rysować klatek
+         wykresu przewiniętego daleko w górę. */
+      let widac = true, klatka = 0;
+      const frame = (ts) => {
+        const p = ((ts - t0) % DUR) / DUR;
         sweep.style.strokeDashoffset = String(-p * L);
-        requestAnimationFrame(frame);
-      })(t0);
+        klatka = widac ? requestAnimationFrame(frame) : 0;
+      };
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(([e]) => {
+          widac = e.isIntersecting;
+          if (widac && !klatka) klatka = requestAnimationFrame(frame);
+        }).observe(host);
+      }
+      klatka = requestAnimationFrame(frame);
     } else if (sweep) {
       sweep.remove();
     }
@@ -75,11 +155,17 @@
   function linksHTML(p) {
     const out = [];
     if (p.links.live) {
-      out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener">Zobacz ↗</a>`);
-      // Aplikacja uśpiona (Fly, skalowanie do zera) — zmierzone budzenie 7–11 s.
-      if (p.wakes) out.push(`<span class="wakes" title="Serwer śpi, gdy nikt nie korzysta. Pierwsze wejście trwa ok. 10 sekund, potem działa normalnie.">(start serwera ~10 s)</span>`);
+      out.push(`<a class="live" href="${p.links.live}" target="_blank" rel="noopener">${t("ui.zobacz", "Zobacz")} ${strzalka}</a>`);
+      /* Aplikacja uśpiona (Fly, skalowanie do zera). Liczba w danych to zmierzony czas
+         budzenia; `true` znaczy typowe ok. 10 s. */
+      if (p.wakes) {
+        const s = typeof p.wakes === "number" ? p.wakes : 10;
+        out.push(`<span class="wakes" title="${wstaw(t("ui.wakesTytul",
+          "Serwer śpi, gdy nikt nie korzysta. Pierwsze wejście trwa do {s} sekund, potem działa normalnie."), { s })}">${
+          wstaw(t("ui.wakes", "(start serwera ~{s} s)"), { s }).replace(" s)", "&nbsp;s)")}</span>`);
+      }
     }
-    if (p.links.tg) out.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Bot na Telegramie ↗</a>`);
+    if (p.links.tg) out.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">${t("ui.telegram", "Bot na Telegramie")} ${strzalka}</a>`);
     if (p.links.repo) out.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
     if (p.links.npm) out.push(`<a href="${p.links.npm}" target="_blank" rel="noopener">npm</a>`);
     if (p.badge) out.push(`<span class="badge">${p.badge}</span>`);
@@ -88,35 +174,48 @@
     return out.length ? `<div class="card-links">${out.join("")}</div>` : "";
   }
 
-  /* Zrzut ekranu projektu; jeśli pliku nie ma, kafelek znika bez śladu. */
-  function shotHTML(p) {
-    if (p.shot === false) return "";
-    const file = p.shot || `${p.id}.jpeg`;
-    return `<span class="shot">
-      <img src="assets/shots/${file}" alt="Zrzut ekranu: ${p.title}" loading="lazy" decoding="async"
-           onerror="this.closest('.shot').remove()">
+  /* ── Obraz projektu ──────────────────────────────────────────────────────
+     Ścieżkę zna tylko obrazProjektu() z projects-data.js. Zrzut dostaje alt,
+     okładka nie: to ilustracja, a tytuł i podpis „wizualizacja AI” stoją tuż
+     obok — czytnik ekranu powtarzałby tytuł drugi raz. */
+  function obrazHTML(p, klasa) {
+    const o = obrazProjektu(p);
+    if (!o) return "";
+    const alt = o.okladka ? "" : wstaw(t("ui.zrzut", "Zrzut ekranu: {t}"), { t: p.title }).replace(/"/g, "&quot;");
+    const znacznik = o.okladka ? `<span class="shot-znacznik">${t("ui.okladka", "wizualizacja AI")}</span>` : "";
+    return `<span class="${klasa}${o.okladka ? " shot-okladka" : " zrzut"}">
+      <img src="${o.src}" alt="${alt}" width="${o.w}" height="${o.h}" loading="lazy" decoding="async">${znacznik}
+    </span>`;
+  }
+
+  /* Wyróżniony projekt bez obrazu dostaje tablicę typograficzną w kolorze
+     kategorii zamiast dziury w siatce — i nie udaje zrzutu, którego nie ma. */
+  function tablicaHTML(p) {
+    return `<span class="shot shot-brak" aria-hidden="true">
+      <span class="shot-brak-data">${fmtDate(p.date)}</span>
+      <span class="shot-brak-tytul">${p.title}</span>
     </span>`;
   }
 
   /* ── Wyróżnione ──────────────────────────────────────────────────────── */
-  const FEATURED_ORDER = ["age-of-agents", "wspolnik", "empowerher", "bajarz", "aog-game",
-    "reverie", "ekspres-leona", "token-drag-race", "lastbox", "naszwhisper", "anatomy"];
+  const WYROZNIONE = PROJECTS.filter((p) => p.featured).sort((a, b) => a.featured - b.featured);
 
   function buildFeatured() {
     const grid = document.getElementById("featured-grid");
     if (!grid) return;
-    const byId = Object.fromEntries(PROJECTS.map((p) => [p.id, p]));
-    grid.innerHTML = FEATURED_ORDER.map((id) => {
-      const p = byId[id];
-      if (!p) return "";
-      return `<article class="fcard reveal" style="--cat:${catColor(p)}">
-        ${shotHTML(p)}
+    const lead = document.getElementById("featured-lead");
+    if (lead) lead.textContent = wstaw(t("lead.wyroznione",
+      "{n} rzeczy, które warto zobaczyć w pierwszej kolejności — to, co albo działa " +
+      "komercyjnie, albo ma najwięcej pracy pod spodem, albo jest po prostu najciekawsze. " +
+      "Reszta czeka na osi czasu i w spisie niżej."), { n: WYROZNIONE.length });
+
+    grid.innerHTML = WYROZNIONE.map((p) => `<article class="fcard reveal" style="--cat:${catColor(p)}" data-id="${p.id}">
+        ${obrazHTML(p, "shot") || tablicaHTML(p)}
         <div class="fdate">${fmtDate(p.date)} · ${p.cat.map((c) => CATEGORIES[c].label).join(" · ")}</div>
         <h3>${p.title}</h3>
         <p class="fdesc">${p.desc}</p>
         ${linksHTML(p)}
-      </article>`;
-    }).join("");
+      </article>`).join("");
   }
 
   /* ── Filtry ──────────────────────────────────────────────────────────── */
@@ -125,9 +224,9 @@
   function buildFilters() {
     const host = document.getElementById("filters");
     if (!host) return;
-    const chips = [`<button class="chip" data-cat="all" aria-pressed="true">Wszystkie</button>`]
+    const chips = [`<button class="chip" type="button" data-cat="all" aria-pressed="true">${t("ui.wszystkie", "Wszystkie")}</button>`]
       .concat(Object.entries(CATEGORIES).map(([slug, c]) =>
-        `<button class="chip" data-cat="${slug}" aria-pressed="false">
+        `<button class="chip" type="button" data-cat="${slug}" aria-pressed="false">
           <span class="chip-dot" style="background:${c.color}"></span>${c.label}</button>`));
     host.innerHTML = chips.join("");
     host.addEventListener("click", (e) => {
@@ -147,6 +246,7 @@
   function buildTimeline() {
     const host = document.getElementById("timeline");
     if (!host) return;
+    const podpisOkladki = t("ui.okladka", "wizualizacja AI");
     host.innerHTML = ERAS.map((era) => {
       const items = []
         .concat(MILESTONES.filter((m) => m.era === era.id).map((m) => ({ t: 0, date: m.date, m })))
@@ -160,21 +260,29 @@
             <span class="m-date">${fmtDate(m.date)}</span><span>${m.label}</span></div>`;
         }
         const p = it.p;
-        return `<article class="card reveal" style="--cat:${catColor(p)}" data-cats="${p.cat.join(" ")}">
+        return `<article class="card reveal" style="--cat:${catColor(p)}" data-cats="${p.cat.join(" ")}" data-id="${p.id}">
+          ${obrazHTML(p, "karta-okladka")}
           <div class="card-top">
-            ${p.featured ? `<span class="card-star" title="Wyróżnione">★</span>` : ""}
+            ${p.featured ? `<span class="card-star" title="${t("ui.wyroznione", "Wyróżnione")}">★</span>` : ""}
             <h4>${p.title}</h4>
             <span class="card-date">${fmtDate(p.date)}</span>
           </div>
           <p class="desc">${p.desc}</p>
-          <div class="card-tags">${p.tech.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
+          <div class="card-tags">${p.tech.map((x) => `<span class="tag">${x}</span>`).join("")}</div>
           ${linksHTML(p)}
         </article>`;
       }).join("");
 
+      /* Plansza epoki to karta tytułowa rozdziału — dekoracja, więc alt="". */
+      const plansza = era.plansza ? `<span class="epoka-plansza shot-okladka">
+          <img src="assets/epoki/${era.plansza}" alt="" width="1024" height="384" loading="lazy" decoding="async">
+          <span class="shot-znacznik">${podpisOkladki}</span>
+        </span>` : "";
+
       return `<div class="era">
+        ${plansza}
         <header class="era-head reveal">
-          <p class="era-rhythm">${era.range} · rytm: ${era.rhythm}</p>
+          <p class="era-rhythm">${era.range} · ${t("ui.rytm", "rytm")}: ${era.rhythm}</p>
           <h3>${era.title}</h3>
           <p class="era-lead">${era.lead}</p>
         </header>
@@ -189,7 +297,7 @@
     if (!host) return;
     host.innerHTML = ARCHIVE.map((a) => {
       const title = a.url
-        ? `<a class="a-title a-link" href="${a.url}" target="_blank" rel="noopener">${a.title} ↗</a>`
+        ? `<a class="a-title a-link" href="${a.url}" target="_blank" rel="noopener">${a.title} ${strzalka}</a>`
         : `<span class="a-title">${a.title}</span>`;
       return `<div class="arch-row reveal">
         <span class="a-date">${fmtDate(a.date)}</span>
@@ -224,15 +332,19 @@
   function buildThreads() {
     const host = document.getElementById("thread-grid");
     if (!host) return;
-    host.innerHTML = THREADS.map((t) => `
+    host.innerHTML = THREADS.map((w) => `
       <article class="thread reveal">
-        <h4>${t.label}</h4>
-        <p>${t.note}</p>
-        <p class="thread-items">${t.items.map((i) => `<span>${i}</span>`).join("")}</p>
+        <h4>${w.label}</h4>
+        <p>${w.note}</p>
+        <p class="thread-items">${w.items.map((i) => `<span>${i}</span>`).join("")}</p>
       </article>`).join("");
   }
 
   /* ── Spis wszystkiego: każdy projekt na jednym ekranie, z wyszukiwarką ── */
+  /* Bez ogonków: „wspolnik” ma znaleźć Wspólnika. NFD rozkłada ą, ę, ó, ś, ź, ż, ć, ń
+     na literę i znak diakrytyczny; ł nie ma rozkładu, więc idzie osobno. */
+  const bezOgonkow = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
+
   function buildIndex() {
     const grid = document.getElementById("index-grid");
     if (!grid) return;
@@ -242,36 +354,38 @@
       cat: p.cat[0], best: !!p.featured,
       url: p.links.live || p.links.repo || p.links.tg || null,
       note: p.access || "",
-      hay: `${p.title} ${p.desc} ${p.tech.join(" ")} ${p.cat.map((c) => CATEGORIES[c].label).join(" ")}${p.featured ? " wyróżnione najlepsze" : ""}`.toLowerCase(),
+      hay: `${p.title} ${p.desc} ${p.tech.join(" ")} ${p.cat.map((c) => CATEGORIES[c].label).join(" ")}${p.featured ? " wyróżnione najlepsze featured best" : ""}`,
     })).concat(ARCHIVE.map((a) => ({
       date: a.date, title: a.title, cat: null, url: a.url || null, note: a.note,
-      hay: `${a.title} ${a.note}`.toLowerCase(), archived: true,
+      hay: `${a.title} ${a.note}`, archived: true,
     })));
-    rows.sort((a, b) => (a.date === b.date ? a.title.localeCompare(b.title, "pl") : (a.date < b.date ? -1 : 1)));
+    rows.sort((a, b) => (a.date === b.date ? a.title.localeCompare(b.title, en ? "en" : "pl") : (a.date < b.date ? -1 : 1)));
 
     const best = rows.filter((r) => r.best).length;
-    document.getElementById("index-lead").innerHTML =
-      `Wszystko, co powstało — <b>${PROJECTS.length}</b> projektów opisanych na osi czasu i
-       <b>${ARCHIVE.length}</b> pozycji archiwalnych, razem <b>${rows.length}</b>.
-       <b class="lead-star">★</b> oznacza <b>${best}</b> najlepszych — od nich zacznij.
-       Wpisz nazwę, technologię albo kategorię, żeby zawęzić listę.`;
+    document.getElementById("index-lead").innerHTML = wstaw(t("ui.spisLead",
+      "Wszystko, co powstało — <b>{p}</b> projektów opisanych na osi czasu i <b>{a}</b> " +
+      "pozycji archiwalnych, razem <b>{r}</b>. <b class=\"lead-star\">★</b> oznacza <b>{b}</b> " +
+      "najlepszych — od nich zacznij. Wpisz nazwę, technologię albo kategorię, żeby zawęzić listę."),
+      { p: PROJECTS.length, a: ARCHIVE.length, r: rows.length, b: best });
 
+    const tytulGwiazdki = t("ui.wyroznione", "Wyróżnione — od tych zacznij");
     grid.innerHTML = rows.map((r) => {
       const dot = r.cat ? `<span class="ix-dot" style="background:${CATEGORIES[r.cat].color}"></span>` : `<span class="ix-dot ix-dot-arch"></span>`;
       const name = r.url
-        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title} ↗</a>`
+        ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title} ${strzalka}</a>`
         : `<span>${r.title}</span>`;
-      return `<div class="ix-row${r.archived ? " ix-arch" : ""}${r.best ? " ix-best" : ""}" data-hay="${r.hay.replace(/"/g, "")}">
+      return `<div class="ix-row${r.archived ? " ix-arch" : ""}${r.best ? " ix-best" : ""}" data-hay="${bezOgonkow(r.hay).replace(/"/g, "")}">
         ${dot}<span class="ix-date">${fmtDate(r.date)}</span>
-        <span class="ix-name">${r.best ? `<span class="ix-star" title="Wyróżnione — od tych zacznij">★</span>` : ""}${name}</span>
+        <span class="ix-name">${r.best ? `<span class="ix-star" title="${tytulGwiazdki}">★</span>` : ""}${name}</span>
         ${r.note ? `<span class="ix-note">${r.note}</span>` : ""}
       </div>`;
     }).join("");
 
     const input = document.getElementById("index-filter");
     const empty = document.getElementById("index-empty");
+    const licznik = document.getElementById("index-count");
     input.addEventListener("input", () => {
-      const q = input.value.trim().toLowerCase();
+      const q = bezOgonkow(input.value.trim());
       let shown = 0;
       grid.querySelectorAll(".ix-row").forEach((row) => {
         const hit = !q || row.dataset.hay.includes(q);
@@ -279,6 +393,8 @@
         if (hit) shown++;
       });
       empty.hidden = shown > 0;
+      /* Czytnik ekranu słyszy liczbę wyników — bez tego filtrowanie było nieme. */
+      if (licznik) licznik.textContent = q ? wstaw(t("ui.wynikow", "Wyniki: {n}"), { n: shown }) : "";
     });
   }
 
@@ -297,6 +413,7 @@
     els.forEach((el) => io.observe(el));
   }
 
+  buildHero();
   buildEKG();
   buildFeatured();
   buildFilters();
