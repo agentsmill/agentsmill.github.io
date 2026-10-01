@@ -287,22 +287,28 @@ section > h2::before {
   font-family: var(--font-display); font-weight: 700; font-size: 1.25rem;
   line-height: 1.15; letter-spacing: -0.01em;
 }
+/* Zwykły tekst, nie flex: w kontenerze flex reszta linii stawała się osobnym blokiem
+   i spadała do nowego wiersza, zaczynając się od kropki-separatora. */
 .fcard .fdate {
   font-family: var(--font-body); font-size: 0.8rem; letter-spacing: 0.01em;
   color: var(--ink-faint);
-  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
 }
 /* Kategoria jako kropka, nie jako ramka — kolor zostaje znakiem, nie krzykiem. */
 .fcard .fdate::before {
-  content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 0.5rem; vertical-align: 1px;
   background: var(--cat, var(--pulse));
 }
 .fdate-data { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; }
+.fdate-kat { white-space: nowrap; }   /* linia łamie się między kategoriami, nie w „AI / ML” */
 /* Kafel to zapowiedź — pełny opis czeka na osi czasu. Cztery linie trzymają rzędy równo. */
+/* Bez flex-grow: rozciągnięty akapit dostawał wysokość rzędu (ustawianą przez duży kafel
+   obok) i pokazywał linie za wielokropkiem. Odnośniki spycha w dół margin-top: auto. */
 .fcard p.fdesc {
-  font-size: 0.94rem; color: var(--ink-dim); flex-grow: 1;
+  font-size: 0.94rem; color: var(--ink-dim);
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
+.fcard .card-links { margin-top: auto; }
 .card-links { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 0.2rem; }
 .card-links a {
   font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.05em;
