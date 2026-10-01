@@ -179,6 +179,8 @@
     "ui.szukaj": "Search by name, technology or description…",
     "ui.brak": "Nothing matches this search.",
     "ui.wynikow": "Results: {n}",
+    "ui.wiecej": "more",
+    "ui.mniej": "less",
     "ui.spisLead":
       "Everything built — <b>{p}</b> projects described on the timeline and <b>{a}</b> archive " +
       "entries, <b>{r}</b> in total. <b class=\"lead-star\">★</b> marks the <b>{b}</b> best — start " +

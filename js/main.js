@@ -305,9 +305,12 @@
             <h4>${p.title}</h4>
             <span class="card-date">${fmtDate(p.date)}</span>
           </div>
-          <p class="desc">${p.desc}</p>
-          <div class="card-tags">${p.tech.map((x) => `<span class="tag">${x}</span>`).join("")}</div>
-          ${linksHTML(p)}
+          <p class="desc" id="opis-${p.id}">${p.desc}</p>
+          <div class="card-stopka">
+            <button class="wiecej" type="button" aria-expanded="false" aria-controls="opis-${p.id}" hidden>${t("ui.wiecej", "więcej")}</button>
+            <div class="card-tags">${p.tech.map((x) => `<span class="tag">${x}</span>`).join("")}</div>
+            ${linksHTML(p)}
+          </div>
         </article>`;
       }).join("");
 
@@ -327,6 +330,38 @@
         ${rows}
       </div>`;
     }).join("");
+
+    /* Jeden słuchacz na całą oś: „więcej” rozwija opis karty, „mniej” go zwija. */
+    host.addEventListener("click", (e) => {
+      const btn = e.target.closest(".wiecej");
+      if (!btn) return;
+      const karta = btn.closest(".card");
+      const otwarta = karta.classList.toggle("rozwiniety");
+      btn.setAttribute("aria-expanded", String(otwarta));
+      btn.textContent = otwarta ? t("ui.mniej", "mniej") : t("ui.wiecej", "więcej");
+    });
+  }
+
+  /* „więcej” tylko tam, gdzie opis naprawdę nie mieści się w dwóch liniach. Najpierw same
+     odczyty, potem same zapisy — bez przeplatania, które wymusza przeliczanie układu.
+     Łamanie tekstu zależy od szerokości i od kroju, więc pomiar powtarzamy po wczytaniu
+     fontów i po zmianie rozmiaru okna. */
+  let klatkaWiecej = 0;
+  function ustawWiecej() {
+    const karty = [...document.querySelectorAll("#timeline .card")];
+    const nieMiesci = karty.map((k) => {
+      if (k.classList.contains("rozwiniety")) return null;
+      const opis = k.querySelector(".desc");
+      return opis ? opis.scrollHeight > opis.clientHeight + 2 : null;
+    });
+    karty.forEach((k, i) => {
+      const btn = k.querySelector(".wiecej");
+      if (btn && nieMiesci[i] !== null) btn.hidden = !nieMiesci[i];
+    });
+  }
+  function zaplanujWiecej() {
+    cancelAnimationFrame(klatkaWiecej);
+    klatkaWiecej = requestAnimationFrame(ustawWiecej);
   }
 
   /* ── Archiwum ────────────────────────────────────────────────────────── */
@@ -462,4 +497,7 @@
   buildIndex();
   initReveal();
   oznaczJasne();
+  ustawWiecej();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(zaplanujWiecej);
+  addEventListener("resize", zaplanujWiecej);
 })();
