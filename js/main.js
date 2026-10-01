@@ -209,9 +209,10 @@
       "komercyjnie, albo ma najwięcej pracy pod spodem, albo jest po prostu najciekawsze. " +
       "Reszta czeka na osi czasu i w spisie niżej."), { n: WYROZNIONE.length });
 
-    grid.innerHTML = WYROZNIONE.map((p) => `<article class="fcard reveal" style="--cat:${catColor(p)}" data-id="${p.id}">
+    /* Miejsca 1–3 to duże kafle bento: hierarchia z danych, nie z pozycji w DOM. */
+    grid.innerHTML = WYROZNIONE.map((p) => `<article class="fcard reveal${p.featured <= 3 ? " duza" : ""}" style="--cat:${catColor(p)}" data-id="${p.id}" data-miejsce="${p.featured}">
         ${obrazHTML(p, "shot") || tablicaHTML(p)}
-        <div class="fdate">${fmtDate(p.date)} · ${p.cat.map((c) => CATEGORIES[c].label).join(" · ")}</div>
+        <div class="fdate"><span class="fdate-data">${fmtDate(p.date)}</span> · ${p.cat.map((c) => CATEGORIES[c].label).join(" · ")}</div>
         <h3>${p.title}</h3>
         <p class="fdesc">${p.desc}</p>
         ${linksHTML(p)}
