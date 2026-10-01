@@ -175,17 +175,54 @@
   }
 
   /* ── Obraz projektu ──────────────────────────────────────────────────────
-     Ścieżkę zna tylko obrazProjektu() z projects-data.js. Zrzut dostaje alt,
-     okładka nie: to ilustracja, a tytuł i podpis „wizualizacja AI” stoją tuż
-     obok — czytnik ekranu powtarzałby tytuł drugi raz. */
+     Ścieżkę zna tylko obrazProjektu() z projects-data.js. Prawdziwy zrzut stoi
+     w oknie aplikacji (pasek z trzema kropkami) — od ilustracji odróżnia go już
+     kształt, zanim ktoś przeczyta podpis. Okładka AI zostaje bez okna, z podpisem
+     „wizualizacja AI” i z pustym alt: tytuł stoi tuż obok. */
   function obrazHTML(p, klasa) {
     const o = obrazProjektu(p);
     if (!o) return "";
-    const alt = o.okladka ? "" : wstaw(t("ui.zrzut", "Zrzut ekranu: {t}"), { t: p.title }).replace(/"/g, "&quot;");
-    const znacznik = o.okladka ? `<span class="shot-znacznik">${t("ui.okladka", "wizualizacja AI")}</span>` : "";
-    return `<span class="${klasa}${o.okladka ? " shot-okladka" : " zrzut"}">
-      <img src="${o.src}" alt="${alt}" width="${o.w}" height="${o.h}" loading="lazy" decoding="async">${znacznik}
+    if (o.okladka) {
+      return `<span class="${klasa} shot-okladka">
+        <img src="${o.src}" alt="" width="${o.w}" height="${o.h}" loading="lazy" decoding="async">
+        <span class="shot-znacznik">${t("ui.okladka", "wizualizacja AI")}</span>
+      </span>`;
+    }
+    const alt = wstaw(t("ui.zrzut", "Zrzut ekranu: {t}"), { t: p.title }).replace(/"/g, "&quot;");
+    return `<span class="${klasa} zrzut okno">
+      <span class="okno-pasek" aria-hidden="true"></span>
+      <img src="${o.src}" alt="${alt}" width="${o.w}" height="${o.h}" loading="lazy" decoding="async">
     </span>`;
+  }
+
+  /* Jasne zrzuty (białe interfejsy SaaS) wybijały dziury w ciemnej stronie. Strona mierzy
+     je sama: miniatura 32×20 na canvas, średnia luminancja powyżej progu → klasa „jasny”
+     i mocniejsze przygaszenie. Zmienia się tylko filtr, nie wymiary, więc nic nie skacze.
+     Żadnej listy do pilnowania — nowy zrzut zostanie zmierzony przy pierwszym wczytaniu. */
+  const PROG_JASNOSCI = 0.55;
+  const probnik = document.createElement("canvas");
+  probnik.width = 32; probnik.height = 20;
+
+  function luminancja(img) {
+    const x = probnik.getContext("2d", { willReadFrequently: true });
+    x.drawImage(img, 0, 0, 32, 20);
+    const d = x.getImageData(0, 0, 32, 20).data;
+    let suma = 0;
+    for (let i = 0; i < d.length; i += 4) suma += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    return suma / (255 * (d.length / 4));
+  }
+
+  function oznaczJasne() {
+    for (const img of document.querySelectorAll(".okno img")) {
+      const sprawdz = () => {
+        /* Obraz z innego źródła albo strona z file:// „brudzi” canvas i getImageData
+           rzuca wyjątek — wtedy zostaje zwykłe przygaszenie, strona działa dalej. */
+        try { if (luminancja(img) > PROG_JASNOSCI) img.closest(".okno").classList.add("jasny"); }
+        catch (e) { /* bez pomiaru */ }
+      };
+      if (img.complete && img.naturalWidth) sprawdz();
+      else img.addEventListener("load", sprawdz, { once: true });
+    }
   }
 
   /* Wyróżniony projekt bez obrazu dostaje tablicę typograficzną w kolorze
@@ -424,4 +461,5 @@
   buildArchive();
   buildIndex();
   initReveal();
+  oznaczJasne();
 })();
