@@ -6121,6 +6121,45 @@ async (page) => {
 
 Oczekiwane: `cisza` = `{ dzwiek: null, przycisk: "Dźwięk: wył." }`; `sale` — każdy klucz równy wartości (12 sal, np. `"leon": "leon"`); `wycieczka` = `{ przystankow: 12, zgodna: true, pierwszy: "Agent AI Bajarz", ostatni: "Trener LEK" }` (próba: 87 s); `zle: []`, `bledy: []`.
 
+Wejście do Kosmosu tak, jak robi to gość (zgłoszenie właściciela 8 X: portal był martwy dalej niż 14 m) — prawdziwy klik w świecący portal z atrium, potem cel „Kosmos” w planie w rogu, na końcu przycisk:
+
+```js
+async (page) => {
+  await page.goto(`http://localhost:8902/museum.html?lang=pl&_=${Date.now()}`);
+  await page.locator("#wejdz-cisza").waitFor({ state: "visible" });
+  await page.locator("#wejdz-cisza").click();
+  await page.waitForTimeout(800);
+  const naPortal = () => page.evaluate(() => {
+    const m = window.__mz, k = m.plan.kosmos;
+    const v = m.camera.position.clone().set(k.x, 1.9, k.z + 0.4).project(m.camera);
+    return [(v.x + 1) / 2 * innerWidth, (1 - v.y) / 2 * innerHeight];
+  });
+  const stan = () => page.evaluate(() => ({ z: +window.__mz.gracz.pozycjaZ().toFixed(1), przycisk: !document.getElementById("kosmos-wejscie").hidden }));
+  const dojazd = () => page.waitForFunction(() => !window.__mz.nawigacja.aktywna(), null, { timeout: 40000 });
+  const wynik = {};
+  await page.evaluate(() => window.__mz.gracz.teleportuj(0, -6.5, { x: 0, y: 1.9, z: 140 }));
+  await page.waitForTimeout(600);
+  const [x, y] = await naPortal();
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(300);
+  await dojazd();
+  wynik.zAtrium = await stan();
+  await page.evaluate(() => window.__mz.gracz.teleportuj(0, -6.5));
+  await page.waitForTimeout(400);
+  await page.locator(".mm-kosmos-cel").click();
+  await page.waitForTimeout(300);
+  await dojazd();
+  wynik.zPlanu = await stan();
+  wynik.bledy = await page.evaluate(() => window.__errs);
+  await page.locator("#kosmos-wejscie").click();
+  await page.waitForURL(/kosmos\.html/, { timeout: 10000 });
+  wynik.kosmos = new URL(page.url()).pathname;
+  return wynik;
+}
+```
+
+Oczekiwane: `zAtrium` = `{ z: ≈134.7, przycisk: true }` (szybka podróż przez całą amfiladę), `zPlanu` = to samo, `bledy: []`, `kosmos: "/kosmos.html"`.
+
 - [ ] **Krok 4: Telefon 390 × 844 (§10.9)**
 
 `.playwright-mcp/odbior-c.js`:
