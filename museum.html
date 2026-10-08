@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Cormorant+Garamond:wght@600&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/museum.css?v=202610081557">
+  <link rel="stylesheet" href="css/museum.css?v=202610081626">
 </head>
 <body>
 
@@ -50,9 +50,13 @@
      o WASD, myszce, Shifcie i klawiszu Esc — dostaje swoją. Przełącznik jest
      w museum.css i używa tego samego kryterium co joystick. -->
 <p class="hud-hint" id="hud-hint">
-  <span class="hint-mysz" data-i18n-html="muz.podpowiedzMysz">Kliknij, aby wejść · <b>WASD</b> chodzi, myszka rozgląda, <b>Shift</b> biegnie · <b>Esc</b> wychodzi</span>
-  <span class="hint-dotyk" data-i18n="muz.podpowiedz">Lewy kciuk prowadzi, prawy rozgląda · dotknij eksponatu</span>
+  <span class="hint-mysz" data-i18n-html="muz.podpowiedzMysz"><b>Kliknij podłogę</b>, żeby tam pójść · przeciągnij, żeby się rozejrzeć · kliknij pracę, żeby podejść · <b>WASD</b> też działa</span>
+  <span class="hint-dotyk" data-i18n="muz.podpowiedz">Dotknij podłogi, żeby tam pójść · przeciągnij, żeby się rozejrzeć · dotknij pracy, żeby podejść</span>
 </p>
+
+<!-- Zasłona przenikania: przy prefers-reduced-motion przejazd zastępuje krótkie
+     zaciemnienie (nawigacja.js), a w Zadaniu 8 przejście do Kosmosu. -->
+<div id="zaslona" aria-hidden="true"></div>
 
 <!-- Celownik trybu chodzenia. Przy zablokowanym wskaźniku raycaster celuje
      środkiem ekranu, ale kursor jest schowany — bez tej kropki gość nie ma
@@ -124,28 +128,29 @@
 })();
 </script>
 
-<script src="js/projects-data.js?v=202610081557"></script>
+<script src="js/projects-data.js?v=202610081626"></script>
 <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-      "muzeum/render.js":   "./js/museum/render.js?v=202610081557",
-      "muzeum/textures.js": "./js/museum/textures.js?v=202610081557",
-      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202610081557",
-      "muzeum/plan.js":     "./js/museum/plan.js?v=202610081557",
-      "muzeum/sale.js":     "./js/museum/sale.js?v=202610081557",
-      "muzeum/wystroj.js":  "./js/museum/wystroj.js?v=202610081557",
-      "muzeum/zawieszenie.js": "./js/museum/zawieszenie.js?v=202610081557",
-      "muzeum/swiatla.js":  "./js/museum/swiatla.js?v=202610081557",
-      "muzeum/ui.js":       "./js/museum/ui.js?v=202610081557",
-      "muzeum/player.js":   "./js/museum/player.js?v=202610081557",
-      "muzeum/perf.js":     "./js/museum/perf.js?v=202610081557"
+      "muzeum/render.js":   "./js/museum/render.js?v=202610081626",
+      "muzeum/textures.js": "./js/museum/textures.js?v=202610081626",
+      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202610081626",
+      "muzeum/plan.js":     "./js/museum/plan.js?v=202610081626",
+      "muzeum/sale.js":     "./js/museum/sale.js?v=202610081626",
+      "muzeum/wystroj.js":  "./js/museum/wystroj.js?v=202610081626",
+      "muzeum/zawieszenie.js": "./js/museum/zawieszenie.js?v=202610081626",
+      "muzeum/swiatla.js":  "./js/museum/swiatla.js?v=202610081626",
+      "muzeum/nawigacja.js": "./js/museum/nawigacja.js?v=202610081626",
+      "muzeum/ui.js":       "./js/museum/ui.js?v=202610081626",
+      "muzeum/player.js":   "./js/museum/player.js?v=202610081626",
+      "muzeum/perf.js":     "./js/museum/perf.js?v=202610081626"
     }
   }
 </script>
-<script src="js/i18n.js?v=202610081557"></script>
-<script src="js/gramofon.js?v=202610081557"></script>
-<script type="module" src="js/museum/main.js?v=202610081557"></script>
+<script src="js/i18n.js?v=202610081626"></script>
+<script src="js/gramofon.js?v=202610081626"></script>
+<script type="module" src="js/museum/main.js?v=202610081626"></script>
 </body>
 </html>
