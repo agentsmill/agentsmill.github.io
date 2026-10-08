@@ -22,7 +22,7 @@ Obowiązują w każdym zadaniu:
 - **Kolizje wyłącznie przez `dodajKolizje()` z `sale.js`** i przed `initPlayer()` — Octree buduje się raz.
 - **Materiały dużych oświetlanych powierzchni sali rejestruj przez `zarejestruj()`** (przedświetlenie dalekich sal): ściany, posadzki, stropy, meble, ramy, druki, podstawy, szafy. Wyjątki: materiały świecące same — `MeshBasicMaterial`, ekrany, szyldy i tablice z własnym `emissive` (rejestracja nadpisałaby ich świecenie, także puls kardiogramu) — oraz drobne detale, których z daleka nie widać (szyny, okucia, klamki, oprawy lamp, obudowy ekranów, karty szuflad, rama ekranu Kina, gramofon). Rzeźby ośmiu dawnych budowniczych w `exhibits.js` zostają bez zmian — świecą je ich własne reflektory z puli.
 - **Teksty interfejsu przez `window.__t(klucz, "polski tekst")`**; angielskie odpowiedniki w `js/i18n.js` (Zadanie 11). Polska ortografia w całości (ą, ć, ę, ł, ń, ó, ś, ź, ż). Komentarze w kodzie po polsku, jak w całym repo.
-- **Uchwyt `window.__mz` tylko rozszerzamy**, nigdy nie usuwamy z niego pól — opiera się na nim automatyzacja testów.
+- **Uchwyt `window.__mz` tylko rozszerzamy**, nigdy nie usuwamy z niego pól — opiera się na nim automatyzacja testów. Dawne `interactives` i `go(z)` zostają jako aliasy (`interactives` to ta sama tablica co `interaktywne`, `go(z)` = `go(0, z)`); korytarzowe `budynek.sale` nie ma odpowiednika w nowym budynku.
 - **Cache-busting:** po każdej zmianie w `js/` albo `css/` podmień wszystkie `?v=…` w `museum.html` na `date '+%Y%m%d%H%M'`. W Zadaniu 11 jeden wspólny stempel na wszystkie trzy strony.
 - **`prefers-reduced-motion`:** bez bujania kroku, przejazdy jako krótkie przenikanie, ekspozycja natychmiast.
 - **Repo jest publiczne:** żadnych nazw klientów, kluczy ani adresów wewnętrznych w kodzie i komentarzach.
@@ -86,6 +86,8 @@ Adres muzeum: `http://localhost:8902/museum.html` (port z wyniku `preview_start`
 - `browser_resize` / `page.setViewportSize` przestawia stronę na DPR 1; do pomiarów wydajności profil MacBooka daje `Emulation.setDeviceMetricsOverride({ width: 1440, height: 900, deviceScaleFactor: 2, mobile: false })`. Zrzut przez `page.screenshot` nakłada jednak z powrotem rozmiar Playwrighta — zrzuty telefonu rób przy `page.setViewportSize({ width: 390, height: 844 })` + `Emulation.setTouchEmulationEnabled`, nie przy nadpisanych metrykach.
 - Przeglądarka pamięta wybrany język w `localStorage` — sondy otwierają `museum.html?lang=pl` (albo `?lang=en`) jawnie.
 - Ekran 120 Hz pokazuje do 120 fps: to sufit odświeżania, nie wynik.
+- Serwer podglądu nie wysyła nagłówków cache — przeglądarka potrafi trzymać sam `museum.html` ze starymi stemplami `?v=`. Sondy po zmianie otwierają adres z unikalnym parametrem, np. `museum.html?lang=pl&_=${Date.now()}`.
+- Błąd wczytania kroju (litery w piśmie zastępczym) widać tylko przy zimnym starcie — w karcie, która raz już wczytała stronę, kroje są w pamięci. Sprawdzaj w świeżym kontekście albo przez `document.fonts.check(krój, "ę")` przed budową sceny.
 
 ---
 
@@ -1628,7 +1630,13 @@ function zbudujMuzeum() {
     bylHovered = false;
   });
 
-  Object.assign(window.__mz, { plan, budynek, gracz, interaktywne, go: (x, z) => gracz.teleportuj(x, z) });
+  /* Uchwyt tylko się rozszerza: `interactives` (nazwa z czasów korytarza) to ta sama
+     tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
+     gracza na osi amfilady (x = 0). */
+  Object.assign(window.__mz, {
+    plan, budynek, gracz, interaktywne, interactives: interaktywne,
+    go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
+  });
 
   // „Oprowadź mnie” po środkach sal epok — do Zadania 6, które zastąpi to wycieczką po wyróżnionych
   btnTura.addEventListener("click", () => {
@@ -1641,11 +1649,17 @@ function zbudujMuzeum() {
   buildList(interaktywne);
 }
 
+/* Bez tekstu w drugim argumencie document.fonts.load() ściąga tylko kroje
+   podstawowej łaciny, a polskie litery (ą ć ę ł ń ś ź ż) leżą w osobnym
+   latin-ext — na płótnach szyldów wpadałyby w pismo zastępcze. Próbka ma
+   litery z obu zakresów. */
+const PROBKA_PL = "Aa ĄąĆćĘęŁłŃńÓóŚśŹźŻż";
+
 Promise.all([
-  document.fonts.load("700 46px Syne"),
-  document.fonts.load("400 24px 'IBM Plex Mono'"),
-  document.fonts.load("600 30px 'Schibsted Grotesk'"),
-  document.fonts.load("600 92px 'Cormorant Garamond'"),
+  document.fonts.load("700 46px Syne", PROBKA_PL),
+  document.fonts.load("400 24px 'IBM Plex Mono'", PROBKA_PL),
+  document.fonts.load("600 30px 'Schibsted Grotesk'", PROBKA_PL),
+  document.fonts.load("600 92px 'Cormorant Garamond'", PROBKA_PL),
 ]).catch((err) => console.warn("muzeum: krój pisma nie doszedł —", err)).finally(() => {
   try { zbudujMuzeum(); } catch (err) { console.error("build error:", err); }
   petla();
@@ -3329,7 +3343,13 @@ function zbudujMuzeum() {
   gracz.controls.addEventListener("lock", () => { celownik.hidden = false; });
   gracz.controls.addEventListener("unlock", () => { celownik.hidden = true; celownik.classList.remove("celuje"); });
 
-  Object.assign(window.__mz, { plan, budynek, gracz, prace, swiatla, nawigacja, interaktywne, go: (x, z) => gracz.teleportuj(x, z) });
+  /* Uchwyt tylko się rozszerza: `interactives` (nazwa z czasów korytarza) to ta sama
+     tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
+     gracza na osi amfilady (x = 0). */
+  Object.assign(window.__mz, {
+    plan, budynek, gracz, prace, swiatla, nawigacja, interaktywne, interactives: interaktywne,
+    go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
+  });
 
   // „Oprowadź mnie” = wycieczka po wyróżnionych; w trakcie ten sam przycisk ją przerywa
   btnTura.addEventListener("click", () => {
@@ -3346,11 +3366,18 @@ function zbudujMuzeum() {
   buildList(interaktywne);
 }
 
+/* Bez tekstu w drugim argumencie document.fonts.load() ściąga tylko kroje
+   podstawowej łaciny, a polskie litery (ą ć ę ł ń ś ź ż) leżą w osobnym
+   latin-ext — na płótnach szyldów wpadałyby w pismo zastępcze. Próbka ma
+   litery z obu zakresów. */
+const PROBKA_PL = "Aa ĄąĆćĘęŁłŃńÓóŚśŹźŻż";
+
 Promise.all([
-  document.fonts.load("700 46px Syne"),
-  document.fonts.load("400 24px 'IBM Plex Mono'"),
-  document.fonts.load("600 30px 'Schibsted Grotesk'"),
-  document.fonts.load("600 92px 'Cormorant Garamond'"),
+  document.fonts.load("700 46px Syne", PROBKA_PL),
+  document.fonts.load("400 24px 'IBM Plex Mono'", PROBKA_PL),
+  document.fonts.load("500 24px 'IBM Plex Mono'", PROBKA_PL),   // podpisy szyldów i tabliczek — bez tej linii 500 doszłoby tylko przypadkiem, z HUD-u
+  document.fonts.load("600 30px 'Schibsted Grotesk'", PROBKA_PL),
+  document.fonts.load("600 92px 'Cormorant Garamond'", PROBKA_PL),
 ]).catch((err) => console.warn("muzeum: krój pisma nie doszedł —", err)).finally(() => {
   try { zbudujMuzeum(); } catch (err) { console.error("build error:", err); }
   petla();
