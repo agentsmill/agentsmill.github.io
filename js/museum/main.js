@@ -36,6 +36,7 @@ const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
 let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null, boczne = null, dzwiek = null;
 const interaktywne = [];     // trafienia raycastera: prace, eksponaty, sale boczne (Zadanie 8)
+const zDaleka = [];          // z nich te, które liczą się poza zasięgiem prac (portal Kosmosu) — o ile nic ich nie zasłania
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
 let bylaSala = null, byloWycieczka = false;
@@ -109,6 +110,18 @@ function trafiaRzezbe(grupa) {
   return trafia;
 }
 
+/* Czy między okiem a trafieniem stoi mur, nadproże albo bok niszy? Sprawdza warstwę kolizji
+   budynku (tę samą, z której gracz buduje Octree). Promień kończy się 5 cm przed trafieniem,
+   żeby nie łapał brył tuż za nim; zasięg wraca do poprzedniej wartości, bo wołający liczy
+   dalej na swoim. */
+function zaslonieta(trafienie) {
+  const zasieg = ray.far;
+  ray.far = trafienie.distance - 0.05;
+  const jest = ray.intersectObject(budynek.kolizje, true).length > 0;
+  ray.far = zasieg;
+  return jest;
+}
+
 function celuj(e) {
   if (gracz?.zablokowany()) pointer.set(0, 0);
   else if (e) pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -120,15 +133,29 @@ function celuj(e) {
      więc promień mierzący w obraz za nimi albo w podłogę obok trafiałby najpierw w nie.
      Pośrednik liczy się tylko, gdy ten sam promień trafia w widoczną bryłę eksponatu
      (trafiaRzezbe). Gdy nic nie przejdzie, wygrywa podłoga; dopiero bez podłogi —
-     pierwszy pośrednik z brzegu. */
-  const wybrane = traf.find((t) => !t.object.userData.exhibit || trafiaRzezbe(t.object.userData.exhibit.group));
+     pierwszy pośrednik z brzegu. Trafienie „z daleka” (portal) nigdy nie liczy się przez ścianę. */
+  const wybrane = traf.find((t) => {
+    const u = t.object.userData;
+    if (u.exhibit) return trafiaRzezbe(u.exhibit.group);
+    return !u.zDaleka || !zaslonieta(t);
+  });
   hovered = wybrane ? wybrane.object : null;
   punktPodlogi = null;
   if (!hovered && budynek) {
     ray.far = ZASIEG_PODLOGI;
     const p = ray.intersectObjects(budynek.podlogi, false)[0];
-    if (p) punktPodlogi = p.point;
-    else if (traf.length) hovered = traf[0].object;
+    /* Portal Kosmosu to drogowskaz na końcu amfilady — widać go z atrium, 140 m dalej, więc
+       zasięg prac go nie dotyczy. Liczy się, gdy nic bliższego nie wygrało, ale tylko jeśli
+       żaden mur, nadproże ani bok niszy go nie zasłania (zaslonieta), a bliższy z dwóch
+       wygrywa: portal albo punkt podłogi w zasięgu. Zasięg ustawiany przed każdym rzutem. */
+    ray.far = Infinity;
+    const daleki = ray.intersectObjects(zDaleka, false)[0];
+    if (daleki && (!p || daleki.distance < p.distance) && !zaslonieta(daleki)) hovered = daleki.object;
+    else if (p) punktPodlogi = p.point;
+    else {
+      const bliski = traf.find((t) => !t.object.userData.zDaleka);    // zasłonięty portal odpada także tutaj
+      if (bliski) hovered = bliski.object;
+    }
   }
   znacznik.visible = !!punktPodlogi;
   if (punktPodlogi) znacznik.position.set(punktPodlogi.x, 0.012, punktPodlogi.z);
@@ -275,6 +302,7 @@ function zbudujMuzeum() {
   tickery.push(...eksponaty.tickery);
   boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum });   // też przed graczem: kolizja szafy
   interaktywne.push(...boczne.interaktywne);
+  zDaleka.push(...interaktywne.filter((h) => h.userData.zDaleka));
   tickery.push(...boczne.tickery);
   scene.add(budynek.grupa);
   tickery.push(...budynek.tickery);
@@ -284,7 +312,11 @@ function zbudujMuzeum() {
   gracz.naKrok(() => dzwiek?.krok());
   swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });
   nawigacja = initNawigacja({ plan, gracz, zaslona: document.getElementById("zaslona") });
-  minimapa = initMinimapa({ plan, naSale: (id) => { endFocus(); closeList(); nawigacja.lecDoSali(id); } });
+  minimapa = initMinimapa({
+    plan,
+    naSale: (id) => { endFocus(); closeList(); nawigacja.lecDoSali(id); },
+    naKosmos: () => { endFocus(); closeList(); dzialaj(boczne.portal); },    // cel za ostatnią salą: do portalu, na miejscu przycisk
+  });
 
   // podpowiedź gaśnie przy pierwszym czynnym ruchu; celownik żyje tylko w trybie klawiatury
   gracz.controls.addEventListener("lock", dismissHint);

@@ -239,6 +239,11 @@ a { color: var(--pulse); }
 /* Strzałka, kreski drzwi i kropka portalu leżą nad salami: bez tego łapią klik
    i dotyk w miejscu sali (gość pośrodku sali zasłaniał jej środek). */
 .mm-ja, .mm-drzwi, .mm-kosmos { pointer-events: none; }
+/* Cel „Kosmos” (minimapa.js): przezroczysty prostokąt w marginesie za ostatnią salą — sama kropka portalu
+   nie łapie kliknięć. Ognisko jak przy salach: po kliku bez obwódki przeglądarki, z klawiatury przerywana obwódka. */
+.mm-kosmos-cel { fill: transparent; pointer-events: all; cursor: pointer; }
+.mm-kosmos-cel:focus { outline: none; }
+.mm-kosmos-cel:focus-visible { stroke: var(--ink); stroke-width: 0.6; stroke-dasharray: 2 1; }
 .mm-przelacz { display: none; }
 @media (max-width: 640px), (pointer: coarse) {
   .minimapa { bottom: auto; top: 4.2rem; }

@@ -13,7 +13,10 @@
    rusza od razu (ławki Kina zagradzają prostą drogę zza ich pleców).
    `odblokuj: true` — po akcji main.js zwalnia blokadę wskaźnika, żeby
    tabliczkę i przycisk dało się kliknąć; ekran Kina tego nie ma, bo mysz ma
-   tam dalej rozglądać. */
+   tam dalej rozglądać.
+   `zDaleka: true` — trafienie liczy się poza zasięgiem prac (portal widać z
+   całej amfilady), ale tylko niezasłonięte murem: main.js celuj() sprawdza
+   to promieniem po warstwie kolizji budynku. */
 
 import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
@@ -201,7 +204,10 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
 }
 
 /* Portal Kosmosu: gdy gość podejdzie (albo kliknie gwiazdy), pojawia się
-   przycisk przejścia; po kliknięciu zasłona i kosmos.html w tym samym języku. */
+   przycisk przejścia; po kliknięciu zasłona i kosmos.html w tym samym języku.
+   Portal to drogowskaz na końcu amfilady, więc klika się go z każdej odległości
+   (`zDaleka`, patrz main.js celuj()) — ale nie przez ściany. Zwraca trafienie:
+   plan w rogu też prowadzi do portalu (main.js naKosmos). */
 function kosmos(plan, budynek, wynik) {
   const { x, z } = plan.kosmos;
   const przycisk = document.getElementById("kosmos-wejscie");
@@ -217,12 +223,13 @@ function kosmos(plan, budynek, wynik) {
   const traf = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(x, 2, z + 0.4);
   traf.userData = {
-    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true,
+    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true, zDaleka: true,
     widok: { pozycja: new THREE.Vector3(x, 1.65, z - 2.4), cel: new THREE.Vector3(x, 1.9, z + 1.8) },
   };
   budynek.grupa.add(traf);
   wynik.interaktywne.push(traf);
   wynik.tickery.push(() => pokaz(Math.abs(camera.position.x - x) < 2.2 && camera.position.z > z - 3.5));
+  return traf;
 }
 
 export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWpis = () => {} }) {
@@ -232,10 +239,11 @@ export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWp
     if (s.rodzaj === "kino") sterKina = kino(s, budynek, wynik);
     if (s.rodzaj === "archiwum") archiwum(s, budynek, wynik, wpisy, otworzWpis);
   }
-  kosmos(plan, budynek, wynik);
+  const portal = kosmos(plan, budynek, wynik);
   let wKinie = false;
   return {
     ...wynik,
+    portal,                      // trafienie portalu Kosmosu — cel planu w rogu (main.js naKosmos)
     /* Wołane przy każdej zmianie sali: Kino gra tylko, gdy gość w nim jest. */
     wejscie(salaId) {
       const teraz = salaId === "kino";
