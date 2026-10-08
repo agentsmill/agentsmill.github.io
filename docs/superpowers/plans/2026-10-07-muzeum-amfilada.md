@@ -4157,10 +4157,10 @@ Gdy muzeum jest gotowe (pierwsza klatka), ekran ładowania staje się ekranem we
 
 **Pliki:**
 - Utwórz: `js/museum/dzwiek.js`
-- Modyfikuj: `js/museum/main.js`, `museum.html`, `css/museum.css`
+- Modyfikuj: `js/museum/main.js`, `js/museum/player.js`, `museum.html`, `css/museum.css`
 
 **Interfejsy:**
-- Konsumuje: `OKRES_SERCA` z `wystroj.js` (Zadanie 2 — ten sam okres co `bicieSerca()`), pola sali `styl`, `rodzaj`, `x0`, `x1`, `z0`, `z1`, `H` (Zadanie 1), `gracz.naKrok(f)` (Zadanie 6), `naZmianeSali(s)` w `main.js` (Zadanie 6), `boczne.ustawDzwiek(wl)` (Zadanie 8).
+- Konsumuje: `OKRES_SERCA` z `wystroj.js` (Zadanie 2 — ten sam okres co `bicieSerca()`), pola sali `styl`, `rodzaj`, `x0`, `x1`, `z0`, `z1`, `H` (Zadanie 1), `gracz.naKrok(f)` (Zadanie 6; po kroku 2a powyżej prędkości marszu rzadziej niż co 0,75 m), `naZmianeSali(s)` w `main.js` (Zadanie 6), `boczne.ustawDzwiek(wl)` (Zadanie 8), `nawigacja.lecDoSali(salaId)` (Zadanie 6 — szybka podróż, 11 m/s; tylko w weryfikacji).
 - Produkuje:
   - `initDzwiek() → null | { ctx, ustawSale(sala), krok(), tick(), wycisz(tak), wyciszony() }` — `null`, gdy przeglądarka nie ma Web Audio.
   - DOM: `#wejscie` z `#wejdz-dzwiek` i `#wejdz-cisza` w `#loader`; `#btn-dzwiek[aria-pressed]` w HUD. `#loader` dostaje klasę `gotowy` (ekran wejścia) na pierwszej klatce, a `done` dopiero po wyborze.
@@ -4381,6 +4381,29 @@ btnDzwiek.addEventListener("click", () => wlaczDzwiek(!dzwiek || dzwiek.wyciszon
 6. W `zbudujMuzeum()` pod `gracz.teleportuj(plan.start.x, plan.start.z);` dopisz `gracz.naKrok(() => dzwiek?.krok());`.
 7. W `Object.assign(window.__mz, { … })` dopisz po `boczne`: `dzwiek: () => dzwiek`.
 
+- [ ] **Krok 2a: `player.js` — powyżej marszu krok się wydłuża**
+
+Kroki i bujanie liczone z drogi co 0,75 m dają przy marszu (4,2 m/s) 5,6 kroku na sekundę, ale przy biegu z Shiftem (8 m/s) już 10,6, a w szybkiej podróży (11 m/s) 14,7 — z dźwiękiem to seria z karabinu, a kamera drga z częstotliwością 14,7 Hz. Powyżej prędkości marszu krok ma się wydłużać, nie zagęszczać. Faza kroku liczona jako ułamek (0–1), nie w metrach: długość kroku zmienia się wtedy z prędkością bez skoku bujania i bez podwójnego kroku przy hamowaniu.
+
+1. Deklarację `let droga = 0;              // przebyta droga w bieżącym kroku [m]` zastąp:
+
+```js
+  let faza = 0;               // faza bieżącego kroku: 0–1
+```
+
+2. W `update(dt)` blok kroków (od komentarza `// kroki: z przebytej drogi` do klamry zamykającej `if (naZiemi && v > 0.4)`) zastąp:
+
+```js
+      // kroki: z przebytej drogi — do prędkości marszu szybciej znaczy częściej, powyżej krok się
+      // wydłuża (bieg i szybka podróż: 5,6 kroku/s, nie 10–15); bujanie wyłączone przy reduced motion
+      const v = Math.hypot(predkosc.x, predkosc.z);
+      if (naZiemi && v > 0.4) {
+        faza += (v * dt) / (DLUGOSC_KROKU * Math.max(1, v / PREDKOSC));
+        if (faza >= 1) { faza -= 1; for (const f of sluchaczeKrokow) f(); }
+        if (!reduceMotion) camera.position.y += Math.sin(faza * Math.PI * 2) * AMPLITUDA_KROKU * Math.min(1, v / PREDKOSC);
+      }
+```
+
 - [ ] **Krok 3: `museum.html`**
 
 1. W `#loader` zaraz pod `<p data-i18n="muz.laduje">Otwieram muzeum…</p>` dopisz:
@@ -4508,10 +4531,31 @@ async () => {
 
 Oczekiwane przy włączonym dźwięku: `showreel.mp4` gra z `muted: false`, oba ujęcia z GB10 grają z `muted: true`; po wyciszeniu wszystkie `muted: true`.
 
+5. Kroki w szybkiej podróży (krok 2a):
+
+```js
+async () => {
+  const m = window.__mz;
+  const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
+  m.gracz.teleportuj(0, -6.5, { x: 0, z: 10 });
+  await czekaj(300);
+  const czasy = [];
+  m.gracz.naKrok(() => czasy.push(performance.now()));
+  m.nawigacja.lecDoSali("e5a");
+  let vMax = 0;
+  await czekaj(100);
+  while (m.nawigacja.aktywna()) { vMax = Math.max(vMax, m.gracz.predkosc()); await czekaj(100); }
+  const odstepy = czasy.slice(1).map((t, i) => t - czasy[i]);
+  return { vMax: +vMax.toFixed(1), kroki: czasy.length, najkrotszyOdstepMs: Math.round(Math.min(...odstepy)), bledy: window.__errs };
+}
+```
+
+Oczekiwane: `vMax` ≈ 11, `najkrotszyOdstepMs` ≥ 150 (5,6 kroku/s to 178 ms; przed krokiem 2a było ok. 68 ms), `bledy: []`. Spacer z punktu 2 nadal daje 13–14 kroków (poniżej prędkości marszu nic się nie zmienia).
+
 - [ ] **Krok 6: Commit**
 
 ```bash
-git add js/museum/dzwiek.js js/museum/main.js museum.html css/museum.css
+git add js/museum/dzwiek.js js/museum/main.js js/museum/player.js museum.html css/museum.css
 git commit -m "$(cat <<'EOF'
 Muzeum: dźwięk na życzenie — ekran wejścia, kroki, pogłos sal, serce
 
@@ -4520,6 +4564,8 @@ Ekran wejścia na pierwszej klatce: „Wejdź z dźwiękiem” albo „w ciszy�
 wg posadzki, pogłos z kubatury sali przez dwa przenikające się
 konwolwery, ton tła strefy, w atrium serce w rytmie kardiogramu w
 posadzce. Przełącznik w HUD; showreel w Kinie słucha przełącznika.
+Powyżej prędkości marszu krok się wydłuża, zamiast zagęszczać — bieg
+i szybka podróż nie strzelają już krokami 10–15 razy na sekundę.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
