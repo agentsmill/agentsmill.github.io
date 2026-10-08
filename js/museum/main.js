@@ -155,7 +155,13 @@ function zbudujMuzeum() {
     bylHovered = false;
   });
 
-  Object.assign(window.__mz, { plan, budynek, gracz, interaktywne, go: (x, z) => gracz.teleportuj(x, z) });
+  /* Uchwyt tylko się rozszerza: `interactives` (nazwa z czasów korytarza) to ta sama
+     tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
+     gracza na osi amfilady (x = 0). */
+  Object.assign(window.__mz, {
+    plan, budynek, gracz, interaktywne, interactives: interaktywne,
+    go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
+  });
 
   // „Oprowadź mnie” po środkach sal epok — do Zadania 6, które zastąpi to wycieczką po wyróżnionych
   btnTura.addEventListener("click", () => {
@@ -168,11 +174,17 @@ function zbudujMuzeum() {
   buildList(interaktywne);
 }
 
+/* Bez tekstu w drugim argumencie document.fonts.load() ściąga tylko kroje
+   podstawowej łaciny, a polskie litery (ą ć ę ł ń ś ź ż) leżą w osobnym
+   latin-ext — na płótnach szyldów wpadałyby w pismo zastępcze. Próbka ma
+   litery z obu zakresów. */
+const PROBKA_PL = "Aa ĄąĆćĘęŁłŃńÓóŚśŹźŻż";
+
 Promise.all([
-  document.fonts.load("700 46px Syne"),
-  document.fonts.load("400 24px 'IBM Plex Mono'"),
-  document.fonts.load("600 30px 'Schibsted Grotesk'"),
-  document.fonts.load("600 92px 'Cormorant Garamond'"),
+  document.fonts.load("700 46px Syne", PROBKA_PL),
+  document.fonts.load("400 24px 'IBM Plex Mono'", PROBKA_PL),
+  document.fonts.load("600 30px 'Schibsted Grotesk'", PROBKA_PL),
+  document.fonts.load("600 92px 'Cormorant Garamond'", PROBKA_PL),
 ]).catch((err) => console.warn("muzeum: krój pisma nie doszedł —", err)).finally(() => {
   try { zbudujMuzeum(); } catch (err) { console.error("build error:", err); }
   petla();
