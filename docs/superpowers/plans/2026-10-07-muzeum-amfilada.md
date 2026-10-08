@@ -20,7 +20,7 @@ Obowiązują w każdym zadaniu:
 - **Bez nowych ciężkich plików.** Jedyny nowy zasób to krój Cormorant Garamond 600 z Google Fonts (szyldy pałacu). Dźwięk syntezowany. Wideo Kina wczytywane leniwie z istniejących adresów.
 - **Światła tworzy wyłącznie `swiatla.js`.** Pozostałe moduły zostawiają kotwice w `budynek.kotwice`. Powód: zmiana liczby świateł rekompiluje shadery wszystkich materiałów.
 - **Kolizje wyłącznie przez `dodajKolizje()` z `sale.js`** i przed `initPlayer()` — Octree buduje się raz.
-- **Każdy materiał oświetlany w sali rejestruj przez `zarejestruj()`** (przedświetlenie dalekich sal). Wyjątek: materiały świecące same (`MeshBasicMaterial`, ekrany).
+- **Materiały dużych oświetlanych powierzchni sali rejestruj przez `zarejestruj()`** (przedświetlenie dalekich sal): ściany, posadzki, stropy, meble, ramy, druki, podstawy, szafy. Wyjątki: materiały świecące same — `MeshBasicMaterial`, ekrany, szyldy i tablice z własnym `emissive` (rejestracja nadpisałaby ich świecenie, także puls kardiogramu) — oraz drobne detale, których z daleka nie widać (szyny, okucia, klamki, oprawy lamp, obudowy ekranów, karty szuflad, rama ekranu Kina, gramofon). Rzeźby ośmiu dawnych budowniczych w `exhibits.js` zostają bez zmian — świecą je ich własne reflektory z puli.
 - **Teksty interfejsu przez `window.__t(klucz, "polski tekst")`**; angielskie odpowiedniki w `js/i18n.js` (Zadanie 11). Polska ortografia w całości (ą, ć, ę, ł, ń, ó, ś, ź, ż). Komentarze w kodzie po polsku, jak w całym repo.
 - **Uchwyt `window.__mz` tylko rozszerzamy**, nigdy nie usuwamy z niego pól — opiera się na nim automatyzacja testów.
 - **Cache-busting:** po każdej zmianie w `js/` albo `css/` podmień wszystkie `?v=…` w `museum.html` na `date '+%Y%m%d%H%M'`. W Zadaniu 11 jeden wspólny stempel na wszystkie trzy strony.
@@ -554,7 +554,7 @@ Stary korytarz (`world.js` + `building.js`) znika, a w jego miejscu staje amfila
 **Interfejsy:**
 - Konsumuje: `zbudujPlan`, `salaPod`, `POLMUR`, `DRZWI_SZ`, `DRZWI_H` (Zadanie 1); globalne `HEARTBEAT`, `ERAS`, `PROJECTS`, `CATEGORIES`.
 - Produkuje:
-  - `textures.js`: `tekstura(sciezka, srgb?) → Texture` (z pamięci), `materialPBR(nazwa, { kolor, normal, szorstkosc, bezKoloru }) → MeshStandardMaterial` (zawsze nowy).
+  - `textures.js`: `tekstura(sciezka, srgb?) → Texture` (z pamięci), `materialPBR(nazwa, { kolor, normal, szorstkosc, bezKoloru }) → MeshStandardMaterial` (zawsze nowy), `plotno(w, h, rysuj(ctx2d)) → CanvasTexture` (sRGB; wspólna dla wystroj.js, zawieszenie.js, sale-boczne.js).
   - `render.js`: `renderer, scene, camera, composer, bloom, srodowisko, M, textSprite, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate`. Kamera ma `rotation.order = "YXZ"`, bez mgły, `far = 220`.
   - `sale.js`: `zbudujBudynek(plan) → Budynek`, gdzie `Budynek = { grupa, kolizje, podlogi: Mesh[], posadzkiNocy: Mesh[], materialySal: Map<salaId, ((czynnik) => void)[]>, otwory: Map<salaId, {"z-","z+","x-","x+": number[]}>, kotwice: Kotwica[], tickery: Function[] }`; `zarejestruj(budynek, salaId, material, poziom)` (ustawia `material.userData.odswiezPrzedswietlenie()`); `dodajKolizje(budynek, obiekt, wszystko?)`; `bryla(w, h, d, mat)`; `plyta(w, d, mat, kafel?)`; `gladki(kolor, szorstkosc?, metal?)`; `PRZEDSWIETLENIE` (poziom per styl).
   - `Kotwica = { salaId, typ: "rect"|"spot", pozycja: Vector3, cel?: Vector3, kierunek?: "dol", szer?, wys?, kat?, polcien?, zasieg?, kolor, moc, cien? }`.
@@ -590,6 +590,18 @@ export function tekstura(sciezka, srgb = false) {
     pamiec.set(klucz, t);
   }
   return pamiec.get(klucz);
+}
+
+/* Tekstura z płótna 2D — szyldy, tabliczki, plansze, karty szuflad. Wspólna
+   dla wystroj.js, zawieszenie.js i sale-boczne.js. sRGB, bo to obraz. */
+export function plotno(w, h, rysuj) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  rysuj(c.getContext("2d"));
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
 }
 
 /* Nowy materiał z zestawu PBR. Mapa ARM: R = AO, G = szorstkość, B =
@@ -971,6 +983,7 @@ export function zbudujBudynek(plan) {
 import * as THREE from "three";
 import { POLMUR, DRZWI_SZ, DRZWI_H } from "muzeum/plan.js";
 import { bryla, gladki, dodajKolizje, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
+import { plotno } from "muzeum/textures.js";
 
 const AMBER = 0xf2c46d;
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
@@ -981,16 +994,6 @@ export const OKRES_SERCA = 1.1;
 export function bicieSerca(sekundy) {
   const f = sekundy % OKRES_SERCA;
   return Math.exp(-((f - 0.05) ** 2) / 0.002) + 0.6 * Math.exp(-((f - 0.3) ** 2) / 0.002);
-}
-
-function plotno(w, h, rysuj) {
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  rysuj(c.getContext("2d"));
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
 }
 
 function kratownica(nx, ny, tlo, linia) {
@@ -1641,7 +1644,7 @@ Promise.all([
   document.fonts.load("400 24px 'IBM Plex Mono'"),
   document.fonts.load("600 30px 'Schibsted Grotesk'"),
   document.fonts.load("600 92px 'Cormorant Garamond'"),
-]).catch(() => {}).finally(() => {
+]).catch((err) => console.warn("muzeum: krój pisma nie doszedł —", err)).finally(() => {
   try { zbudujMuzeum(); } catch (err) { console.error("build error:", err); }
   petla();
 });
@@ -1722,7 +1725,7 @@ Wszystkie 55 projektów zawisa w swoich salach. Zrzut działającej rzeczy wisi 
 **Interfejsy:**
 - Konsumuje: `Plan` i `Praca` (Zadanie 1), `Budynek`, `zarejestruj`, `bryla`, `gladki`, `PRZEDSWIETLENIE` (Zadanie 2), globalne `obrazProjektu(p)` i `CATEGORIES`.
 - Produkuje:
-  - `naScianie(sala, sciana, wzdluz) → { x, z, ry, nx, nz }` — punkt na licu ściany, obrót przodem do sali i normalna do wnętrza (użyją go Zadania 4 i 8).
+  - `naScianie(sala, sciana, wzdluz) → { x, z, ry, nx, nz }` — punkt na licu ściany, obrót przodem do sali i normalna do wnętrza (eksportowane dla kolejnych modułów; dziś używa go tylko zawieszenie.js).
   - `powiesPrace(plan, budynek) → { interaktywne: Mesh[], kotwice: Kotwica[], plamy: Mesh[], obrazy: Obraz[] }`; kotwice trafiają też do `budynek.kotwice`.
   - Trafienie pracy: `Mesh` z `userData = { project, salaId, typ: "ekran"|"druk"|"plansza", widok: { pozycja: Vector3, cel: Vector3 } }`. Klucz `project` zostaje (czyta go `ui.js` i obserwator w `gramofon.js`).
   - `Obraz = { salaId, src, tex, wczytany, wczytaj(), zwolnij() }`.
@@ -1743,6 +1746,7 @@ import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
 import { fmtDate, CAT_HEX } from "muzeum/render.js";
 import { bryla, gladki, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
+import { plotno } from "muzeum/textures.js";
 
 const ladowarka = new THREE.TextureLoader();
 const JASNOSC_EKRANU = { palac: 0.8, biel: 0.9, noc: 1.0, kino: 1.0, zabawy: 0.9 };
@@ -1765,16 +1769,6 @@ export function naScianie(s, sciana, wzdluz) {
     case "z-": return { x: wzdluz, z: s.z0 + POLMUR, ry: 0, nx: 0, nz: 1 };
     default: throw new Error(`zawieszenie.js: nieznana ściana „${sciana}"`);
   }
-}
-
-function plotno(w, h, rysuj) {
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  rysuj(c.getContext("2d"));
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
 }
 
 function zawin(ctx, tekst, max) {
@@ -1902,7 +1896,7 @@ function obrazDo(salaId, src, ustaw, wyczysc) {
         tex.anisotropy = 8;
         this.tex = tex;
         ustaw(tex);
-      }, undefined, () => {});            // brak pliku: rama zostaje z neutralną płytą
+      }, undefined, () => console.warn(`zawieszenie.js: brak obrazu „${src}" — rama zostaje z neutralną płytą`));
     },
     zwolnij() {
       if (!this.wczytany) return;
@@ -2808,7 +2802,7 @@ export function initPlayer(kolizje) {
        przytrzymania. Klik zostaje dla „idź tutaj”. keydown jest gestem
        użytkownika, więc przeglądarka zgadza się na blokadę. */
     if (KLAWISZE_RUCHU.has(e.code) && !controls.isLocked) {
-      renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
+      renderer.domElement.requestPointerLock?.()?.catch?.(() => {});   // odmowa (np. Esc w trakcie) jest zwyczajna — zostaje tryb myszy
     }
   });
   addEventListener("keyup", (e) => { klawisze[e.code] = false; });
@@ -2888,7 +2882,7 @@ export function initPlayer(kolizje) {
     /* Prędkość zadana z zewnątrz (nawigacja.js) albo null — wtedy znowu klawisze. */
     sterujZ(vx, vz) { zewnetrzna = vx === null || vx === undefined ? null : { x: vx, z: vz }; },
 
-    zablokuj() { renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); },
+    zablokuj() { renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); },   // odmowa blokady jest zwyczajna — zostaje tryb myszy
     /* Świadomie NIE controls.unlock(): w r169 to gołe exitPointerLock(), którego
        WebKit na iOS nie ma — TypeError w środku otwierania tabliczki. */
     odblokuj() { renderer.domElement.ownerDocument.exitPointerLock?.(); },
@@ -3355,7 +3349,7 @@ Promise.all([
   document.fonts.load("400 24px 'IBM Plex Mono'"),
   document.fonts.load("600 30px 'Schibsted Grotesk'"),
   document.fonts.load("600 92px 'Cormorant Garamond'"),
-]).catch(() => {}).finally(() => {
+]).catch((err) => console.warn("muzeum: krój pisma nie doszedł —", err)).finally(() => {
   try { zbudujMuzeum(); } catch (err) { console.error("build error:", err); }
   petla();
 });
@@ -3672,6 +3666,7 @@ import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
 import { camera, fmtDate } from "muzeum/render.js";
 import { bryla, gladki, dodajKolizje, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
+import { plotno } from "muzeum/textures.js";
 
 // Showreel ma CORS * (sprawdzone 7 X), więc może być teksturą także z localhost.
 const SHOWREEL = "https://agentsmill.github.io/ai-video-portfolio/assets/media/showreel.mp4";
@@ -3679,16 +3674,6 @@ const PLAKAT = "https://agentsmill.github.io/ai-video-portfolio/assets/media/sho
 const UJECIA = [["assets/wideo/mglawica.mp4", "assets/wideo/mglawica.webp"], ["assets/wideo/orbita.mp4", "assets/wideo/orbita.webp"]];
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
 const ladowarka = new THREE.TextureLoader();
-
-function plotno(w, h, rysuj) {
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  rysuj(c.getContext("2d"));
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
-}
 
 /* Znak „odtwórz” na plakacie dużego ekranu: widoczny, dopóki wideo nie gra —
    także gdy przeglądarka odrzuci autoodtwarzanie. Mówi gościowi, że ekran
@@ -3712,7 +3697,7 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
   ladowarka.load(plakat, (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
     if (!(mat.map && mat.map.isVideoTexture)) { mat.map = tex; mat.color.setHex(0xffffff); mat.needsUpdate = true; }
-  }, undefined, () => {});
+  }, undefined, () => console.warn(`sale-boczne.js: brak plakatu „${plakat}" — ekran zostaje ciemnoszary`));
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(szer, wys), mat);
   const znak = glosny ? znakOdtwarzania() : null;
   if (znak) mesh.add(znak);
@@ -3733,7 +3718,8 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
         }
       }
       video.muted = !(glosny && dzwiek);
-      // autoodtwarzanie z dźwiękiem bywa odrzucone — wtedy gra bez dźwięku, zamiast wcale
+      // autoodtwarzanie z dźwiękiem bywa odrzucone — wtedy gra bez dźwięku, zamiast wcale; druga odmowa
+      // zostawia plakat ze znakiem ▶ i gość klika ekran sam
       video.play()?.catch?.(() => { video.muted = true; video.play()?.catch?.(() => {}); });
     },
     pauza() { video?.pause(); },
@@ -5265,6 +5251,8 @@ Sprawdzenie całości wg §10 specyfikacji na serwerze worktree (`muzeum-worktre
 - Sesja CDP trzyma swoje emulacje (rozmiar, DPR, dotyk, `prefers-reduced-motion`) do odłączenia, także między wywołaniami — każda sonda kończy się `cdp.detach()` w `finally`. Zrzut przez `page.screenshot` nakłada z powrotem rozmiar Playwrighta, więc zrzuty telefonu rób przy `page.setViewportSize`, nie przy `Emulation.setDeviceMetricsOverride`.
 - Przeglądarka pamięta język (`localStorage`) — każda sonda otwiera `museum.html?lang=pl` (albo `?lang=en`) jawnie.
 
+**Kryterium każdego skryptu odbioru:** zwraca `niezgodne: []`. Każda pozycja tej listy to niespełnione oczekiwanie, opisane po polsku. Wartości z próby podane niżej służą do porównania liczb (np. czy fps nie spadło).
+
 - [ ] **Krok 1: Testy planu**
 
 Run: `node --test tests/plan.test.mjs`
@@ -5362,6 +5350,20 @@ async (page) => {
     });
     wynik.zle = zle;
     wynik.bledy = await page.evaluate(() => window.__errs);
+    const niezgodne = [];
+    const sprawdz = (warunek, opis) => { if (!warunek) niezgodne.push(opis); };
+    sprawdz(wynik.start.poziom === "wysoki", "poziom jakości (oczekiwany wysoki)");
+    sprawdz(wynik.start.audio === "running", "dźwięk nie ruszył");
+    sprawdz(wynik.start.wywolan > 0, "scena nie rysuje");
+    sprawdz(wynik.start.sal === 12 && wynik.start.prac === wynik.start.projektow, "plan niezgodny z danymi");
+    sprawdz(wynik.przejazdE6b.sala === "e6b", "przejazd do drugiej sali VI");
+    sprawdz(wynik.klikPodlogi.odchylenie < 0.3, "klik w podłogę poza tolerancją");
+    sprawdz(wynik.klikPracy.odchylenie < 0.3 && wynik.klikPracy.tabliczka, "klik w pracę");
+    sprawdz(wynik.kolizje.sciana < 5.5, "kolizja ze ścianą");
+    sprawdz(wynik.kolizje.podest >= 1.8, "kolizja z podestem");
+    sprawdz(wynik.kolizje.lawka >= 0.5, "kolizja z ławką");
+    sprawdz(zle.length === 0 && wynik.bledy.length === 0, "błędy w konsoli albo w sieci");
+    wynik.niezgodne = niezgodne;
     return wynik;
   } finally {
     await cdp.detach();
@@ -5421,6 +5423,13 @@ async (page) => {
     wynik.wycieczka.sekund = Math.round((Date.now() - t0) / 1000);
     wynik.zle = zle;
     wynik.bledy = await page.evaluate(() => window.__errs);
+    const niezgodne = [];
+    const sprawdz = (warunek, opis) => { if (!warunek) niezgodne.push(opis); };
+    sprawdz(wynik.cisza.dzwiek === null, "wejście w ciszy utworzyło kontekst audio");
+    sprawdz(Object.keys(wynik.sale).length === 12 && Object.entries(wynik.sale).every(([id, gdzie]) => id === gdzie), "sala nieosiągalna z planu w rogu");
+    sprawdz(wynik.wycieczka.przystankow > 0 && wynik.wycieczka.zgodna, "wycieczka: inne przystanki albo kolejność");
+    sprawdz(zle.length === 0 && wynik.bledy.length === 0, "błędy w konsoli albo w sieci");
+    wynik.niezgodne = niezgodne;
     return wynik;
   } finally {
     await cdp.detach();
@@ -5504,6 +5513,19 @@ async (page) => {
     wynik.rozgladanie = { obrot: +Math.atan2(Math.sin(d), Math.cos(d)).toFixed(3) };
     wynik.zle = zle;
     wynik.bledy = await page.evaluate(() => window.__errs);
+    const niezgodne = [];
+    const sprawdz = (warunek, opis) => { if (!warunek) niezgodne.push(opis); };
+    sprawdz(wynik.uklad.poziom === "niski", "poziom na telefonie (oczekiwany niski)");
+    sprawdz(wynik.uklad.audio === "running", "dźwięk na telefonie");
+    sprawdz(wynik.uklad.jedenWiersz, "nagłówek nie mieści się w jednym wierszu");
+    sprawdz(wynik.uklad.planSvg === "none" && wynik.uklad.przyciskPlanu !== "none", "plan nie jest zwinięty do przycisku");
+    sprawdz(wynik.planOtwarty.svg === "block", "plan się nie rozwija");
+    sprawdz(!wynik.uklad.wBok && !wynik.planOtwarty.wBok, "przewijanie w bok");
+    sprawdz(wynik.dotknieciePodlogi.ruszyl && wynik.dotknieciePodlogi.przeszedl > 2, "dotknięcie podłogi nie prowadzi");
+    sprawdz(wynik.joystick.przeszedl > 1, "joystick nie prowadzi");
+    sprawdz(Math.abs(wynik.rozgladanie.obrot) > 0.05, "prawy kciuk nie obraca kamery");
+    sprawdz(zle.length === 0 && wynik.bledy.length === 0, "błędy w konsoli albo w sieci");
+    wynik.niezgodne = niezgodne;
     return wynik;
   } finally {
     await cdp.detach();
@@ -5543,7 +5565,17 @@ async (page) => {
       m.gracz.teleportuj(0, noc.z0 + 2.5, { x: 0, z: noc.z1 });
       await czekaj(2500);
       const wNocy = await fps(5000);
-      return { poziom: m.jakosc.nazwa, dpr: m.renderer.getPixelRatio(), atrium, wNocy, lustro: !!m.swiatla.lustro?.visible, perf: m.perf.wykonane(), bledy: window.__errs };
+      const wynik = { poziom: m.jakosc.nazwa, dpr: m.renderer.getPixelRatio(), atrium, wNocy, lustro: !!m.swiatla.lustro?.visible, perf: m.perf.wykonane(), bledy: window.__errs };
+      const niezgodne = [];
+      const sprawdz = (warunek, opis) => { if (!warunek) niezgodne.push(opis); };
+      sprawdz(wynik.poziom === "wysoki" && wynik.dpr === 1.5, "poziom albo DPR");
+      sprawdz(wynik.atrium >= 60, "atrium poniżej 60 fps");
+      sprawdz(wynik.wNocy >= 60, "sala nocy poniżej 60 fps");
+      sprawdz(wynik.lustro, "lustro w sali nocy niewidoczne");
+      sprawdz(wynik.perf.length === 0, "strażnik wydajności zdegradował scenę");
+      sprawdz(wynik.bledy.length === 0, "błędy");
+      wynik.niezgodne = niezgodne;
+      return wynik;
     });
   } finally {
     await cdp.detach();
@@ -5588,6 +5620,12 @@ async (page) => {
   }
   wynik.kosmosPrzycisk = await page.evaluate(() => !document.getElementById("kosmos-wejscie").hidden);
   wynik.bledy = await page.evaluate(() => window.__errs);
+  const OCZEKIWANE = { atrium: "atrium", "atrium-wstecz": "atrium", palac: "e1", biel: "e3", noc: "e5a", kino: "kino", archiwum: "archiwum", leon: "leon", kosmos: "e6b" };
+  wynik.niezgodne = [
+    ...Object.entries(OCZEKIWANE).filter(([kadr, sala]) => wynik[kadr] !== sala).map(([kadr]) => `kadr „${kadr}” poza swoją salą`),
+    ...(wynik.kosmosPrzycisk ? [] : ["brak przycisku przejścia do Kosmosu"]),
+    ...(wynik.bledy.length ? ["błędy"] : []),
+  ];
   return wynik;
 }
 ```
@@ -5613,7 +5651,13 @@ async (page) => {
   });
   await page.locator("#list-close").click();
   await page.goto("http://localhost:8902/museum.html?lang=pl");   // przeglądarka zostaje przy polskim
-  return { wejscie, ...wynik };
+  const niezgodne = [];
+  if (JSON.stringify(wejscie) !== JSON.stringify(["The Museum of Building", "Enter with sound", "Enter in silence"])) niezgodne.push("ekran wejścia po angielsku");
+  if (wynik.sala !== "Atrium") niezgodne.push("nazwa sali po angielsku");
+  if (wynik.dzwiek !== "Sound: off") niezgodne.push("przycisk dźwięku po angielsku");
+  if (wynik.polskie.length) niezgodne.push(`polskie słowa w wersji angielskiej: ${wynik.polskie.join(", ")}`);
+  if (wynik.bledy.length) niezgodne.push("błędy");
+  return { wejscie, ...wynik, niezgodne };
 }
 ```
 
@@ -5658,7 +5702,7 @@ Jeśli którakolwiek wartość odbiega od próby (fps niżej, inny przystanek, b
 ```bash
 git add docs/superpowers/specs/2026-10-07-muzeum-amfilada-design.md
 git commit -m "$(cat <<'EOF'
-Spec muzeum 3.0: wynik wdrożenia — odbiór wg §10, pomiary, odstępstwa
+Muzeum: wynik wdrożenia w specyfikacji — odbiór wg §10, pomiary, odstępstwa
 
 Komplet testów ze specyfikacji, fps na profilu MacBooka, zrzuty stref
 u właściciela. Odstępstwa z pomiaru: DPR 1,5 na wysokim poziomie, GTAO
