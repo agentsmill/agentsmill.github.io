@@ -36,9 +36,12 @@ test("projekty Leona są tylko w jego pokoju", () => {
 });
 
 test("epoka ponad POJ prac dzieli się na sale, żadna sala nie przekracza POJ", () => {
+  // Tylko niezmienniki na danych żywych: liczba sal zależy od liczby prac, nie od identyfikatorów.
   for (const s of plan.sale) if (s.rodzaj === "epoka") assert.ok(s.prace.length <= POJ, `${s.id}: ${s.prace.length}`);
-  assert.deepEqual(plan.sale.filter((s) => s.epoka === 5).map((s) => s.id), ["e5a", "e5b"]);
-  assert.deepEqual(plan.sale.filter((s) => s.epoka === 6).map((s) => s.id), ["e6a", "e6b"]);
+  for (const era of DANE.ERAS) {
+    const n = DANE.PROJECTS.filter((p) => p.era === era.id && !p.cat.includes("leon")).length;
+    assert.equal(plan.sale.filter((s) => s.epoka === era.id).length, Math.ceil(n / POJ), `epoka ${era.id}: ${n} prac`);
+  }
 });
 
 test("sale amfilady stykają się bez szczelin, drzwi leżą na osi i na granicy", () => {
@@ -116,6 +119,7 @@ test("wycieczka: wszystkie wyróżnione, w kolejności dat", () => {
   for (let i = 1; i < w.length; i++) assert.ok(w[i - 1].projekt.date <= w[i].projekt.date);
 });
 
+// Budżet spaceru ze specyfikacji, nie błąd danych: od wejścia do drzwi Kosmosu 120–170 m.
 test("amfilada krótsza niż dziś: od wejścia do drzwi Kosmosu 120–170 m", () => {
   assert.ok(plan.dlugosc > 120 && plan.dlugosc < 170, `${plan.dlugosc} m`);
   assert.equal(plan.kosmos.z, osiowe.at(-1).z1);
@@ -126,4 +130,54 @@ test("rozmiesc: luz po równo, blok drzwi omijany, za krótka ściana to null", 
   const s = rozmiesc([3.4, 3.4], 14, [[5.2, 8.8]]);
   assert.ok(s && s.every((c) => c + 1.7 <= 5.2 + 1e-9 || c - 1.7 >= 8.8 - 1e-9), JSON.stringify(s));
   assert.equal(rozmiesc([3.4, 3.4, 3.4], 8), null);
+});
+
+// Fikstury: własne ERAS i PROJECTS, niezależne od danych żywych.
+const praca = (id, era, extra = {}) => ({ id, era, cat: [], date: "2020-01-01", featured: false, ...extra });
+const epoki = (n) => Array.from({ length: n }, (_, i) => ({ id: i + 1, title: `Epoka ${i + 1}`, range: `${i + 1}` }));
+
+// Pokój Leona stoi przy sali gospodarza i łączy się z nią drzwiami na wspólnym murze;
+// każda praca z fikstury wisi dokładnie raz.
+function sprawdzPokojLeona(p, epokaGospodarza, projekty) {
+  const leon = p.sale.find((s) => s.id === "leon");
+  assert.ok(leon, "brak pokoju Leona");
+  const d = p.drzwi.find((q) => q.b === "leon");
+  assert.ok(d, "brak drzwi do pokoju Leona");
+  const gospodarz = p.sale.find((s) => s.id === d.a);
+  assert.ok(gospodarz, `drzwi prowadzą do nieistniejącej sali ${d.a}`);
+  assert.equal(gospodarz.epoka, epokaGospodarza, "zły gospodarz pokoju Leona");
+  assert.ok(blisko(leon.x0, gospodarz.x1) && blisko(d.x, gospodarz.x1), "drzwi nie leżą na wspólnym murze");
+  assert.ok(d.z > gospodarz.z0 && d.z < gospodarz.z1, "drzwi poza salą gospodarza");
+  // Rezerwowany pas przy drzwiach: prace na tej samej ścianie co drzwi nie wiszą na otworze.
+  for (const w of gospodarz.prace.filter((x) => x.sciana === "x+")) assert.ok(Math.abs(w.t - d.z) >= w.szer / 2 + DRZWI_SZ / 2 + 0.3, `${w.projekt.id} wisi na drzwiach do Leona`);
+  const ids = p.sale.flatMap((s) => s.prace.map((x) => x.projekt.id));
+  assert.deepEqual(ids.sort(), projekty.map((x) => x.id).sort());
+}
+
+test("pokój Leona bez prac w swojej epoce dołącza do następnej epoki z salami", () => {
+  const projekty = [praca("a1", 1), praca("leon1", 2, { cat: ["leon"] }), praca("c1", 3)];
+  sprawdzPokojLeona(zbudujPlan({ ERAS: epoki(3), PROJECTS: projekty }), 3, projekty);
+});
+
+test("pokój Leona, gdy żadna późniejsza epoka nie ma prac, dołącza do ostatniej epoki z salami", () => {
+  const projekty = [praca("a1", 1), praca("b1", 2), praca("leon1", 3, { cat: ["leon"] })];
+  sprawdzPokojLeona(zbudujPlan({ ERAS: epoki(3), PROJECTS: projekty }), 2, projekty);
+});
+
+test("bez żadnej sali epoki zbudujPlan zgłasza czytelny błąd, nie TypeError", () => {
+  const projekty = [praca("leon1", 1, { cat: ["leon"] })];
+  assert.throws(() => zbudujPlan({ ERAS: epoki(1), PROJECTS: projekty }), /zbudujPlan: brak sali epoki, do której można dołączyć Pokój Leona/);
+});
+
+test("podział epoki: 10, 11, 20 i 21 prac daje 1, 2, 2 i 3 sale z sufiksami a/b/c", () => {
+  const liczby = [10, 11, 20, 21];
+  const ERAS = epoki(liczby.length);
+  const PROJECTS = liczby.flatMap((n, i) =>
+    Array.from({ length: n }, (_, k) => praca(`e${i + 1}-${k}`, i + 1, { date: `${2000 + i}-01-${String(k + 1).padStart(2, "0")}` })));
+  const p = zbudujPlan({ ERAS, PROJECTS });
+  assert.deepEqual(ERAS.map((era) => p.sale.filter((s) => s.epoka === era.id).map((s) => s.id)),
+    [["e1"], ["e2a", "e2b"], ["e3a", "e3b"], ["e4a", "e4b", "e4c"]]);
+  for (const s of p.sale) if (s.rodzaj === "epoka") assert.ok(s.prace.length <= POJ, `${s.id}: ${s.prace.length}`);
+  const ids = p.sale.flatMap((s) => s.prace.map((x) => x.projekt.id));
+  assert.deepEqual(ids.sort(), PROJECTS.map((x) => x.id).sort());
 });

@@ -161,6 +161,15 @@ export function zbudujPlan({ ERAS, PROJECTS, autorskie = new Map() }) {
   const leona = PROJECTS.filter((p) => p.cat.includes("leon")).sort(poDacie);
   const wSalach = PROJECTS.filter((p) => !p.cat.includes("leon"));
   const epokaLeona = leona.length ? leona[0].era : null;
+  // Pokój Leona dołącza do sali epoki, a ta sala dostaje rezerwowany otwór na
+  // drzwi — gospodarza wybieramy więc raz, przed pętlą: pierwsza epoka z salami,
+  // począwszy od epoki najwcześniejszej pracy Leona, a gdy takiej nie ma, ostatnia z salami.
+  const epokiZSalami = ERAS.filter((era) => wSalach.some((p) => p.era === era.id)).map((era) => era.id);
+  let gospodarz = null;
+  if (leona.length) {
+    gospodarz = epokiZSalami.find((id) => id >= epokaLeona) ?? epokiZSalami.at(-1) ?? null;
+    if (gospodarz === null) throw new Error("zbudujPlan: brak sali epoki, do której można dołączyć Pokój Leona");
+  }
 
   const atrium = salaBoczna({
     id: "atrium", rodzaj: "atrium", styl: "palac", kolor: KOLOR_ATRIUM, nazwa: "Atrium",
@@ -178,7 +187,7 @@ export function zbudujPlan({ ERAS, PROJECTS, autorskie = new Map() }) {
       const kawalek = prace.slice(Math.round((k * prace.length) / czesci), Math.round(((k + 1) * prace.length) / czesci));
       const sala = salaEpoki({
         era, prace: kawalek, styl, k, czesci, z0: z, autorskie,
-        zDrzwiamiLeona: era.id === epokaLeona && k === czesci - 1,
+        zDrzwiamiLeona: era.id === gospodarz && k === czesci - 1,
         kolor: styl === "palac" ? KOLORY_PALACU[nrPalacu++ % KOLORY_PALACU.length] : null,
       });
       sale.push(sala);
@@ -203,7 +212,7 @@ export function zbudujPlan({ ERAS, PROJECTS, autorskie = new Map() }) {
   drzwi.push(boczne("atrium", "archiwum", -8, -8));
 
   if (leona.length) {
-    const gosp = sale.filter((s) => s.epoka === epokaLeona).at(-1);
+    const gosp = sale.filter((s) => s.epoka === gospodarz).at(-1);
     const leon = pokojLeona(gosp, leona, autorskie);
     sale.push(leon);
     drzwi.push(boczne(gosp.id, "leon", gosp.x1, (gosp.z0 + gosp.z1) / 2));
