@@ -1,5 +1,4 @@
 import { fmtDate, CAT_HEX } from "muzeum/render.js";
-import { interactives } from "muzeum/world.js";
 
 /* ── Tabliczka eksponatu ──────────────────────────────────────────────── */
 
@@ -8,16 +7,12 @@ const hudEra = document.getElementById("hud-era");
 const hint = document.getElementById("hud-hint");
 let moved = false;
 
-/* Wskaźnik sali w HUD: wyliczony z pozycji gracza (nie z curZ ani z otwartej
-   tabliczki — fokus po Zadaniu 5 nie przenosi już kamery, więc jedyne
-   wiarygodne „gdzie jestem" to gracz.pozycja()). `sale` to budynek.sale
-   z building.js ({id, odZ, doZ, srodekZ}); poza amfiladą (atrium, z mniejsze
-   niż odZ pierwszej sali) żadna sala nie pasuje — stąd jawny fallback. */
-function salaZ(z, sale, ERAS) {
-  const s = sale.find((s) => z >= s.odZ && z < s.doZ);
-  if (!s) return "Atrium";
-  const e = ERAS[s.id - 1];
-  return `${s.id}/${sale.length} · ${e.range} — ${e.title}`;
+/* Wskaźnik sali w HUD: sala z planu (plan.js), w której stoi gracz. Sala
+   epoki podzielona na części dostaje numer części — „V (1/2)". */
+function opisSali(s) {
+  const t = window.__t || ((klucz, pl) => pl);
+  if (s.rodzaj === "epoka") return `${s.nr}${s.czesc ? ` (${s.czesc}/${s.czesci})` : ""} · ${s.zakres} — ${s.nazwa}`;
+  return t(`muz.sala.${s.id}`, s.nazwa);
 }
 
 function openPlaque(hit) {
@@ -69,10 +64,10 @@ document.getElementById("list-close").addEventListener("click", closeList);
 // Czytane przez main.js, żeby scroll/dotyk/klawiatura nie ruszały kamery, gdy lista jest otwarta.
 function isListOpen() { return !listPanel.hidden; }
 
-function buildList() {
+function buildList(lista) {
   const body = document.getElementById("list-body");
   body.innerHTML = ERAS.map((era) => {
-    const items = interactives
+    const items = lista
       .filter((h) => h.userData.project.era === era.id)
       .map((h) => {
         const p = h.userData.project;
@@ -84,7 +79,7 @@ function buildList() {
   body.addEventListener("click", (e) => {
     const btn = e.target.closest(".list-item");
     if (!btn) return;
-    const hit = interactives.find((h) => h.userData.project.id === btn.dataset.id);
+    const hit = lista.find((h) => h.userData.project.id === btn.dataset.id);
     if (!hit) return;
     closeList();
     endFocus();
@@ -92,4 +87,4 @@ function buildList() {
   });
 }
 
-export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen, salaZ };
+export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen, opisSali };

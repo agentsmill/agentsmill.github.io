@@ -281,6 +281,14 @@ function exAnatomy(hex) {
   };
 }
 
+/* Jak stoi każdy eksponat autorski — czyta to plan.js, rezerwując na ścianie
+   szerszy slot i miejsce na podstawę. „podest” — niska platforma 3 × 3 m pod
+   dużą rzeźbą; „cokol” — wysoki postument pod małym przedmiotem. */
+const PODSTAWY = {
+  "age-of-agents": "podest", "empowerher": "podest", "reverie": "podest", "ekspres-leona": "podest",
+  "token-drag-race": "podest", "lastbox": "podest", "naszwhisper": "podest", "anatomy": "podest",
+};
+
 const EXHIBIT_BUILDERS = {
   "age-of-agents": exAgeOfAgents, "empowerher": exEmpowerHer, "reverie": exReverie,
   "ekspres-leona": exEkspres, "token-drag-race": exDragRace, "lastbox": exLastBox,
@@ -354,4 +362,4 @@ function plinth(p, hex) {
   };
 }
 
-export { EXHIBIT_BUILDERS, framedShot, plinth };
+export { EXHIBIT_BUILDERS, PODSTAWY, framedShot, plinth };

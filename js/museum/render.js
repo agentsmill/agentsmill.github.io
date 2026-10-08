@@ -1,5 +1,5 @@
-/* Muzeum Budowania — spacer po szynach przez 16 miesięcy.
-   Dane: js/projects-data.js (PROJECTS, ERAS, MILESTONES, HEARTBEAT, CATEGORIES). */
+/* Warstwa renderowania muzeum: renderer, scena, kamera, kompozytor i drobni
+   pomocnicy. Dane: js/projects-data.js (PROJECTS, ERAS, CATEGORIES) — globalne. */
 
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -33,58 +33,54 @@ const ROMAN = { "01":"I","02":"II","03":"III","04":"IV","05":"V","06":"VI","07":
 const fmtDate = (d) => { const [y, m] = d.split("-"); return `${ROMAN[m]} ${y}`; };
 const CAT_HEX = Object.fromEntries(Object.entries(CATEGORIES).map(([k, v]) => [k, v.color]));
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const dotykowy = matchMedia("(pointer: coarse)").matches;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0c1018);
-scene.fog = new THREE.Fog(0x0c1018, 10, 60);
+scene.background = new THREE.Color(0x050608);
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 120);
-camera.position.set(0, 1.6, 6);
+/* Bez mgły: to wnętrza, a widok na wylot przez całą amfiladę (ok. 150 m) jest
+   celem projektu. Daleka płaszczyzna z zapasem na tę długość, bliska mała,
+   bo gość podchodzi do ram i tabliczek na kilkadziesiąt centymetrów.
+   Kolejność YXZ — odchylenie, potem pochylenie — tak liczą PointerLockControls
+   i przeciąganie, więc kamera nie przekrzywia się przy rozglądaniu. */
+const camera = new THREE.PerspectiveCamera(56, innerWidth / innerHeight, 0.05, 220);
+camera.rotation.order = "YXZ";
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-/* Gęstość pikseli zależna od urządzenia. Na telefonie o devicePixelRatio 3
-   limit 1.75 znaczy ponad dwa razy więcej pikseli na klatkę niż 1.25 — a muzeum
-   liczy jeszcze cienie i poświatę, więc każdy piksel płaci podwójnie. Ten sam
-   zabieg, który w Kosmosie zdjął 49% pracy fragmentów. */
-const dotykowy = matchMedia("(pointer: coarse)").matches;
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+/* Gęstość pikseli zależna od urządzenia: na telefonie limit 1,25 zamiast 1,75
+   to ponad dwa razy mniej pikseli na klatkę przy niewidocznej różnicy. */
 renderer.setPixelRatio(Math.min(devicePixelRatio, dotykowy ? 1.25 : 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 host.appendChild(renderer.domElement);
 
-// Mapa środowiskowa generowana proceduralnie — 0 bajtów do pobrania, a bez niej
-// materiały z metalness nie mają czego odbijać i wyglądają jak matowy plastik.
+// Mapa środowiskowa z kodu — 0 bajtów do pobrania. Siłę per strefa ustawia swiatla.js.
 const pmrem = new THREE.PMREMGenerator(renderer);
-pmrem.compileEquirectangularShader();
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = 0.35;   // muzeum ma być ciemne; pełna siła je rozmywa
+const srodowisko = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = srodowisko;
+scene.environmentIntensity = 0.15;
 
-// go() dostaje właściwe ciało w main.js, gdy powstaje gracz i jego teleportuj() —
-// tutaj tylko placeholder, żeby klucz istniał od razu i był nieszkodliwy dopóty,
-// dopóki nie ma jeszcze warstwy kolizyjnej, po której miałby kogo przenosić.
-window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: () => {} };   // uchwyt diagnostyczny (nieszkodliwy)
+// go() dostaje ciało w main.js, gdy powstaje gracz — tu tylko nieszkodliwy zaczep.
+window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: () => {} };
 
-scene.add(new THREE.AmbientLight(0x8899bb, 0.5));
-const hemi = new THREE.HemisphereLight(0x35507a, 0x0c1018, 0.55);
-scene.add(hemi);
-const key = new THREE.DirectionalLight(0xf2c46d, 0.35);
-key.position.set(3, 8, 2);
-scene.add(key);
-
-const composer = new EffectComposer(renderer);
+/* MSAA w celu kompozytora: `antialias` renderera nie obejmuje rysowania do
+   celu pośredniego, a bez wygładzania listwy, ramy i opaski drzwi strzępią się. */
+const cel = new THREE.WebGLRenderTarget(16, 16, { samples: 4, type: THREE.HalfFloatType });
+const composer = new EffectComposer(renderer, cel);
 composer.addPass(new RenderPass(scene, camera));
-// (rozdzielczość, siła, promień, próg) — kolejność zweryfikowana w źródle r169
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.4, 0.85);
+// (rozdzielczość, siła, promień, próg) — wysoki próg: świecą ekrany, szyldy i progi, nie ściany
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.5, 0.85);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
+composer.setSize(innerWidth, innerHeight);
 window.__mz.composer = composer;
 window.__mz.bloom = bloom;
 
-/* ── Tekst na sprite'ach ──────────────────────────────────────────────── */
+/* ── Tekst na sprite'ach (już tylko dla eksponatów autorskich; znika w Zadaniu 4) ── */
 
 function textSprite(text, { font = "500 34px 'IBM Plex Mono'", color = "#8C95A8", pad = 18, maxW = 760 } = {}) {
   const c = document.createElement("canvas");
@@ -102,8 +98,7 @@ function textSprite(text, { font = "500 34px 'IBM Plex Mono'", color = "#8C95A8"
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
-  const sp = new THREE.Sprite(mat);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
   const scale = 0.0075;
   sp.scale.set(c.width * scale / 2, c.height * scale / 2, 1);
   return sp;
@@ -119,4 +114,4 @@ const M = {
 
 function bx(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
 
-export { renderer, scene, camera, composer, bloom, M, textSprite, bx, reduceMotion, CAT_HEX, fmtDate };
+export { renderer, scene, camera, composer, bloom, srodowisko, M, textSprite, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };

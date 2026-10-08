@@ -220,6 +220,7 @@ export function initPlayer(kolizje) {
        w main.js potrzebuje z pozycji gracza w KAŻDEJ klatce; klon na śmietnik
        60 razy na sekundę to jedyny koszt, jaki ten odczyt miał. */
     pozycjaZ: () => kapsula.end.z,
+    pozycjaX: () => kapsula.end.x,
     wTurze: () => !!tura,   // main.js zmienia etykietę przycisku, patrz oprowadz()
 
     /* Wejście w tryb chodzenia i wyjście z niego. Ten moduł CELOWO nie nasłuchuje
@@ -257,18 +258,18 @@ export function initPlayer(kolizje) {
       renderer.domElement.ownerDocument.exitPointerLock?.();
     },
 
-    /* Skok na wskazane z, na oś amfilady. `patrzNa` (opcjonalne) obraca kamerę
-       ku danemu punktowi — używa tego skok do eksponatu z listy, żeby gracz
-       lądował przodem do niego, a nie bokiem. */
-    teleportuj(z, patrzNa) {
-      tura = null;   // skok kamery z innego powodu niż tura — np. klik w eksponat z listy — ma nad nią wygrywać
-      kapsula.start.set(0, PROMIEN, z);
-      kapsula.end.set(0, WZROST, z);
+    /* Skok w punkt (x, z) planu. `patrzNa` (opcjonalne) obraca kamerę ku
+       danemu punktowi — skok do pracy z listy ląduje przodem do niej, a nie
+       bokiem. Sale boczne leżą poza osią, stąd x. */
+    teleportuj(x, z, patrzNa) {
+      tura = null;   // skok kamery z innego powodu niż tura — np. klik w pracę z listy — ma nad nią wygrywać
+      kapsula.start.set(x, PROMIEN, z);
+      kapsula.end.set(x, WZROST, z);
       predkosc.set(0, 0, 0);
       camera.position.copy(kapsula.end);
       /* Domyślna kamera three.js patrzy w -Z, a amfilada biegnie w +Z: bez tego
          obrotu gracz stawałby tyłem do muzeum, twarzą w ścianę atrium. */
-      if (patrzNa) camera.lookAt(patrzNa);
+      if (patrzNa) camera.lookAt(patrzNa.x, patrzNa.y ?? WZROST, patrzNa.z);   // Vector3 albo zwykłe { x, z } (na wysokości oczu)
       else camera.rotation.set(0, Math.PI, 0);
     },
 
