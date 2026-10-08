@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { M, bx as bxSurowe, textSprite, fmtDate } from "muzeum/render.js";
+import { M, bx as bxSurowe, CAT_HEX } from "muzeum/render.js";
+import { dodajKolizje, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
 
 /* Bryły eksponatów w oświetlonych salach muszą rzucać cień — inaczej wiszą
    nad podłogą jak naklejki. Ale tylko te z materiału „body": M.glow i M.add są
@@ -281,85 +282,117 @@ function exAnatomy(hex) {
   };
 }
 
+/* 9. Akordy Zmierzchu — gramofon. Płyta kręci się, gdy kompozycja naprawdę gra:
+   stan odtwarzacza ogłasza js/gramofon.js w window.__gramofonGra. */
+function exGramofon(hex) {
+  const g = new THREE.Group();
+  const baza = bx(0.48, 0.09, 0.38, M.body(0x4a2a18)); baza.position.y = 0.045; g.add(baza);
+  const talerz = new THREE.Group();
+  const plyta = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.008, 48), new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.22 }));
+  const etykieta = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.009, 32), new THREE.MeshStandardMaterial({ color: hex, roughness: 0.5 }));
+  talerz.add(plyta, etykieta);
+  talerz.position.set(-0.05, 0.095, 0);
+  g.add(talerz);
+  const ramie = bx(0.25, 0.012, 0.012, new THREE.MeshStandardMaterial({ color: 0xcfd2d8, roughness: 0.25, metalness: 1 }));
+  ramie.position.set(0.1, 0.115, 0.1); ramie.rotation.y = 0.5; g.add(ramie);
+  const tuba = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.42, 28, 1, true), new THREE.MeshStandardMaterial({ color: 0xb08a4a, roughness: 0.3, metalness: 1, side: THREE.DoubleSide }));
+  tuba.position.set(0.16, 0.4, -0.1); tuba.rotation.set(0.9, 0, -0.5); tuba.castShadow = true; g.add(tuba);
+  let obrot = 0;
+  return {
+    group: g,
+    tick(t, dt) { if (window.__gramofonGra === true) obrot += dt * 3.46; talerz.rotation.y = -obrot; },   // 33⅓ obr./min
+    activate() {},
+  };
+}
+
 /* Jak stoi każdy eksponat autorski — czyta to plan.js, rezerwując na ścianie
    szerszy slot i miejsce na podstawę. „podest” — niska platforma 3 × 3 m pod
-   dużą rzeźbą; „cokol” — wysoki postument pod małym przedmiotem. */
+   dużą rzeźbą; „cokol” — wysoki postument pod małym przedmiotem. W pokoju
+   Leona plan zamienia podest kolejki na tor dookoła pokoju („tor”). */
 const PODSTAWY = {
   "age-of-agents": "podest", "empowerher": "podest", "reverie": "podest", "ekspres-leona": "podest",
   "token-drag-race": "podest", "lastbox": "podest", "naszwhisper": "podest", "anatomy": "podest",
+  "akordy-zmierzchu": "cokol",
 };
 
 const EXHIBIT_BUILDERS = {
   "age-of-agents": exAgeOfAgents, "empowerher": exEmpowerHer, "reverie": exReverie,
   "ekspres-leona": exEkspres, "token-drag-race": exDragRace, "lastbox": exLastBox,
-  "naszwhisper": exWhisper, "anatomy": exAnatomy,
+  "naszwhisper": exWhisper, "anatomy": exAnatomy, "akordy-zmierzchu": exGramofon,
 };
 
-/* Który plik pokazać, wie tylko obrazProjektu() z js/projects-data.js (globalny,
-   wczytany zwykłym <script> przed modułami). Wcześniej siedziały tu dwie listy —
-   zrzutów i okładek — kopiowane z karty i Kosmosu, i zdążyły się rozjechać.
-   Projekt bez obrazu nie wysyła żadnego żądania: GitHub Pages odpowiada na brakujący
-   plik pełną stroną 404 (ok. 9 kB), a muzeum pytałoby o nią przy każdym wejściu. */
+// kolor i szorstkość podstawy w stylu sali
+const PODSTAWA_STYLU = { palac: [0xe8e2d6, 0.28], biel: [0xf3f2ee, 0.9], noc: [0x0e1015, 0.35], zabawy: [0xfff4e6, 0.7], kino: [0x1a1416, 0.9] };
 
-/* Oprawiony obraz — zrzut ekranu albo okładka. Ładowany asynchronicznie,
-   znika, jeśli nie ma czego pokazać. */
-const texLoader = new THREE.TextureLoader();
-function framedShot(p, w = 2.2) {
-  const g = new THREE.Group();
-  const obraz = obrazProjektu(p);
-  if (!obraz) return g;                // nie ma pliku — nie zawracamy głowy serwerowi
-  const { src, okladka } = obraz;
-  g.userData.okladka = okladka;
-  texLoader.load(
-    src,
-    (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 4;
-      const ar = (tex.image?.width || 16) / (tex.image?.height || 10);
-      const h = w / ar;
-      const frame = bx(w + 0.12, h + 0.12, 0.05, M.body(0x0a0e16));
-      /* Okładka dostaje ciepłofioletową ramę zamiast niebieskiej: zwiedzający
-         ma widzieć różnicę między zrzutem działającego produktu a ilustracją
-         jeszcze zanim podejdzie i przeczyta tabliczkę. */
-      const edge = bx(w + 0.16, h + 0.16, 0.02, M.glow(okladka ? 0x4a3a6b : 0x2a3550, 1));
-      edge.position.z = -0.02;
-      const pic = new THREE.Mesh(
-        new THREE.PlaneGeometry(w, h),
-        new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
-      );
-      pic.position.z = 0.031;
-      g.add(edge, frame, pic);
-      // delikatna poświata pod obrazem
-      const halo = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.7, h + 0.7),
-        M.add(0xf2c46d, 0.05));
-      halo.position.z = -0.05;
-      g.add(halo);
-    },
-    undefined,
-    () => {}          // brak pliku — po prostu nic nie dodajemy
-  );
-  return g;
+/* Eksponaty z planu: podstawa w stylu sali, eksponat przodem do osi sali,
+   bryła kolizyjna (na widoczną masę, nie na poświatę — uwaga z 6 VIII:
+   kolider poświaty zostawiał przy ścianie szczelinę), trafienie z punktem
+   widoku i kotwica reflektora rzucającego cień. Kolejka w pokoju Leona
+   („tor”) jeździ dookoła dywanu, bez podstawy i bez kolizji — to zabawka
+   na podłodze. */
+function postawEksponaty(plan, budynek) {
+  const wynik = { interaktywne: [], tickery: [] };
+  for (const s of plan.sale) for (const b of s.podstawy) {
+    const budowniczy = EXHIBIT_BUILDERS[b.projekt.id];
+    if (!budowniczy) continue;
+    const p = b.projekt;
+    const ex = budowniczy(new THREE.Color(CAT_HEX[p.cat[0]]).getHex());
+    const [kolor, szorst] = PODSTAWA_STYLU[s.styl];
+    const matPodstawy = new THREE.MeshStandardMaterial({ color: kolor, roughness: szorst });
+    zarejestruj(budynek, s.id, matPodstawy, PRZEDSWIETLENIE[s.styl]);
+    const g = new THREE.Group();
+    g.position.set(b.x, 0, b.z);
+    let wys = 0, kolizja = null;
+    if (b.rodzaj === "podest") {
+      const podest = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.12, 3.0), matPodstawy);
+      podest.position.y = 0.06; podest.castShadow = podest.receiveShadow = true; g.add(podest);
+      if (s.styl === "noc") {   // bursztynowa linia u podstawy — podest unosi się w półmroku
+        const kraw = new THREE.Mesh(new THREE.BoxGeometry(3.06, 0.025, 3.06), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xf2c46d).multiplyScalar(0.8) }));
+        kraw.position.y = 0.0125; g.add(kraw);
+      }
+      wys = 0.12;
+      kolizja = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.6, 3.0));
+      kolizja.position.set(b.x, 1.3, b.z);
+    } else if (b.rodzaj === "cokol") {
+      const cokol = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.02, 0.7), matPodstawy);
+      cokol.position.y = 0.51; cokol.castShadow = cokol.receiveShadow = true; g.add(cokol);
+      wys = 1.02;
+      kolizja = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.6, 0.75));
+      kolizja.position.set(b.x, 0.8, b.z);
+    } else {
+      ex.group.scale.setScalar(1.8);
+    }
+    ex.group.position.y = wys;
+    // lokalne +Z eksponatu to jego przód (patrz dawny world.js): obracamy go ku osi sali
+    if (b.sciana === "x+") g.rotation.y = -Math.PI / 2;
+    else if (b.sciana === "x-") g.rotation.y = Math.PI / 2;
+    g.add(ex.group);
+    budynek.grupa.add(g);
+    if (kolizja) dodajKolizje(budynek, kolizja, true);
+    if (ex.tick) wynik.tickery.push(ex.tick);
+
+    const promien = b.rodzaj === "podest" ? 1.7 : b.rodzaj === "cokol" ? 0.6 : 3.0;
+    const traf = new THREE.Mesh(new THREE.SphereGeometry(promien, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    traf.position.set(b.x, wys + (b.rodzaj === "cokol" ? 0.3 : 1.1), b.z);
+    const kier = b.sciana === "x+" ? -1 : b.sciana === "x-" ? 1 : 0;
+    const odl = b.rodzaj === "podest" ? 3.9 : 2.0;
+    traf.userData = {
+      project: p, salaId: s.id, exhibit: ex,
+      widok: b.rodzaj === "tor"
+        ? { pozycja: new THREE.Vector3(s.x0 + 1.4, 1.65, (s.z0 + s.z1) / 2), cel: new THREE.Vector3(b.x, 0.3, b.z) }
+        : { pozycja: new THREE.Vector3(b.x + kier * odl, 1.65, b.z), cel: new THREE.Vector3(b.x, wys + 0.9, b.z) },
+    };
+    budynek.grupa.add(traf);
+    wynik.interaktywne.push(traf);
+    if (b.rodzaj !== "tor") {
+      budynek.kotwice.push({
+        salaId: s.id, typ: "spot", cien: true,
+        pozycja: new THREE.Vector3(b.x + kier * 1.2, s.H - 0.25, b.z), cel: new THREE.Vector3(b.x, wys + 0.6, b.z),
+        kat: 0.55, polcien: 0.6, zasieg: 0, kolor: 0xffe2b8, moc: 45,
+      });
+    }
+  }
+  return wynik;
 }
 
-/* Postument z hologramem dla pozostałych projektów */
-function plinth(p, hex) {
-  const g = new THREE.Group();
-  const ped = bx(0.7, 0.9, 0.7, M.body(0x1a2438)); ped.position.y = 0.45; g.add(ped);
-  const edge = bx(0.74, 0.03, 0.74, M.glow(hex, 0.8)); edge.position.y = 0.92; g.add(edge);
-  const shot = framedShot(p, 1.5);
-  shot.position.y = 2.05; g.add(shot);
-  const label = textSprite(p.title, { font: "600 30px 'Schibsted Grotesk'", color: "#E9EDF5" });
-  label.position.y = 1.45; g.add(label);
-  const date = textSprite(fmtDate(p.date), { font: "400 22px 'IBM Plex Mono'", color: "#8C95A8" });
-  date.position.y = 1.14; g.add(date);
-  return {
-    group: g,
-    tick(t) {
-      label.position.y = 1.45 + Math.sin(t * 0.8 + g.position.z) * 0.03;
-      shot.position.y = 2.05 + Math.sin(t * 0.6 + g.position.z) * 0.04;
-    },
-    activate() {},
-  };
-}
-
-export { EXHIBIT_BUILDERS, PODSTAWY, framedShot, plinth };
+export { EXHIBIT_BUILDERS, PODSTAWY, postawEksponaty };

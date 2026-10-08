@@ -45,7 +45,7 @@
   let odtwarzacz = null, gotowy = false, chciany = false;
   const sluchacze = new Set();
   const naStan = (f) => sluchacze.add(f);
-  const ogloszStan = (gra) => sluchacze.forEach((f) => f(gra, undefined));
+  const ogloszStan = (gra) => { window.__gramofonGra = gra; sluchacze.forEach((f) => f(gra, undefined)); };
   const ogloszTekst = (s) => sluchacze.forEach((f) => f(undefined, s));
 
   let apiWczytywane = false;

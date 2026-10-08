@@ -7,7 +7,7 @@ import { zbudujPlan, salaPod } from "muzeum/plan.js";
 import { zbudujBudynek } from "muzeum/sale.js";
 import { urzadz } from "muzeum/wystroj.js";
 import { powiesPrace } from "muzeum/zawieszenie.js";
-import { PODSTAWY } from "muzeum/exhibits.js";
+import { PODSTAWY, postawEksponaty } from "muzeum/exhibits.js";
 import { initPlayer } from "muzeum/player.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali } from "muzeum/ui.js";
 import { initPerf } from "muzeum/perf.js";
@@ -145,6 +145,9 @@ function zbudujMuzeum() {
   prace = powiesPrace(plan, budynek);
   interaktywne.push(...prace.interaktywne);
   for (const o of prace.obrazy) o.wczytaj();   // wszystkie od razu; salami — Zadanie 10
+  const eksponaty = postawEksponaty(plan, budynek);   // przed graczem: dokłada kolizje podestów
+  interaktywne.push(...eksponaty.interaktywne);
+  tickery.push(...eksponaty.tickery);
   scene.add(budynek.grupa);
   tickery.push(...budynek.tickery);
 

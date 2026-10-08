@@ -80,30 +80,6 @@ composer.setSize(innerWidth, innerHeight);
 window.__mz.composer = composer;
 window.__mz.bloom = bloom;
 
-/* ── Tekst na sprite'ach (już tylko dla eksponatów autorskich; znika w Zadaniu 4) ── */
-
-function textSprite(text, { font = "500 34px 'IBM Plex Mono'", color = "#8C95A8", pad = 18, maxW = 760 } = {}) {
-  const c = document.createElement("canvas");
-  const ctx = c.getContext("2d");
-  ctx.font = font;
-  const w = Math.min(maxW, Math.ceil(ctx.measureText(text).width)) + pad * 2;
-  const lineH = parseInt(font.match(/(\d+)px/)[1], 10) * 1.35;
-  c.width = w * 2; c.height = Math.ceil(lineH + pad * 2) * 2;
-  const ctx2 = c.getContext("2d");
-  ctx2.scale(2, 2);
-  ctx2.font = font;
-  ctx2.fillStyle = color;
-  ctx2.textBaseline = "middle";
-  ctx2.fillText(text, pad, (lineH + pad * 2) / 2, maxW);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  const scale = 0.0075;
-  sp.scale.set(c.width * scale / 2, c.height * scale / 2, 1);
-  return sp;
-}
-
 /* ── Budowniczowie eksponatów ─────────────────────────────────────────── */
 
 const M = {
@@ -114,4 +90,4 @@ const M = {
 
 function bx(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
 
-export { renderer, scene, camera, composer, bloom, srodowisko, M, textSprite, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };
+export { renderer, scene, camera, composer, bloom, srodowisko, M, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };
