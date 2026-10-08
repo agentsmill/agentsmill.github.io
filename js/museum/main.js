@@ -2,7 +2,7 @@
    eksponaty → gracz → światła → nawigacja, pętla klatek i obsługa kliknięć.
    Każdy moduł ma jedną odpowiedzialność; tu tylko kolejność i przewody. */
 import * as THREE from "three";
-import { renderer, scene, camera, composer, gtao, jakosc } from "muzeum/render.js";
+import { renderer, scene, camera, composer, gtao, jakosc, dotykowy } from "muzeum/render.js";
 import { zbudujPlan, salaPod, odleglosciSal } from "muzeum/plan.js";
 import { zbudujBudynek } from "muzeum/sale.js";
 import { urzadz } from "muzeum/wystroj.js";
@@ -20,6 +20,7 @@ import { initDzwiek } from "muzeum/dzwiek.js";
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
 const celownik = document.getElementById("celownik");
+const podpis = document.getElementById("podpis");
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
 
 /* Jedno miejsce na komunikaty muzeum (#hud-perf): strażnik wydajności i
@@ -102,6 +103,7 @@ function focusOn(hit) {
 /* Podejście do pracy: przejazd przez drzwi, na miejscu tabliczka. */
 function podejdz(hit) {
   endFocus();
+  podpis.hidden = true; bylPodpis = "";   // podpis nie jedzie z gościem przez cały przejazd
   nawigacja.podejdzDo(hit, () => focusOn(hit));
 }
 
@@ -123,6 +125,7 @@ function dzialaj(hit) {
 bindFocusControl({
   onFocusEnd: () => { focus = null; },
   goToHit: (hit) => podejdz(hit),     // pozycja z listy eksponatów
+  goToRoom: (id) => nawigacja?.lecDoSali(id),   // nagłówek sali w liście
 });
 
 addEventListener("keydown", (e) => { if (e.key === "Escape") { endFocus(); closeList(); } });
@@ -213,6 +216,21 @@ function celuj(e) {
     renderer.domElement.style.cursor = aktywny ? "pointer" : "default";
   }
   celownik.classList.toggle("celuje", !!hovered);
+  podpisz(e);
+}
+
+/* Podpis przy kursorze: co zrobi kliknięcie w pracę — „Podejdź · tytuł”.
+   Podłogę („idź tutaj”) pokazuje już znacznik. W blokadzie wskaźnika podpis
+   stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu. */
+let bylPodpis = "";
+function podpisz(e) {
+  const p = hovered?.userData.project;
+  const tekst = p && !dotykowy && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
+  if (tekst !== bylPodpis) { podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst; }
+  if (!tekst) return;
+  const x = gracz?.zablokowany() || !e ? innerWidth / 2 : e.clientX;
+  const y = gracz?.zablokowany() || !e ? innerHeight / 2 : e.clientY;
+  podpis.style.transform = `translate(${Math.round(x + 16)}px, ${Math.round(y + 18)}px)`;
 }
 
 function obsluzKlik(e) {
@@ -237,7 +255,7 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   obsluzKlik(e);
 });
 renderer.domElement.addEventListener("pointermove", (e) => { if (!downAt) celuj(e); });
-renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; });
+renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; podpisz(); });
 
 /* Obrazy prac. Na niskim poziomie (telefon) salami: wczytane do dwóch przejść
    od gościa, zwalniane od pięciu — pas pomiędzy chroni przed migotaniem, gdy
@@ -454,7 +472,7 @@ function zbudujMuzeum() {
     if (!ruszyla) komunikat(t("muz.brakWycieczki", "Nie ma wyróżnionych prac do pokazania."));
   });
 
-  buildList(interaktywne);
+  buildList(interaktywne, plan);
 }
 
 /* Bez tekstu w drugim argumencie document.fonts.load() ściąga tylko kroje

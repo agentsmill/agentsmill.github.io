@@ -11,6 +11,10 @@ produkty, robotyka i zabawy z Leonem — na jednej osi czasu z rozwojem technolo
 - `js/projects-data.js` — **tu edytujesz treść**: projekty, kamienie milowe, epoki, archiwum, dane kardiogramu
 - `js/main.js` — renderowanie (kardiogram SVG, oś czasu, filtry, spis, liczby w hero)
 - `js/i18n.js` — wersja angielska (nadpisuje dane przed `main.js`)
+- `museum.html` + `js/museum/` — Muzeum Budowania (three.js r169, też bez build stepu):
+  `plan.js` układa amfiladę sal z danych, `sale.js` i `wystroj.js` ją budują,
+  `zawieszenie.js` wiesza prace, `swiatla.js` świeci, `nawigacja.js` prowadzi gościa,
+  `dzwiek.js` gra; `?jakosc=wysoki|sredni|niski` w adresie wymusza poziom jakości
 - `css/main.css` — design tokens i style (Syne / Schibsted Grotesk / IBM Plex Mono)
 - `docs/superpowers/specs/` — design doc z pełnym logiem decyzji
 
@@ -20,6 +24,12 @@ Zero build stepu. Lokalnie:
 
 ```bash
 python3 -m http.server 8901
+```
+
+Testy planu muzeum (czysta logika, bez przeglądarki):
+
+```bash
+node --test tests/plan.test.mjs
 ```
 
 Deploy: push na `main` → GitHub Pages.
@@ -36,7 +46,11 @@ cat, desc, tech, links) — karta, muzeum i Kosmos ułożą go same. Jedno uderz
 - **Wyróżnienie:** `featured: N` — liczba to miejsce w siatce wyróżnionych.
 - **Wersja angielska:** tytuł i opis w `PROJEKTY` w `js/i18n.js`; bez wpisu projekt zostaje
   po polsku.
-- Po zmianie danych podbij `?v=` przy `js/projects-data.js` na wszystkich trzech stronach.
+- **Muzeum:** praca zawiśnie sama w sali swojej epoki (epoka ponad 10 prac dzieli się na
+  dwie sale). Eksponat autorski na podeście to builder w `js/museum/exhibits.js` i wpis w
+  `PODSTAWY` tamże.
+- Po każdej zmianie podbij wspólny stempel `?v=` — jedna wartość na wszystkich trzech
+  stronach: `sed -i '' -E "s/\?v=[0-9]{12}/?v=$(date +%Y%m%d%H%M)/g" index.html kosmos.html museum.html`
 
 Wersja angielska: przełącznik PL/EN albo link z `?lang=en`.
 
@@ -44,3 +58,6 @@ Wersja angielska: przełącznik PL/EN albo link z `?lang=en`.
 
 Zbudowane przez Claude Fable 5 w jednej sesji, 4 VIII 2026. Przegląd i aktualizacja:
 Claude Opus 5.5, 30 IX 2026 — `docs/superpowers/specs/2026-09-30-przeglad-i-aktualizacja-design.md`.
+
+Muzeum 3.0 (amfilada sal, która dojrzewa z czasem): Claude Opus 5.5, X 2026 —
+`docs/superpowers/specs/2026-10-07-muzeum-amfilada-design.md`.

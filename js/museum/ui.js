@@ -1,4 +1,5 @@
 import { fmtDate, CAT_HEX } from "muzeum/render.js";
+import { odleglosciSal } from "muzeum/plan.js";
 
 /* ── Tabliczka eksponatu ──────────────────────────────────────────────── */
 
@@ -16,6 +17,7 @@ function opisSali(s) {
 }
 
 function openPlaque(hit) {
+  const t = window.__t || ((klucz, pl) => pl);
   const p = hit.userData.project;
   const hex = CAT_HEX[p.cat[0]];
   plaque.style.setProperty("--cat", hex);
@@ -25,12 +27,12 @@ function openPlaque(hit) {
   document.getElementById("plaque-desc").textContent = p.desc;
   document.getElementById("plaque-tech").textContent = p.tech.join(" · ");
   const links = [];
-  if (p.links.live) links.push(`<a href="${p.links.live}" target="_blank" rel="noopener">Zobacz na żywo ↗</a>`);
+  if (p.links.live) links.push(`<a href="${p.links.live}" target="_blank" rel="noopener">${t("muz.naZywo", "Zobacz na żywo")} ↗</a>`);
   if (p.links.tg) links.push(`<a href="${p.links.tg}" target="_blank" rel="noopener">Telegram ↗</a>`);
   if (p.links.repo) links.push(`<a href="${p.links.repo}" target="_blank" rel="noopener">GitHub</a>`);
   if (p.links.npm) links.push(`<a href="${p.links.npm}" target="_blank" rel="noopener">npm</a>`);
   document.getElementById("plaque-links").innerHTML =
-    links.join("") || `<span style="color:var(--ink-faint)">${p.access || "projekt niepubliczny"}</span>`;
+    links.join("") || `<span style="color:var(--ink-faint)">${p.access || t("muz.niepubliczny", "projekt niepubliczny")}</span>`;
   plaque.hidden = false;
 }
 
@@ -58,10 +60,11 @@ function otworzWpisArchiwum(wpis) {
 // ani co znaczy „fokus" po stronie main.js — mechanika ruchu (dziś szyny scroll/dotyk/
 // klawiatura) zostanie wymieniona w kolejnym zadaniu na swobodny spacer, a ten port ma
 // przetrwać tę wymianę bez zmian.
-const focusHooks = { onFocusEnd() {}, goToHit() {} };
-function bindFocusControl({ onFocusEnd, goToHit }) {
+const focusHooks = { onFocusEnd() {}, goToHit() {}, goToRoom() {} };
+function bindFocusControl({ onFocusEnd, goToHit, goToRoom }) {
   focusHooks.onFocusEnd = onFocusEnd;
   focusHooks.goToHit = goToHit;
+  if (goToRoom) focusHooks.goToRoom = goToRoom;
 }
 
 function endFocus() {
@@ -84,26 +87,40 @@ document.getElementById("list-close").addEventListener("click", closeList);
 // Czytane przez main.js, żeby scroll/dotyk/klawiatura nie ruszały kamery, gdy lista jest otwarta.
 function isListOpen() { return !listPanel.hidden; }
 
-function buildList(lista) {
-  const body = document.getElementById("list-body");
-  body.innerHTML = ERAS.map((era) => {
-    const items = lista
-      .filter((h) => h.userData.project?.era === era.id)
+/* Lista eksponatów pogrupowana salami planu, w kolejności spaceru: od wejścia
+   przez kolejne drzwi, sale boczne tam, gdzie się do nich wchodzi (Kino i
+   Archiwum przy atrium, Pokój Leona między V a VI). Nagłówek sali to przycisk —
+   szybka podróż jak z planu w rogu; pozycja — przejazd przed pracę. Praca z
+   rzeźbą i obrazem występuje raz, jako rzeźba — tak jak w wycieczce. */
+function buildList(lista, plan) {
+  const odl = odleglosciSal(plan, plan.sale.find((s) => s.rodzaj === "atrium").id);
+  const sale = [...plan.sale].sort((a, b) => odl.get(a.id) - odl.get(b.id) || a.z0 - b.z0 || a.x0 - b.x0);
+  const pozycje = [];
+  document.getElementById("list-body").innerHTML = sale.map((s) => {
+    const wSali = new Map();
+    for (const h of lista) {
+      const p = h.userData.project;
+      if (!p || h.userData.salaId !== s.id) continue;
+      if (!wSali.has(p.id) || h.userData.exhibit) wSali.set(p.id, h);
+    }
+    const items = [...wSali.values()]
+      .sort((a, b) => (a.userData.project.date < b.userData.project.date ? -1 : 1))
       .map((h) => {
         const p = h.userData.project;
-        return `<button class="list-item" data-id="${p.id}">
+        pozycje.push(h);
+        return `<button class="list-item" type="button" data-i="${pozycje.length - 1}">
           <span class="li-date">${fmtDate(p.date)}</span>${p.title}</button>`;
       }).join("");
-    return `<p class="list-era">${era.range} · ${era.title}</p>${items}`;
+    return `<button class="list-sala" type="button" data-sala="${s.id}">${opisSali(s)}</button>${items}`;
   }).join("");
-  body.addEventListener("click", (e) => {
-    const btn = e.target.closest(".list-item");
-    if (!btn) return;
-    const hit = lista.find((h) => h.userData.project.id === btn.dataset.id);
-    if (!hit) return;
+  document.getElementById("list-body").addEventListener("click", (e) => {
+    const sala = e.target.closest(".list-sala");
+    const poz = e.target.closest(".list-item");
+    if (!sala && !poz) return;
     closeList();
     endFocus();
-    focusHooks.goToHit(hit);
+    if (sala) focusHooks.goToRoom(sala.dataset.sala);
+    else focusHooks.goToHit(pozycje[Number(poz.dataset.i)]);
   });
 }
 

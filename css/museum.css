@@ -74,6 +74,16 @@ a { color: var(--pulse); }
   padding: 0 1.2rem; transition: opacity 0.8s ease;
 }
 .hud-hint.gone { opacity: 0; }
+/* Na jasnym parkiecie pałacu i bieli szary napis ginął — pigułka z
+   półprzezroczystym tłem, osobna dla każdej linii, gdy tekst się łamie. */
+.hint-mysz, .hint-dotyk {
+  background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink-dim);
+  border-radius: 99px; padding: 0.3rem 0.85rem; line-height: 2.1;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* Nazwa sali: w jasnych salach (biel, Pokój Leona, strop pałacu) bursztyn
+   ginął na jasnym tle — ciemna poświata wokół liter, bez ramki. */
+.hud-era { text-shadow: 0 0 6px rgba(12, 16, 24, 0.9), 0 0 14px rgba(12, 16, 24, 0.6); }
 /* Wariant dla dotyku — kryterium to samo, co przy joysticku na końcu pliku
    (urządzenie bez precyzyjnego wskaźnika). Kto dostaje joystick, dostaje też
    podpowiedź o kciukach zamiast o klawiszu Shift. */
@@ -137,10 +147,16 @@ a { color: var(--pulse); }
 }
 .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.6rem; }
 .list-head h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.8rem; }
-.list-era {
+/* Nagłówek sali: przycisk szybkiej podróży (ui.js: buildList). */
+.list-sala {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: none; border: none; padding: 0;
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--pulse-dim); margin: 1.6rem 0 0.6rem;
 }
+.list-sala::after { content: " →"; opacity: 0; transition: opacity 0.15s ease; }
+.list-sala:hover, .list-sala:focus-visible { color: var(--pulse); }
+.list-sala:hover::after, .list-sala:focus-visible::after { opacity: 1; }
 .list-item {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: none; border: none; border-bottom: 1px solid var(--line);
@@ -299,3 +315,14 @@ a { color: var(--pulse); }
 .dz-ikona { width: 1.15em; height: 1.15em; flex: none; }
 #btn-dzwiek[aria-pressed="false"] .dz-fale { display: none; }
 @media (max-width: 900px) { #btn-dzwiek .hud-tekst { display: none; } }
+
+/* Podpis przy kursorze (main.js: podpisz) — „Podejdź · tytuł”. Przesuwany
+   transformacją, więc nie przelicza układu strony przy każdym ruchu myszy. */
+.podpis {
+  position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none;
+  max-width: min(28rem, 70vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.05em; color: var(--ink);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border: 1px solid var(--line); border-radius: 99px; padding: 0.3rem 0.75rem;
+}
+.podpis[hidden] { display: none; }
