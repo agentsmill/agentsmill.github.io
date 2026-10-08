@@ -560,7 +560,7 @@ Stary korytarz (`world.js` + `building.js`) znika, a w jego miejscu staje amfila
 - Produkuje:
   - `textures.js`: `tekstura(sciezka, srgb?) → Texture` (z pamięci), `materialPBR(nazwa, { kolor, normal, szorstkosc, bezKoloru }) → MeshStandardMaterial` (zawsze nowy), `plotno(w, h, rysuj(ctx2d)) → CanvasTexture` (sRGB; wspólna dla wystroj.js, zawieszenie.js, sale-boczne.js).
   - `render.js`: `renderer, scene, camera, composer, bloom, srodowisko, M, textSprite, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate`. Kamera ma `rotation.order = "YXZ"`, bez mgły, `far = 220`.
-  - `sale.js`: `zbudujBudynek(plan) → Budynek`, gdzie `Budynek = { grupa, kolizje, podlogi: Mesh[], posadzkiNocy: Mesh[], materialySal: Map<salaId, ((czynnik) => void)[]>, otwory: Map<salaId, {"z-","z+","x-","x+": number[]}>, kotwice: Kotwica[], tickery: Function[] }`; `zarejestruj(budynek, salaId, material, poziom)` (ustawia `material.userData.odswiezPrzedswietlenie()`); `dodajKolizje(budynek, obiekt, wszystko?)`; `bryla(w, h, d, mat)`; `plyta(w, d, mat, kafel?)`; `gladki(kolor, szorstkosc?, metal?)`; `PRZEDSWIETLENIE` (poziom per styl).
+  - `sale.js`: `zbudujBudynek(plan) → Budynek`, gdzie `Budynek = { grupa, kolizje, podlogi: Mesh[], materialySal: Map<salaId, ((czynnik) => void)[]>, otwory: Map<salaId, {"z-","z+","x-","x+": number[]}>, kotwice: Kotwica[], tickery: Function[] }`; `zarejestruj(budynek, salaId, material, poziom)` (ustawia `material.userData.odswiezPrzedswietlenie()`); `dodajKolizje(budynek, obiekt, wszystko?)`; `bryla(w, h, d, mat)`; `plyta(w, d, mat, kafel?)`; `gladki(kolor, szorstkosc?, metal?)`; `PRZEDSWIETLENIE` (poziom per styl).
   - `Kotwica = { salaId, typ: "rect"|"spot", pozycja: Vector3, cel?: Vector3, kierunek?: "dol", szer?, wys?, kat?, polcien?, zasieg?, kolor, moc, cien? }`.
   - `wystroj.js`: `urzadz(plan, budynek)`, `bicieSerca(sekundy) → number`, `OKRES_SERCA` (1,1 s).
   - `ui.js`: `buildList(lista)` (lista trafień jako parametr), `opisSali(sala) → string` zamiast `salaZ`.
@@ -930,7 +930,6 @@ export function zbudujBudynek(plan) {
   const budynek = {
     grupa, kolizje,
     podlogi: [],                  // płyty posadzek z userData.salaId — cel kliknięć „idź tutaj”
-    posadzkiNocy: [],             // nakładki nad lustrem (swiatla.js)
     materialySal: new Map(),      // salaId → funkcje ustawiające przedświetlenie
     otwory: new Map(),            // salaId → środki otworów na każdej ścianie (wystroj.js)
     kotwice: [],                  // światła idealne; prawdziwe z puli rozdziela swiatla.js
@@ -952,7 +951,6 @@ export function zbudujBudynek(plan) {
     pod.userData.salaId = s.id;
     grupa.add(pod);
     budynek.podlogi.push(pod);
-    if (s.styl === "noc") budynek.posadzkiNocy.push(pod);
 
     const sufit = plyta(W, D, mat.sufit);
     sufit.rotation.x = Math.PI / 2;
@@ -2369,7 +2367,7 @@ Sale dostają prawdziwe światło. Stała pula (12 reflektorów, 4 światła pow
 - Modyfikuj: `js/museum/render.js`, `js/museum/sale.js`, `js/museum/wystroj.js`, `js/museum/zawieszenie.js`, `js/museum/main.js`, `museum.html`
 
 **Interfejsy:**
-- Konsumuje: `Plan` (Zadanie 1); `Budynek` z `kotwice`, `materialySal`, `posadzkiNocy` (Zadanie 2); `plamy` z `powiesPrace` (Zadanie 3); kotwice z `cien` (Zadanie 4).
+- Konsumuje: `Plan` (Zadanie 1); `Budynek` z `kotwice`, `materialySal` (Zadanie 2); `plamy` z `powiesPrace` (Zadanie 3); kotwice z `cien` (Zadanie 4).
 - Produkuje:
   - `initSwiatla({ plan, budynek, plamy, pula?, lustro? }) → { wejdz(sala), aktualizuj(dt), sala(), wylaczLustro(), lustro }`. `pula` domyślnie `{ spot: 12, rect: 4 }` — Zadanie 10 poda mniejszą na słabszym sprzęcie.
   - `render.js` eksportuje `gtao` (GTAOPass, także `window.__mz.gtao`).
@@ -2449,9 +2447,12 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
   let celSlonca = 0;
 
   /* ── Lustro posadzki nocy ─────────────────────────────────────────── */
-  const nakladki = budynek.posadzkiNocy;
+  /* Lustro leży 0,5 mm nad płytami posadzek sali bieżącej i następnej sali nocy
+     i je zasłania; czarne płyty widać tam, gdzie lustra nie ma (pozostałe sale)
+     oraz po wylaczLustro(). Siłę odbicia wyznacza wyłącznie jego `color`:
+     szary 0x9a9a9a mnoży odbity obraz. */
   let lustro = null;
-  if (zLustrem && nakladki.length) {
+  if (zLustrem && plan.sale.some((s) => s.styl === "noc")) {
     lustro = new Reflector(new THREE.PlaneGeometry(1, 1), { textureWidth: 1024, textureHeight: 1024, color: 0x9a9a9a, clipBias: 0.003 });
     lustro.rotation.x = -Math.PI / 2;
     lustro.visible = false;
@@ -2459,9 +2460,7 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
     lustro.onBeforeRender = function (r, sc, cam, ...reszta) {
       // przebieg normalnych GTAO renderuje scenę z materiałem zastępczym — odbicie jest już w tej klatce
       if (sc.overrideMaterial) return;
-      for (const n of nakladki) n.visible = false;      // nakładka nad lustrem nie może się w nim odbić
       oryginal.call(this, r, sc, cam, ...reszta);
-      for (const n of nakladki) n.visible = true;
     };
     scene.add(lustro);
   }
@@ -2469,18 +2468,53 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
     if (!lustro) return;
     if (s.styl !== "noc") {
       lustro.visible = false;
-      for (const n of nakladki) n.material.opacity = 1;
       return;
     }
     const nast = plan.sale.find((q) => q.styl === "noc" && Math.abs(q.z0 - s.z1) < 1e-6);
     const z0 = s.z0, z1 = (nast ?? s).z1;
-    lustro.scale.set(s.x1 - s.x0 + 2, z1 - z0, 1);
+    // dokładnie szerokość sali: połówka muru leży w prostokącie własnej sali, więc brzeg lustra chowa się pod murem i nie wchodzi do sąsiednich pomieszczeń
+    lustro.scale.set(s.x1 - s.x0, z1 - z0, 1);
     lustro.position.set((s.x0 + s.x1) / 2, 0.0005, (z0 + z1) / 2);
     lustro.visible = true;
-    for (const n of nakladki) n.material.opacity = n.userData.salaId === s.id || n.userData.salaId === nast?.id ? 0.84 : 1;
   }
 
   /* ── Przydział puli przy wejściu do sali ──────────────────────────── */
+
+  /* Przydział po tożsamości: kotwica, która zostaje wybrana, zostaje na swoim
+     miejscu puli. Przydział po kolejności (według odległości) dawał prawie
+     każdemu miejscu inną kotwicę, a miejsce ze zmienioną kotwicą najpierw gaśnie
+     — przy drzwiach gasła więc cała sala, choć te same światła miały świecić dalej
+     (dwa świetliki, które tylko zamieniłyby się miejscami, gasły oba). Miejsca,
+     których kotwica odpadła, przejmują nowo wybrane (najpierw ciemne, a miejsca
+     z cieniem na końcu); reszta gaśnie. `wymagane` to kotwice z cieniem: muszą
+     siedzieć na miejscach, których światło rzuca cień (0–1) — liczby świateł z
+     cieniem nie wolno zmieniać, to rekompilacja shaderów. Zwykła kotwica na
+     takim miejscu im ustępuje. */
+  function rozdziel(miejsca, wybrane, wymagane = []) {
+    const swieci = (p) => p.moc > 0;
+    const zajete = new Set();
+    for (const p of miejsca) {
+      // światło, które świeci teraz, ma pierwszeństwo przed tym, które dopiero ma przyjść
+      const k = [p.obecna, p.nastepna].find((x) => x && wybrane.includes(x) && !zajete.has(x)) ?? null;
+      if (k) zajete.add(k);
+      p.nastepna = k;
+    }
+    const cieniste = miejsca.filter((p) => p.swiatlo.castShadow);
+    for (const z of wymagane.filter((x) => wybrane.includes(x))) {
+      if (cieniste.some((p) => p.nastepna === z)) continue;
+      const koszt = (p) => (p.nastepna ? 2 : swieci(p) ? 1 : 0);   // wolne ciemne < wolne gasnące < zajęte przez zwykłą kotwicę
+      const p = cieniste.filter((q) => !wymagane.includes(q.nastepna)).sort((a, b) => koszt(a) - koszt(b))[0];
+      if (!p) continue;
+      for (const q of miejsca) if (q.nastepna === z) q.nastepna = null;   // zwalnia miejsce, na którym siedziała dotąd
+      p.nastepna = z;
+    }
+    const siedzace = new Set(miejsca.map((p) => p.nastepna));
+    const nowe = wybrane.filter((k) => !siedzace.has(k));
+    const ranga = (p) => (cieniste.includes(p) ? 2 : 0) + (swieci(p) ? 1 : 0);   // miejsca z cieniem zostają dla kotwic z cieniem
+    miejsca.filter((p) => !p.nastepna).sort((a, b) => ranga(a) - ranga(b))
+      .forEach((p, i) => { p.nastepna = nowe[i] ?? null; });
+  }
+
   function przydziel(s) {
     const sasiedzi = new Set([s.id]);
     for (const d of plan.drzwi) {
@@ -2497,14 +2531,14 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
       const k = budynek.kotwice.filter((x) => x.salaId === q.id && x.typ === "rect");
       if (przydzRect.length + k.length <= prostokaty.length) { przydzRect.push(...k); realne.add(q.id); }
     }
-    // reflektory tylko w salach „realnych”: bieżąca najpierw, w sali bliższe kamerze; dwa z cieniem na początek puli
+    // reflektory tylko w salach „realnych”: bieżąca najpierw, w sali bliższe kamerze; dwa z cieniem na początku wyboru
     const waga = (k) => (k.salaId === s.id ? 0 : 1000) + k.pozycja.distanceTo(camera.position);
     const kandydaci = budynek.kotwice.filter((k) => k.typ === "spot" && realne.has(k.salaId)).sort((a, b) => waga(a) - waga(b));
     const zCieniem = kandydaci.filter((k) => k.cien).slice(0, 2);
     const przydzSpot = [...zCieniem, ...kandydaci.filter((k) => !zCieniem.includes(k))].slice(0, spoty.length);
 
-    prostokaty.forEach((p, i) => { p.nastepna = przydzRect[i] ?? null; });
-    spoty.forEach((p, i) => { p.nastepna = przydzSpot[i] ?? null; });
+    rozdziel(prostokaty, przydzRect);
+    rozdziel(spoty, przydzSpot, zCieniem);
     const swiecace = new Set(przydzSpot);
     for (const p of plamyStan) p.cel = swiecace.has(p.m.userData.kotwica) ? 0 : p.baza;
     for (const [id, st] of sale) st.cel = realne.has(id) ? RESZTKA_UDAWANIA : 1;
@@ -2538,11 +2572,20 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
   }
 
   /* Przesiadka bez skoku: światło gaśnie (~0,12 s), przenosi się na nową
-     kotwicę i rozpala (~0,25 s). Liczba świateł nie zmienia się nigdy. */
+     kotwicę i rozpala (~0,25 s) — ale tylko miejsce, które zmienia kotwicę (patrz
+     rozdziel); kotwica, która zostaje, świeci bez przerwy. Przy ograniczonym ruchu
+     zmiana jest natychmiastowa: nowa kotwica obejmuje miejsce w tej samej klatce,
+     od razu na pełnej mocy. Liczba świateł nie zmienia się nigdy. */
   function animujPule(p, dt) {
     if (p.obecna !== p.nastepna) {
-      p.moc = Math.max(0, p.moc - dt * 8 * (p.obecna?.moc ?? 1));
-      if (p.moc === 0) { p.obecna = p.nastepna; ustawGeometrie(p, p.obecna); }
+      if (reduceMotion) {
+        p.obecna = p.nastepna;
+        ustawGeometrie(p, p.obecna);
+        p.moc = p.obecna?.moc ?? 0;
+      } else {
+        p.moc = Math.max(0, p.moc - dt * 8 * (p.obecna?.moc ?? 1));
+        if (p.moc === 0) { p.obecna = p.nastepna; ustawGeometrie(p, p.obecna); }
+      }
     } else if (p.obecna) {
       p.moc = Math.min(p.obecna.moc, p.moc + dt * 4 * p.obecna.moc);
     }
@@ -2562,7 +2605,6 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
       if (!lustro) return;
       scene.remove(lustro);
       lustro = null;
-      for (const n of nakladki) n.material.opacity = 1;
     },
     aktualizuj(dt) {
       if (!biezaca) return;
@@ -2609,20 +2651,20 @@ composer.addPass(gtao);
 
 3. Po `window.__mz.bloom = bloom;` dopisz `window.__mz.gtao = gtao;`, a w eksporcie po `bloom,` dopisz `gtao,`.
 
-- [ ] **Krok 3: `sale.js` — posadzka nocy jako nakładka nad lustrem**
+- [ ] **Krok 3: `sale.js` — posadzka nocy pod lustrem**
 
-W `materialySali` zastąp gałąź `case "noc": return { … };` tą:
+W `materialySali` zastąp gałąź `case "noc": return { … };` tą (sama treść bez zmian, dochodzi komentarz, co naprawdę widać):
 
 ```js
-    case "noc": {
-      // posadzka to nakładka nad lustrem (swiatla.js): przezroczysta od początku, krycie ustawia lustro
-      const posadzka = bezOdbic(gladki(0x0d0f14, 0.32));
-      posadzka.transparent = true;
-      return { sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }), posadzka, sufit: gladki(0x0b0d12, 1) };
-    }
+    case "noc": return {
+      sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }),
+      // czarna płyta; lustro z swiatla.js przykrywa ją w sali bieżącej i następnej, w pozostałych salach nocy widać ją wprost
+      posadzka: bezOdbic(gladki(0x0d0f14, 0.32)),
+      sufit: gladki(0x0b0d12, 1),
+    };
 ```
 
-Przezroczystość ustawiona przy budowie, nie później: zmiana `transparent` po pierwszej klatce rekompiluje program.
+Lustro leży 0,5 mm nad posadzką i wygrywa test głębi, więc o sile odbicia decyduje wyłącznie jego `color` (decyzja właściciela 8 X: pełne lustro, jak w podglądzie; półprzezroczysta nakładka z planu nic nie robiła i odpadła).
 
 - [ ] **Krok 4: Strojenie mocy pod prawdziwe światło**
 
@@ -4730,7 +4772,7 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
 ```
 
 2. W tworzeniu reflektorów warunek `if (i < 2) {` → `if (i < 2 && cienie === "pelne") {` (komentarz na końcu linii bez zmian); `slonce.castShadow = true;` → `slonce.castShadow = cienie !== "brak";`.
-3. `if (zLustrem && nakladki.length) {` → `if (rozdzielczoscLustra && nakladki.length) {`, a w konstruktorze `Reflector` `textureWidth: 1024, textureHeight: 1024` → `textureWidth: rozdzielczoscLustra, textureHeight: rozdzielczoscLustra`.
+3. `if (zLustrem && plan.sale.some((s) => s.styl === "noc")) {` → `if (rozdzielczoscLustra && plan.sale.some((s) => s.styl === "noc")) {`, a w konstruktorze `Reflector` `textureWidth: 1024, textureHeight: 1024` → `textureWidth: rozdzielczoscLustra, textureHeight: rozdzielczoscLustra`.
 4. W zwracanym obiekcie linię `lustro,` zastąp `get lustro() { return lustro; },   // getter: po wyłączeniu przez perf.js ma oddać null, nie stare lustro`, a metodę `wylaczLustro` (z jej komentarzem) zastąp:
 
 ```js
@@ -4741,7 +4783,6 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
       scene.remove(lustro);
       lustro.dispose();
       lustro = null;
-      for (const n of nakladki) n.material.opacity = 1;
       return true;
     },
 ```
