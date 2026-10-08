@@ -6,6 +6,7 @@ import { renderer, scene, camera, composer, bloom } from "muzeum/render.js";
 import { zbudujPlan, salaPod } from "muzeum/plan.js";
 import { zbudujBudynek } from "muzeum/sale.js";
 import { urzadz } from "muzeum/wystroj.js";
+import { powiesPrace } from "muzeum/zawieszenie.js";
 import { PODSTAWY } from "muzeum/exhibits.js";
 import { initPlayer } from "muzeum/player.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali } from "muzeum/ui.js";
@@ -27,7 +28,7 @@ function komunikat(tekst) {
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
-let plan = null, budynek = null, gracz = null;
+let plan = null, budynek = null, gracz = null, prace = null;
 const interaktywne = [];     // trafienia raycastera: prace (Zadanie 3), eksponaty (Zadanie 4), sale boczne (Zadanie 8)
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
@@ -141,6 +142,9 @@ function zbudujMuzeum() {
   plan = zbudujPlan({ ERAS, PROJECTS, autorskie: new Map(Object.entries(PODSTAWY)) });
   budynek = zbudujBudynek(plan);
   urzadz(plan, budynek);
+  prace = powiesPrace(plan, budynek);
+  interaktywne.push(...prace.interaktywne);
+  for (const o of prace.obrazy) o.wczytaj();   // wszystkie od razu; salami — Zadanie 10
   scene.add(budynek.grupa);
   tickery.push(...budynek.tickery);
 
@@ -159,7 +163,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 
