@@ -246,3 +246,12 @@ a { color: var(--pulse); }
   .minimapa svg { display: none; width: calc(100vw - 2rem); }
   .minimapa.otwarta svg { display: block; }
 }
+
+/* Przycisk przejścia do Kosmosu przy portalu na końcu amfilady. */
+.kosmos-wejscie {
+  position: fixed; left: 50%; bottom: 4.5rem; transform: translateX(-50%); z-index: 35;
+  font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #14100a; background: var(--pulse); border: none; border-radius: 99px;
+  padding: 0.8rem 1.4rem; cursor: pointer; box-shadow: 0 0 40px rgba(242, 196, 109, 0.35);
+}
+.kosmos-wejscie[hidden] { display: none; }

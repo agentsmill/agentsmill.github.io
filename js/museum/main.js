@@ -10,10 +10,11 @@ import { powiesPrace } from "muzeum/zawieszenie.js";
 import { PODSTAWY, postawEksponaty } from "muzeum/exhibits.js";
 import { initPlayer } from "muzeum/player.js";
 import { initNawigacja } from "muzeum/nawigacja.js";
-import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali } from "muzeum/ui.js";
+import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali, otworzWpisArchiwum } from "muzeum/ui.js";
 import { initPerf } from "muzeum/perf.js";
 import { initSwiatla } from "muzeum/swiatla.js";
 import { initMinimapa } from "muzeum/minimapa.js";
+import { urzadzSaleBoczne } from "muzeum/sale-boczne.js";
 
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
@@ -32,7 +33,7 @@ function komunikat(tekst) {
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
-let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null;
+let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null, boczne = null;
 const interaktywne = [];     // trafienia raycastera: prace, eksponaty, sale boczne (Zadanie 8)
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
@@ -127,6 +128,8 @@ function obsluzKlik(e) {
   celuj(e);
   if (hovered) {
     if (focus && hovered === focus.hit) return;
+    // ekran Kina, szuflada Archiwum, portal Kosmosu: podejdź, potem ich własna akcja
+    if (hovered.userData.akcja) { const h = hovered; endFocus(); nawigacja.podejdzDo(h, () => h.userData.akcja()); return; }
     podejdz(hovered);
   } else if (punktPodlogi) {
     endFocus();
@@ -152,6 +155,7 @@ function naZmianeSali(s) {
   hudEra.textContent = opisSali(s);
   swiatla?.wejdz(s);
   minimapa?.sala(s.id);
+  boczne?.wejscie(s.id);
 }
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
@@ -212,6 +216,9 @@ function zbudujMuzeum() {
   const eksponaty = postawEksponaty(plan, budynek);   // przed graczem: dokłada kolizje podestów
   interaktywne.push(...eksponaty.interaktywne);
   tickery.push(...eksponaty.tickery);
+  boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum });   // też przed graczem: kolizja szafy
+  interaktywne.push(...boczne.interaktywne);
+  tickery.push(...boczne.tickery);
   scene.add(budynek.grupa);
   tickery.push(...budynek.tickery);
 
@@ -232,7 +239,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, boczne, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 

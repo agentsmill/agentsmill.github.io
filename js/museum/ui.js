@@ -34,6 +34,26 @@ function openPlaque(hit) {
   plaque.hidden = false;
 }
 
+/* Wpis archiwum (szuflada w sali Archiwum, sale-boczne.js) w tej samej
+   tabliczce co projekty: data, tytuł, notka i odnośnik, jeśli istnieje. */
+function otworzWpisArchiwum(wpis) {
+  const t = window.__t || ((klucz, pl) => pl);
+  plaque.style.setProperty("--cat", "var(--pulse-dim)");
+  document.getElementById("plaque-date").textContent = `${fmtDate(wpis.date)} · ${t("muz.sala.archiwum", "Archiwum")}`;
+  document.getElementById("plaque-title").textContent = wpis.title;
+  document.getElementById("plaque-desc").textContent = wpis.note;
+  document.getElementById("plaque-tech").textContent = "";
+  const link = document.getElementById("plaque-links");
+  link.textContent = "";
+  if (wpis.url) {
+    const a = document.createElement("a");
+    a.href = wpis.url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = `${t("muz.zobacz", "Zobacz")} ↗`;
+    link.appendChild(a);
+  }
+  plaque.hidden = false;
+}
+
 // Port do wstrzyknięcia sterowania kamerą: ui.js celowo nie wie, jak porusza się kamera
 // ani co znaczy „fokus" po stronie main.js — mechanika ruchu (dziś szyny scroll/dotyk/
 // klawiatura) zostanie wymieniona w kolejnym zadaniu na swobodny spacer, a ten port ma
@@ -68,7 +88,7 @@ function buildList(lista) {
   const body = document.getElementById("list-body");
   body.innerHTML = ERAS.map((era) => {
     const items = lista
-      .filter((h) => h.userData.project.era === era.id)
+      .filter((h) => h.userData.project?.era === era.id)
       .map((h) => {
         const p = h.userData.project;
         return `<button class="list-item" data-id="${p.id}">
@@ -87,4 +107,4 @@ function buildList(lista) {
   });
 }
 
-export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen, opisSali };
+export { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, isListOpen, opisSali, otworzWpisArchiwum };
