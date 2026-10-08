@@ -4,8 +4,9 @@
    idzie do gracza jako prędkość (gracz.sterujZ), więc kolizje i grawitacja
    liczą się jak przy chodzeniu. Łagodny start i hamowanie przed celem;
    wzrok podąża za kierunkiem ruchu, a pod koniec drogi do pracy — już ku
-   niej. Każde czynne wejście gościa (klawisz, joystick, przeciągnięcie)
-   przerywa przejazd i oddaje mu ster. */
+   niej. Każde czynne wejście gościa (klawisz, joystick, przeciągnięcie, mysz
+   w blokadzie, palec) NOWSZE niż start przejazdu przerywa go i oddaje mu ster;
+   drżenie ręki sprzed kliknięcia, które przejazd uruchomiło, się nie liczy. */
 
 import * as THREE from "three";
 import { camera, reduceMotion } from "muzeum/render.js";
@@ -22,8 +23,8 @@ const POSTOJ_WYCIECZKI = 7;            // [s] przy każdej wyróżnionej pracy
 const WZROK = 1.62;                    // wysokość punktu, w który patrzy idący
 
 export function initNawigacja({ plan, gracz, zaslona = null }) {
-  let jazda = null;      // { punkty, i, v, tempo, patrzNa, poDojsciu, faza, czas, bezPostepu, ostatniaOdl }
-  let wycieczka = null;  // { lista, i, czekaj, otworz, zamknij }
+  let jazda = null;      // { punkty, i, v, tempo, patrzNa, poDojsciu, faza, czas, bezPostepu, ostatniaOdl, start }
+  let wycieczka = null;  // { lista, i, czekaj, start, otworz, zamknij } — start: początek postoju (znacznik dla aktywneWejscie)
   const tu = new THREE.Vector3(), cel = new THREE.Vector3(), kierunek = new THREE.Vector3();
   const mac = new THREE.Matrix4(), kwat = new THREE.Quaternion();
 
@@ -66,12 +67,19 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
 
   function jedz(x, z, { tempo = SPACER, patrzNa = null, poDojsciu = null } = {}) {
     if (reduceMotion) {
-      przenikanie(() => { gracz.teleportuj(x, z, patrzNa ?? undefined); poDojsciu?.(); });
+      przenikanie(() => {
+        // klik w podłogę (bez patrzNa): zostajemy przodem tam, gdzie gość patrzył — teleportuj() bez celu obracałby go w głąb amfilady
+        const wzrok = patrzNa ? null : camera.quaternion.clone();
+        gracz.teleportuj(x, z, patrzNa ?? undefined);
+        if (wzrok) camera.quaternion.copy(wzrok);
+        poDojsciu?.();
+      });
       return;
     }
     jazda = {
       punkty: punktyDo(x, z), i: 0, v: gracz.predkosc(), tempo, patrzNa, poDojsciu,
       faza: "ruch", czas: 0, bezPostepu: 0, ostatniaOdl: Infinity,
+      start: performance.now(),     // aktywneWejscie(start): liczy się tylko wejście nowsze niż początek przejazdu
     };
   }
 
@@ -88,16 +96,22 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
     camera.updateProjectionMatrix();
   }
 
+  /* Koniec przejazdu. `udane` — gość dotarł (poDojsciu); inaczej przejazd się urwał
+     (utknięcie). Wycieczka nie może na tym stanąć: o następnym przystanku rządzi
+     czekaj > 0, a po nieudanym przejeździe nikt go nie ustawia — więc idziemy do
+     następnego przystanku (albo kończymy, jeśli to był ostatni). Przerwanie przez gościa
+     zeruje wycieczkę wcześniej (przerwij()), więc tu nic dalej nie rusza. */
   function zakoncz(udane) {
     const j = jazda;
     jazda = null;
     gracz.sterujZ(null);
     if (udane) j?.poDojsciu?.();
+    else if (wycieczka) nastepnyPrzystanek();
   }
 
   function przerwij() {
+    wycieczka = null;                    // najpierw wycieczka: zakoncz(false) nie ma wtedy dokąd iść dalej
     if (jazda) zakoncz(false);
-    wycieczka = null;
   }
 
   function nastepnyPrzystanek() {
@@ -111,18 +125,18 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
     const daleko = tu.distanceTo(pozycja) > 25;
     jedz(pozycja.x, pozycja.z, {
       tempo: daleko ? LOT : SPACER, patrzNa: patrz,
-      poDojsciu: () => { if (wycieczka !== w) return; w.otworz(hit); w.czekaj = POSTOJ_WYCIECZKI; },
+      poDojsciu: () => { if (wycieczka !== w) return; w.otworz(hit); w.czekaj = POSTOJ_WYCIECZKI; w.start = performance.now(); },
     });
   }
 
   function update(dt) {
     if (wycieczka && !jazda && wycieczka.czekaj > 0) {
-      if (gracz.aktywneWejscie()) { wycieczka = null; return; }
+      if (gracz.aktywneWejscie(wycieczka.start)) { wycieczka = null; return; }
       wycieczka.czekaj -= dt;
       if (wycieczka.czekaj <= 0) nastepnyPrzystanek();
     }
     if (!jazda) { ustawKat(KAT, dt); return; }
-    if (gracz.aktywneWejscie()) { przerwij(); return; }
+    if (gracz.aktywneWejscie(jazda.start)) { przerwij(); return; }
     gracz.pozycjaDo(tu);
 
     if (jazda.faza === "obrot") {          // na miejscu: wzrok dochodzi do pracy, potem tabliczka

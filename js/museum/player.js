@@ -30,6 +30,7 @@ const DLUGOSC_KROKU = 0.75;      // [m] — bujanie i dźwięk kroków liczone z
 const MARTWA_STREFA = 0.15;      // joystick
 const CZULOSC = 0.0032;          // [rad/px] — przeciąganie myszą i palcem
 const MAX_POCHYLENIE = 1.15;     // [rad] ok. 66° w górę i w dół
+const PROG_KLIKU = 8;            // [px] — ruch do tego progu od wciśnięcia to klik z drżeniem ręki, nie przeciąganie (ten sam próg ma main.js: `dist > 8`)
 /* Górny limit kroku całkowania. Przy 0,05 s i biegu (8 m/s) kapsuła przesuwa
    się o 0,4 m na klatkę, a przeskok przez mur 0,4 m wymaga ponad 1,1 m (mur +
    dwa promienie) — zapas jest. Dłuższa klatka (karta w tle) zjadłaby ten
@@ -119,7 +120,7 @@ export function initPlayer(kolizje) {
   let zewnetrzna = null;      // prędkość zadana przez nawigacja.js (x, z) albo null
   let aktywnosc = -1e9;       // chwila ostatniego czynnego wejścia gościa — przerywa przejazd
   let droga = 0;              // przebyta droga w bieżącym kroku [m]
-  let przeciaganie = null;    // { x, y } — przeciąganie myszą bez blokady
+  let przeciaganie = null;    // { x, y, x0, y0, rusza } — przeciąganie myszą bez blokady
 
   const lista = () => !!document.querySelector(".list-panel:not([hidden])");
 
@@ -141,15 +142,21 @@ export function initPlayer(kolizje) {
     naRozgladanie: (dx, dy) => { rozejrzyj(dx, dy); aktywnosc = performance.now(); },
   });
 
-  // przeciąganie myszą: rozglądanie bez blokady wskaźnika (klik bez ruchu obsługuje main.js)
+  /* Przeciąganie myszą: rozglądanie bez blokady wskaźnika. Ruch do PROG_KLIKU px od
+     miejsca wciśnięcia to jeszcze klik z drżeniem ręki (klik obsługuje main.js) — nie
+     obraca widoku i nie liczy się jako wejście gościa, więc nie kasuje przejazdu, który
+     tym klikiem właśnie ruszył (ani trwającego, gdy gość przekierowuje się drugim klikiem). */
   renderer.domElement.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;
-    przeciaganie = { x: e.clientX, y: e.clientY };
+    przeciaganie = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, rusza: false };
   });
   addEventListener("pointermove", (e) => {
     if (!przeciaganie || e.pointerType === "touch") return;
-    const dx = e.clientX - przeciaganie.x, dy = e.clientY - przeciaganie.y;
-    przeciaganie = { x: e.clientX, y: e.clientY };
+    const p = przeciaganie;
+    if (!p.rusza && Math.hypot(e.clientX - p.x0, e.clientY - p.y0) <= PROG_KLIKU) return;
+    p.rusza = true;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
     if (dx || dy) { rozejrzyj(dx, dy); aktywnosc = performance.now(); }
   });
   addEventListener("pointerup", () => { przeciaganie = null; });
@@ -202,9 +209,13 @@ export function initPlayer(kolizje) {
     pozycjaX: () => kapsula.end.x,
     pozycjaZ: () => kapsula.end.z,
     predkosc: () => Math.hypot(predkosc.x, predkosc.z),
-    /* Czy gość sam coś zrobił przed chwilą (klawisz, joystick, przeciągnięcie,
-       mysz w blokadzie) — wtedy nawigacja.js oddaje mu ster. */
-    aktywneWejscie: () => performance.now() - aktywnosc < 150,
+    /* Czy gość sam coś zrobił PO chwili `od` (znacznik performance.now() z początku
+       przejazdu albo postoju wycieczki): klawisz, joystick, przeciągnięcie, mysz w
+       blokadzie, palec rozglądający — wtedy nawigacja.js oddaje mu ster. Liczy się tylko
+       wejście nowsze niż `od`: okno „ostatnie 150 ms” gubiło kliki, bo ruch ręki tuż przed
+       kliknięciem, które przejazd uruchomiło, wyglądał jak sprzeciw wobec niego. Bez `od`
+       — wejście z ostatnich 150 ms. */
+    aktywneWejscie: (od = performance.now() - 150) => aktywnosc > od,
     naKrok: (f) => sluchaczeKrokow.add(f),
 
     /* Prędkość zadana z zewnątrz (nawigacja.js) albo null — wtedy znowu klawisze. */
