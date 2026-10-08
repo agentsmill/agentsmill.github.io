@@ -70,7 +70,19 @@ function celuj(e) {
   else return;
   ray.setFromCamera(pointer, camera);
   const traf = ray.intersectObjects(interaktywne, false);
-  hovered = traf.length ? traf[0].object : null;
+  /* Pośredniki eksponatów (niewidoczne kule i walec) są większe od samych rzeźb, więc
+     promień mierzący w obraz za nimi trafiałby najpierw w nie. Pośrednik liczy się tylko,
+     gdy ten sam promień trafia też w prawdziwe siatki eksponatu (linie i punkty mają duży
+     próg trafienia, więc je pomijamy). Gdy żadne trafienie nie przejdzie, zostaje pierwsze
+     z brzegu — samotny eksponat ma pozostać klikalny. */
+  const wybrane = traf.find((t) => {
+    const ex = t.object.userData.exhibit;
+    if (!ex) return true;
+    const siatki = [];
+    ex.group.traverse((o) => { if (o.isMesh) siatki.push(o); });
+    return ray.intersectObjects(siatki, false).length > 0;
+  }) ?? traf[0];
+  hovered = wybrane ? wybrane.object : null;
   if (!!hovered !== bylHovered) {
     bylHovered = !!hovered;
     renderer.domElement.style.cursor = bylHovered ? "pointer" : "default";
