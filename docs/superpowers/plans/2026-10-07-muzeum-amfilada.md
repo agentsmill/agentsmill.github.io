@@ -3225,6 +3225,20 @@ znacznik.rotation.x = -Math.PI / 2;
 znacznik.visible = false;
 scene.add(znacznik);
 
+/* Czy promień trafia w widoczną bryłę eksponatu: siatki wprost, linie i punkty z
+   ciasnym progiem — domyślny próg linii w three.js to 1 m, czyli „trafienie” obok
+   rzeźby. Reverie i Anatomy nie mają żadnej siatki, same linie i punkty. */
+function trafiaRzezbe(grupa) {
+  const czesci = [];
+  grupa.traverse((o) => { if (o.isMesh || o.isLine || o.isPoints) czesci.push(o); });
+  const { Line, Points } = ray.params;
+  const [progLinii, progPunktow] = [Line.threshold, Points.threshold];
+  Line.threshold = 0.05; Points.threshold = 0.08;
+  const trafia = ray.intersectObjects(czesci, false).length > 0;
+  Line.threshold = progLinii; Points.threshold = progPunktow;
+  return trafia;
+}
+
 function celuj(e) {
   if (gracz?.zablokowany()) pointer.set(0, 0);
   else if (e) pointer.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -3232,12 +3246,19 @@ function celuj(e) {
   ray.setFromCamera(pointer, camera);
   ray.far = ZASIEG_PRAC;
   const traf = ray.intersectObjects(interaktywne, false);
-  hovered = traf.length ? traf[0].object : null;
+  /* Pośredniki eksponatów (niewidoczne kule i walec toru) są większe od samych rzeźb,
+     więc promień mierzący w obraz za nimi albo w podłogę obok trafiałby najpierw w nie.
+     Pośrednik liczy się tylko, gdy ten sam promień trafia w widoczną bryłę eksponatu
+     (trafiaRzezbe). Gdy nic nie przejdzie, wygrywa podłoga; dopiero bez podłogi —
+     pierwszy pośrednik z brzegu. */
+  const wybrane = traf.find((t) => !t.object.userData.exhibit || trafiaRzezbe(t.object.userData.exhibit.group));
+  hovered = wybrane ? wybrane.object : null;
   punktPodlogi = null;
   if (!hovered && budynek) {
     ray.far = ZASIEG_PODLOGI;
     const p = ray.intersectObjects(budynek.podlogi, false)[0];
     if (p) punktPodlogi = p.point;
+    else if (traf.length) hovered = traf[0].object;
   }
   znacznik.visible = !!punktPodlogi;
   if (punktPodlogi) znacznik.position.set(punktPodlogi.x, 0.012, punktPodlogi.z);
@@ -3453,6 +3474,8 @@ async () => {
 ```
 
 Oczekiwane (zmierzone na próbie): `idzDo` ≈ `[3, 8, false]` (± 0,15 m); `podejdz.otwarta === true`, `odl` < 0,3; `leon === "leon"`; `wycieczka === "Agent AI Bajarz"` (najstarsza wyróżniona, VII 2025); `przerwana === "Oprowadź mnie"`; `bledy: []`.
+
+Trafienia eksponatów (wybór jak w `celuj`, promienie z ekranu przez siatkę punktów): z punktu widoku Reverie i Anatomy promienie wymierzone w ich linie i punkty wybierają rzeźbę (na próbie 145 i 154 ze 169 promieni siatki ±0,18 × ±0,24 NDC; reszta przechodzi w szczeliny na podłogę), a obraz na ścianie za podestem nie jest „kradziony” przez kulę pośrednika. W Pokoju Leona z progu klik w podłogę poza torem (r > 3,2 m od środka) prowadzi tam (na próbie 50 z 76 punktów; pozostałe promienie naprawdę przechodzą przez pociąg), a klik w sam pociąg otwiera jego tabliczkę.
 
 Ręcznie w przeglądarce (desktop): klik w podłogę z przejazdem przez drzwi; przeciągnięcie obraca widok bez ruszania; W wchodzi w blokadę wskaźnika, Esc ją zdejmuje; znacznik na posadzce idzie za kursorem. Telefon 390 × 844 (`browser_resize`): dotknięcie podłogi prowadzi, przeciągnięcie po prawej rozgląda, joystick po lewej chodzi.
 
