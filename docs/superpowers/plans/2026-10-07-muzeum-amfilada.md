@@ -2145,7 +2145,22 @@ function exGramofon(hex) {
   const talerz = new THREE.Group();
   const plyta = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.008, 48), new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.22 }));
   const etykieta = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.009, 32), new THREE.MeshStandardMaterial({ color: hex, roughness: 0.5 }));
-  talerz.add(plyta, etykieta);
+  /* Płyta i etykieta to współosiowe walce jednego koloru — obrócone wokół osi wyglądają
+     w każdym kącie tak samo, więc obrotu nie byłoby widać. Stąd nadruk na etykiecie:
+     kremowy półksiężyc zachodzącego słońca z tytułem, nic w nim nie jest symetryczne.
+     Przesunięcie głębi chroni przed migotaniem z górną ścianą walca etykiety. */
+  const nadruk = new THREE.Mesh(new THREE.CircleGeometry(0.05, 48), new THREE.MeshStandardMaterial({
+    roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    map: plotno(256, 256, (c) => {
+      c.fillStyle = `#${new THREE.Color(hex).getHexString()}`; c.fillRect(0, 0, 256, 256);
+      c.fillStyle = "#fff3d6"; c.beginPath(); c.arc(128, 128, 124, Math.PI, 2 * Math.PI); c.fill();
+      c.fillStyle = "#2a1d12"; c.font = "600 30px 'Schibsted Grotesk'"; c.textAlign = "center";
+      c.fillText("AKORDY", 128, 76, 190); c.fillText("ZMIERZCHU", 128, 112, 210);
+      c.fillStyle = "#14110d"; c.beginPath(); c.arc(128, 128, 7, 0, 7); c.fill();   // otwór na trzpień
+    }),
+  }));
+  nadruk.rotation.x = -Math.PI / 2; nadruk.position.y = 0.0047;
+  talerz.add(plyta, etykieta, nadruk);
   talerz.position.set(-0.05, 0.095, 0);
   g.add(talerz);
   const ramie = bx(0.25, 0.012, 0.012, new THREE.MeshStandardMaterial({ color: 0xcfd2d8, roughness: 0.25, metalness: 1 }));
@@ -2155,7 +2170,7 @@ function exGramofon(hex) {
   let obrot = 0;
   return {
     group: g,
-    tick(t, dt) { if (window.__gramofonGra === true) obrot += dt * 3.46; talerz.rotation.y = -obrot; },   // 33⅓ obr./min
+    tick(t, dt) { if (window.__gramofonGra === true) obrot += dt * 3.49; talerz.rotation.y = -obrot; },   // 33⅓ obr./min = 3,49 rad/s
     activate() {},
   };
 }
@@ -2227,8 +2242,14 @@ function postawEksponaty(plan, budynek) {
     if (ex.tick) wynik.tickery.push(ex.tick);
 
     const promien = b.rodzaj === "podest" ? 1.7 : b.rodzaj === "cokol" ? 0.6 : 3.0;
-    const traf = new THREE.Mesh(new THREE.SphereGeometry(promien, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
-    traf.position.set(b.x, wys + (b.rodzaj === "cokol" ? 0.3 : 1.1), b.z);
+    /* Pośrednik pod kliknięcie: niewidoczna bryła większa od samego eksponatu. Kula jest
+       jednostronna, więc od środka promień jej nie trafia — a po pokoju Leona chodzi się
+       po dywanie, czyli wewnątrz toru. Tor dostaje więc niski walec dwustronny; 1,2 m
+       sięga ponad komin lokomotywy (1,08 m), więc obejmuje cały pociąg. */
+    const traf = b.rodzaj === "tor"
+      ? new THREE.Mesh(new THREE.CylinderGeometry(promien, promien, 1.2, 32), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }))
+      : new THREE.Mesh(new THREE.SphereGeometry(promien, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    traf.position.set(b.x, b.rodzaj === "tor" ? 0.6 : wys + (b.rodzaj === "cokol" ? 0.3 : 1.1), b.z);
     const kier = b.sciana === "x+" ? -1 : b.sciana === "x-" ? 1 : 0;
     const odl = b.rodzaj === "podest" ? 3.9 : 2.0;
     traf.userData = {
