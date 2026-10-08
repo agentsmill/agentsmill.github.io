@@ -4318,12 +4318,14 @@ Gdy muzeum jest gotowe (pierwsza klatka), ekran ładowania staje się ekranem we
 
 **Pliki:**
 - Utwórz: `js/museum/dzwiek.js`
-- Modyfikuj: `js/museum/main.js`, `js/museum/player.js`, `museum.html`, `css/museum.css`
+- Modyfikuj: `js/museum/main.js`, `js/museum/player.js`, `js/museum/sale-boczne.js`, `museum.html`, `css/museum.css`
 
 **Interfejsy:**
-- Konsumuje: `OKRES_SERCA` z `wystroj.js` (Zadanie 2 — ten sam okres co `bicieSerca()`), pola sali `styl`, `rodzaj`, `x0`, `x1`, `z0`, `z1`, `H` (Zadanie 1), `gracz.naKrok(f)` (Zadanie 6; po kroku 2a powyżej prędkości marszu rzadziej niż co 0,75 m), `naZmianeSali(s)` w `main.js` (Zadanie 6), `boczne.ustawDzwiek(wl)` (Zadanie 8), `nawigacja.lecDoSali(salaId)` (Zadanie 6 — szybka podróż, 11 m/s; tylko w weryfikacji).
+- Konsumuje: `OKRES_SERCA` z `wystroj.js` (Zadanie 2 — ten sam okres co `bicieSerca()`), pola sali `styl`, `rodzaj`, `x0`, `x1`, `z0`, `z1`, `H` (Zadanie 1), `plan.drzwi` (Zadanie 1 — sąsiedzi sali do budowy pogłosu z wyprzedzeniem), `gracz.naKrok(f)` (Zadanie 6; po kroku 2a powyżej prędkości marszu rzadziej niż co 0,75 m), `naZmianeSali(s)` w `main.js` (Zadanie 6), `boczne.ustawDzwiek(wl)` (Zadanie 8), `nawigacja.lecDoSali(salaId)` (Zadanie 6 — szybka podróż, 11 m/s; tylko w weryfikacji).
 - Produkuje:
-  - `initDzwiek() → null | { ctx, ustawSale(sala), krok(), tick(), wycisz(tak), wyciszony() }` — `null`, gdy przeglądarka nie ma Web Audio.
+  - `initDzwiek(plan?) → null | { ctx, wyjscie, ustawSale(sala), krok(), tick(), wycisz(tak), wyciszony() }` — `null`, gdy przeglądarka nie ma Web Audio; `wyjscie` to wzmocnienie główne (przez nie idzie też dźwięk showreelu, więc słucha go wyciszanie); bez `plan` silnik nie buduje pogłosu sąsiadów z wyprzedzeniem.
+  - `player.js`: `gracz.wpusc()` — gość steruje (klawisze, dotyk, przeciąganie) dopiero po wejściu; `teleportuj()` i `__mz.testRuch` działają niezależnie.
+  - `sale-boczne.js`: `boczne.podlaczDzwiek(silnik)` — showreel przez silnik muzeum, ok. ¼ głośności z narastaniem przez 2 s; filmy Kina stają, gdy karta jest w tle.
   - DOM: `#wejscie` z `#wejdz-dzwiek` i `#wejdz-cisza` w `#loader`; `#btn-dzwiek[aria-pressed]` w HUD. `#loader` dostaje klasę `gotowy` (ekran wejścia) na pierwszej klatce, a `done` dopiero po wyborze.
   - `window.__mz.dzwiek()` — funkcja, bo kontekst powstaje dopiero przy kliknięciu.
 
@@ -4355,8 +4357,16 @@ const TON = {
   zabawy: { typ: "lowpass", f: 650, g: 0.022 },
 };
 const SERCE = [0.05, 0.3];   // fazy „lub” i „dub” w okresie — te same co w bicieSerca()
+/* Górna warstwa uderzenia (uderzenie()): trójkąt na 3× częstotliwości głębokiego impulsu (186→126 Hz), z tym
+   samym atakiem i szybszym zanikiem (`zanik` w sekundach od początku), przy ułamku siły. Głęboki sinus
+   (62→42 Hz) niesie serce na słuchawkach; głośniki laptopa i telefonu nie oddają niczego poniżej ok. 150 Hz,
+   więc z tej warstwy słyszą cichy, wyższy stuk. Miękko — muzeum, nie gra: wzmocnienie i zanik na dolnym
+   skraju dozwolonego zakresu (pomiar offline przez górnoprzepust 150 Hz: szczyt uderzenia nie rośnie,
+   a stuk zostaje cichszy od kroku). */
+const GORA = { razy: 3, wzmocnienie: 0.2, zanik: 0.10 };
+const MAX_ODPOWIEDZI = 6;    // odpowiedzi impulsowe w pamięci podręcznej (największa ma ok. 1,2 MB)
 
-export function initDzwiek() {
+export function initDzwiek(plan = null) {
   const Kontekst = window.AudioContext || window.webkitAudioContext;
   if (!Kontekst) return null;
   const ctx = new Kontekst();
@@ -4366,23 +4376,73 @@ export function initDzwiek() {
   const sucha = ctx.createGain();     // magistrala kroków i serca: idzie wprost i przez pogłos
   sucha.connect(glowny);
 
-  /* Pogłos: dwa konwolwery. Zmiana sali liczy nową odpowiedź impulsową do
-     nieaktywnego i przenika — podmiana bufora w grającym konwolwerze trzaska. */
+  /* Pogłos: dwa konwolwery. Zmiana sali daje nową odpowiedź impulsową nieaktywnemu
+     i przenika — podmiana bufora w grającym konwolwerze trzaska. `klucz` to ogon
+     odpowiedzi, którą konwolwer ma w sobie (dziesiąte części sekundy): ten sam ogon
+     nie wymaga podmiany bufora, a podmiana to jedyny koszt, który zostaje na progu. */
   const poglosy = [0, 1].map(() => {
     const c = ctx.createConvolver(), g = ctx.createGain();
     g.gain.value = 0;
     sucha.connect(c); c.connect(g); g.connect(glowny);
-    return { c, g };
+    return { c, g, klucz: null };
   });
   let aktywny = 0;
+  // szum z wykładniczym zanikiem; obwiednia raz na próbkę, wspólna dla obu kanałów
   function odpowiedz(sekundy, zanik) {
     const n = Math.floor(ctx.sampleRate * sekundy);
     const b = ctx.createBuffer(2, n, ctx.sampleRate);
-    for (let k = 0; k < 2; k++) {
-      const d = b.getChannelData(k);
-      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, zanik);
+    const lewy = b.getChannelData(0), prawy = b.getChannelData(1);
+    for (let i = 0; i < n; i++) {
+      const obwiednia = Math.pow(1 - i / n, zanik);
+      lewy[i] = (Math.random() * 2 - 1) * obwiednia;
+      prawy[i] = (Math.random() * 2 - 1) * obwiednia;
     }
     return b;
+  }
+  /* Pamięć podręczna odpowiedzi wg ogona zaokrąglonego do 0,1 s. Najwyżej MAX_ODPOWIEDZI wpisów;
+     najdawniej użyty wypada pierwszy (Map trzyma kolejność wstawiania, a każde użycie wstawia wpis
+     na koniec). */
+  const odpowiedzi = new Map();
+  function ogonZPamieci(klucz) {
+    let b = odpowiedzi.get(klucz);
+    if (b) odpowiedzi.delete(klucz); else b = odpowiedz(klucz / 10, 3.2);
+    odpowiedzi.set(klucz, b);
+    while (odpowiedzi.size > MAX_ODPOWIEDZI) odpowiedzi.delete(odpowiedzi.keys().next().value);
+    return b;
+  }
+  const kluczOgona = (s) => {
+    const objetosc = (s.x1 - s.x0) * (s.z1 - s.z0) * s.H;   // gabinet ~350 m³ → krótki ogon, atrium ~2500 m³ → długi
+    return Math.round(Math.min(3.2, Math.max(0.6, 0.6 + objetosc / 900)) * 10);
+  };
+
+  /* Po wejściu do sali buduje się w czasie bezczynności odpowiedzi sal połączonych z nią drzwiami (bez
+     portalu Kosmosu, za którym nie ma sali): próg następnych drzwi kosztuje wtedy co najwyżej podmianę
+     bufora. Jedna odpowiedź na wywołanie; requestIdleCallback z limitem czasu (zajęta klatka bez niego
+     głodziłaby budowę), a w Safari, który go nie ma, zwykły czasomierz. */
+  const poId = new Map((plan?.sale ?? []).map((q) => [q.id, q]));
+  const sasiedzi = new Map();
+  for (const d of plan?.drzwi ?? []) {
+    if (!d.b) continue;
+    for (const [z, do_] of [[d.a, d.b], [d.b, d.a]]) sasiedzi.set(z, [...(sasiedzi.get(z) ?? []), poId.get(do_)]);
+  }
+  const bezczynnie = typeof requestIdleCallback === "function"
+    ? (f) => { const id = requestIdleCallback(f, { timeout: 1000 }); return () => cancelIdleCallback(id); }
+    : (f) => { const id = setTimeout(f, 150); return () => clearTimeout(id); };
+  let anulujBudowe = null;
+  function zbudujSasiadow(s) {
+    anulujBudowe?.();                                  // nowa sala: kolejka po poprzedniej jest nieaktualna
+    anulujBudowe = null;
+    const trzymane = new Set(poglosy.map((p) => p.klucz));
+    const kolejka = [...new Set((sasiedzi.get(s.id) ?? []).filter(Boolean).map(kluczOgona))]
+      .filter((k) => !odpowiedzi.has(k) && !trzymane.has(k));
+    const dalej = () => {
+      anulujBudowe = null;
+      const k = kolejka.shift();
+      if (k === undefined) return;
+      if (!odpowiedzi.has(k)) ogonZPamieci(k);
+      if (kolejka.length) anulujBudowe = bezczynnie(dalej);
+    };
+    if (kolejka.length) anulujBudowe = bezczynnie(dalej);
   }
 
   // ton sali: zapętlony szum brązowy przez filtr strefy
@@ -4414,20 +4474,27 @@ export function initDzwiek() {
     styl = s.styl;
     serce = s.rodzaj === "atrium";
     const t = ctx.currentTime;
-    const objetosc = (s.x1 - s.x0) * (s.z1 - s.z0) * s.H;   // gabinet ~350 m³ → krótki ogon, atrium ~2500 m³ → długi
-    const nowy = 1 - aktywny;
-    poglosy[nowy].c.buffer = odpowiedz(Math.min(3.2, Math.max(0.6, 0.6 + objetosc / 900)), 3.2);
-    poglosy[nowy].g.gain.setTargetAtTime(MOKRO[s.styl] ?? 0.25, t, 0.25);
-    poglosy[aktywny].g.gain.setTargetAtTime(0, t, 0.25);
-    aktywny = nowy;
+    const klucz = kluczOgona(s), mokro = MOKRO[s.styl] ?? 0.25;
+    if (poglosy[aktywny].klucz === klucz) {
+      // ten sam ogon już gra w aktywnym konwolwerze: bez podmiany bufora, tylko nowy udział pogłosu
+      poglosy[aktywny].g.gain.setTargetAtTime(mokro, t, 0.25);
+    } else {
+      const nowy = 1 - aktywny;
+      if (poglosy[nowy].klucz !== klucz) { poglosy[nowy].c.buffer = ogonZPamieci(klucz); poglosy[nowy].klucz = klucz; }
+      poglosy[nowy].g.gain.setTargetAtTime(mokro, t, 0.25);
+      poglosy[aktywny].g.gain.setTargetAtTime(0, t, 0.25);
+      aktywny = nowy;
+    }
     const ton = TON[s.styl] ?? TON.palac;
     filtrTonu.type = ton.typ;
     filtrTonu.frequency.setTargetAtTime(ton.f, t, 0.6);
     glosTonu.gain.setTargetAtTime(ton.g, t, 0.8);
     dron.gain.setTargetAtTime(s.styl === "noc" ? 0.012 : 0, t, 1.2);
+    zbudujSasiadow(s);
   }
 
   function krok() {
+    if (wyciszony || ctx.state !== "running") return;   // wyciszony albo uśpiony kontekst: źródła kroków nie miałyby kiedy się skończyć
     const k = KROK[styl] ?? KROK.palac;
     const n = Math.floor(ctx.sampleRate * 0.09);
     const b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
@@ -4451,6 +4518,16 @@ export function initDzwiek() {
     g.gain.exponentialRampToValueAtTime(0.0001, kiedy + 0.22);
     o.connect(g); g.connect(sucha);
     o.start(kiedy); o.stop(kiedy + 0.25);
+    // górna warstwa (GORA): ta sama chwila i ten sam atak, szybszy zanik, ułamek siły
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.type = "triangle";
+    o2.frequency.setValueAtTime(62 * GORA.razy, kiedy);
+    o2.frequency.exponentialRampToValueAtTime(42 * GORA.razy, kiedy + 0.16);
+    g2.gain.setValueAtTime(0.0001, kiedy);
+    g2.gain.exponentialRampToValueAtTime(sila * GORA.wzmocnienie, kiedy + 0.012);
+    g2.gain.exponentialRampToValueAtTime(0.0001, kiedy + GORA.zanik);
+    o2.connect(g2); g2.connect(sucha);
+    o2.start(kiedy); o2.stop(kiedy + GORA.zanik + 0.03);
   }
 
   /* Serce planowane z wyprzedzeniem ~0,3 s wg zegara performance.now() —
@@ -4475,6 +4552,7 @@ export function initDzwiek() {
 
   return {
     ctx, ustawSale, krok, tick,
+    wyjscie: glowny,      // wspólne wyjście: tędy wchodzi też dźwięk filmu w Kinie (sale-boczne.js), więc przycisk w HUD go wycisza
     wycisz(tak) {
       wyciszony = tak;
       glowny.gain.setTargetAtTime(tak ? 0 : 0.9, ctx.currentTime, 0.08);
@@ -4510,21 +4588,37 @@ function pokazStanDzwieku() {
 }
 function wlaczDzwiek(tak) {
   if (tak && !dzwiek) {
-    dzwiek = initDzwiek();
+    dzwiek = initDzwiek(plan);
     if (!dzwiek) { napiszDzwiek(t("muz.dzwiekBrak", "Dźwięk niedostępny")); btnDzwiek.disabled = true; return; }
     dzwiek.ctx.resume();
     if (bylaSala) dzwiek.ustawSale(bylaSala);
+    boczne?.podlaczDzwiek(dzwiek);    // dźwięk showreelu w Kinie wchodzi przez wyjście silnika — słucha go też przycisk w HUD
   } else dzwiek?.wycisz(!tak);
   boczne?.ustawDzwiek(tak);
   pokazStanDzwieku();
 }
+/* Awaria dźwięku nie ma prawa zatrzymać wejścia ani zepsuć przycisku w HUD: wchodzimy w ciszy,
+   przycisk pokazuje „wył.”. Silnik, który się nie dokończył, zostaje wyciszony i odpięty — pętla klatek
+   nie woła wtedy niczego, co mogłoby rzucić. */
+function sprobujDzwiek(tak) {
+  try { wlaczDzwiek(tak); }
+  catch (err) {
+    console.warn("muzeum: dźwięk się nie uruchomił, wchodzimy w ciszy —", err);
+    try { dzwiek?.wycisz(true); } catch { /* i tak cisza */ }
+    dzwiek = null;
+    boczne?.ustawDzwiek(false);
+    pokazStanDzwieku();
+  }
+}
 function wejdz(zDzwiekiem) {
-  if (zDzwiekiem) wlaczDzwiek(true); else pokazStanDzwieku();
+  if (loader.classList.contains("done")) return;   // wejście już było: ukryte przyciski niczego nie zmieniają (Enter na nich)
+  gracz?.wpusc();                                  // od teraz klawisze, dotyk i mysz sterują gościem
+  if (zDzwiekiem) sprobujDzwiek(true); else pokazStanDzwieku();
   loader.classList.add("done");
 }
 document.getElementById("wejdz-dzwiek").addEventListener("click", () => wejdz(true));
 document.getElementById("wejdz-cisza").addEventListener("click", () => wejdz(false));
-btnDzwiek.addEventListener("click", () => wlaczDzwiek(!dzwiek || dzwiek.wyciszony()));
+btnDzwiek.addEventListener("click", () => sprobujDzwiek(!dzwiek || dzwiek.wyciszony()));
 ```
 
 4. W `petla()` pod `swiatla?.aktualizuj(dt);` dopisz `dzwiek?.tick();`.
@@ -4563,6 +4657,115 @@ Kroki i bujanie liczone z drogi co 0,75 m dają przy marszu (4,2 m/s) 5,6 kroku 
         if (faza >= 1) { faza -= 1; for (const f of sluchaczeKrokow) f(); }
         if (!reduceMotion) camera.position.y += Math.sin(faza * Math.PI * 2) * AMPLITUDA_KROKU * Math.min(1, v / PREDKOSC);
       }
+```
+
+3. Komentarz przy stałej `DLUGOSC_KROKU` zastąp: `// [m] — krok w marszu; powyżej PREDKOSC wydłuża się z prędkością (częstość kroków stała: 5,6/s)`.
+
+- [ ] **Krok 2b: `player.js` — gość steruje dopiero po wejściu**
+
+Ekran wejścia blokował kliki, ale nie klawisze ani dotyk: W przesuwało gościa pod nakładką, przeciągnięcie palcem ruszało joystick, a pierwszy klawisz ruchu w prawdziwej przeglądarce blokował wskaźnik pod ekranem wejścia — przycisków nie dało się kliknąć bez Esc. Gracz dostaje flagę zamiast kolejnego zapytania o DOM.
+
+1. Pod `let aktywnosc = -1e9; …` dopisz:
+
+```js
+  let wpuszczony = false;     // gość steruje dopiero po wpusc() (ekran wejścia); do tego czasu klawisze, dotyk i przeciąganie nic nie robią
+```
+
+2. W obsłudze `keydown` linię `if (lista()) return;` zastąp `if (!wpuszczony || lista()) return;      // przed wejściem żadnego ruchu, także blokady wskaźnika pod ekranem wejścia`.
+3. `function dotyk({ naRuch, naRozgladanie }) {` → `function dotyk({ czynny, naRuch, naRozgladanie }) {`; na początku obsługi `touchstart` dopisz `if (!czynny()) return;     // przed wejściem (ekran wejścia) dotyk niczego nie rusza`; w wywołaniu `dotyk({ … })` dopisz pierwszą linię `czynny: () => wpuszczony,`.
+4. W `pointerdown` na płótnie warunek `if (e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;` → `if (!wpuszczony || e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;`.
+5. W zwracanym obiekcie pod `naKrok: (f) => sluchaczeKrokow.add(f),` dopisz:
+
+```js
+    /* Wołane przez main.js przy wejściu do muzeum (przycisk na ekranie wejścia): od teraz gość steruje.
+       `__mz.testRuch` i teleportuj() działają niezależnie od tego. */
+    wpusc() { wpuszczony = true; },
+```
+
+- [ ] **Krok 2c: `sale-boczne.js` — showreel przez silnik muzeum, karta w tle**
+
+Film ma szczyt −1,6 dBFS, a cała synteza mieści się poniżej −22 dBFS — wejście do Kina z dźwiękiem uderzało o ponad 20 dB (decyzja właściciela 8 X: ciszej i z narastaniem). Dźwięk filmu idzie przez wyjście silnika: słucha go wyciszanie w HUD, a iOS, który ignoruje `video.volume`, też ma ściszenie.
+
+1. Pod stałą `PRZED_LISTWAMI` dopisz:
+
+```js
+/* Dźwięk showreelu wchodzi do silnika muzeum (dzwiek.js) na ok. ćwierć głośności i narasta od ciszy:
+   film ma szczyt −1,6 dBFS, cała synteza mieści się poniżej −22 dBFS, więc pełny poziom wchodzącego do Kina
+   gościa uderzałby o ponad 20 dB. */
+const GLOSNOSC_FILMU = 0.25, NARASTANIE_FILMU = 2;   // [1], [s]
+```
+
+2. Komentarz nad `function ekranWideo(…)` kończy się teraz zdaniem: `Ten dźwięk idzie przez silnik muzeum (podlacz): sucho, bez pogłosu sali, z narastaniem — dzięki temu słucha go przycisk w HUD, a iOS, który ignoruje video.volume, też ma ściszenie.` W `ekranWideo` pod `let video = null, dzwiek = false, chce = false; …` dopisz:
+
+```js
+  let silnik = null, film = null, wSilniku = false; // silnik: dzwiek.js; film: wzmocnienie dźwięku filmu; wSilniku: źródło już utworzone
+  let czekaNaStart = false;                         // graj() z dźwiękiem: narastanie liczy się od chwili, gdy wideo naprawdę zagra
+  /* Źródło z elementu powstaje dokładnie raz (drugie createMediaElementSource na tym samym elemencie
+     rzuca) i dopiero gdy są i wideo, i silnik; tylko duży ekran. Film → wzmocnienie → wyjście silnika. */
+  function polaczFilm() {
+    if (!glosny || !silnik || !video || wSilniku) return;
+    wSilniku = true;
+    try {
+      film = silnik.ctx.createGain();
+      film.gain.value = GLOSNOSC_FILMU;
+      silnik.ctx.createMediaElementSource(video).connect(film);
+      film.connect(silnik.wyjscie);
+    } catch (err) {
+      console.warn("sale-boczne.js: dźwięk filmu poza silnikiem muzeum —", err);
+      film = null;
+      video.volume = GLOSNOSC_FILMU;                // bez silnika choć ściszony (iOS tego nie uszanuje)
+    }
+  }
+  // od ciszy do GLOSNOSC_FILMU w NARASTANIE_FILMU s; wcześniejsze narastanie anulowane
+  function narastaj() {
+    if (!film) return;
+    const g = film.gain, t = silnik.ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(0, t);
+    g.linearRampToValueAtTime(GLOSNOSC_FILMU, t + NARASTANIE_FILMU);
+  }
+```
+
+3. W `graj()` pod `chce = true;` dopisz:
+
+```js
+      // narastanie tylko, gdy graj() naprawdę rusza film (nowy element albo po pauzie): drugie graj() na grającym — klik w ekran
+      // z zewnątrz woła je jeszcze raz po dojściu — nie ma prawa zgasić dźwięku w połowie filmu
+      const startuje = !video || video.paused;
+```
+
+   w bloku tworzenia elementu (`if (!video) { … }`) na końcu dopisz:
+
+```js
+        // zimne ładowanie potrafi trwać dłużej niż 2 s narastania — liczymy je od pierwszego „playing” po graj(), nie od graj()
+        video.addEventListener("playing", () => { if (czekaNaStart) { czekaNaStart = false; narastaj(); } });
+```
+
+   a linię `video.muted = !(glosny && dzwiek);` zastąp:
+
+```js
+      polaczFilm();
+      video.muted = !(glosny && dzwiek);
+      if (glosny && dzwiek && startuje) { czekaNaStart = true; narastaj(); }
+```
+
+4. W obiekcie `sterowanie` pod `ustawDzwiek(wl) { … },` dopisz `podlacz(s) { silnik = s; polaczFilm(); },`; w obiekcie zwracanym przez `kino()` pod `ustawDzwiek(wl) { duzy.ustawDzwiek(wl); },` dopisz `podlacz(silnik) { duzy.podlacz(silnik); },`.
+5. W `urzadzSaleBoczne` pod `let wKinie = false;` dopisz:
+
+```js
+  /* Karta w tle: filmy Kina stają, także wyciszone ujęcia z GB10 (nie dekodują się w ukryciu), a po powrocie
+     wchodzą od nowa — z narastaniem dźwięku. Tylko dla gościa, który jest w Kinie. */
+  document.addEventListener("visibilitychange", () => {
+    if (!wKinie) return;
+    if (document.hidden) sterKina?.wyjdz(); else sterKina?.wejdz();
+  });
+```
+
+   a w zwracanym obiekcie pod `ustawDzwiek(wl) { sterKina?.ustawDzwiek(wl); },` dopisz:
+
+```js
+    /* Wołane, gdy powstaje silnik dźwięku (main.js): dźwięk showreelu przechodzi przez jego wyjście. */
+    podlaczDzwiek(silnik) { sterKina?.podlacz(silnik); },
 ```
 
 - [ ] **Krok 3: `museum.html`**
@@ -4607,16 +4810,22 @@ Na końcu pliku:
   color: #14100a; background: var(--pulse); border: 1px solid var(--pulse); border-radius: 99px;
   padding: 0.85rem 1.6rem; min-width: 16rem; cursor: pointer;
 }
-.wejscie button.cicho { color: var(--ink-dim); background: transparent; border-color: var(--line); }
+/* „Wejdź w ciszy”: drugorzędny, ale czytelny — jasny napis na ciemnej, półprzezroczystej płytce (kontrast
+   ≥ 4,5:1 także na jasnej ścianie za ekranem wejścia) i widoczna obwódka. */
+.wejscie button.cicho { color: var(--ink); background: rgba(12, 16, 24, 0.72); border-color: rgba(233, 237, 245, 0.7); }
 .wejscie button:hover { box-shadow: 0 0 30px rgba(242, 196, 109, 0.3); }
 .wejscie button.cicho:hover { color: var(--pulse); border-color: var(--pulse-dim); box-shadow: none; }
-#loader.done { pointer-events: none; }
+/* Po wejściu loader znika też dla klawiatury i czytników: visibility zmienia się dopiero po zaniku (0,6 s,
+   jak opacity w #loader), więc ukryte przyciski wejścia nie stoją w kolejności Tab. */
+#loader.done { pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, visibility 0s 0.6s; }
 #btn-dzwiek[aria-pressed="true"] { color: var(--pulse); border-color: var(--pulse-dim); }
-/* Ikona głośnika: fale tylko przy włączonym dźwięku. Na telefonie napis znika
-   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu. */
+/* Ikona głośnika: fale tylko przy włączonym dźwięku. Do 900 px napis znika
+   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu
+   (z napisem w oknach 641–770 px era łamała się na pięć wierszy, a przełącznik języka wystawał). */
 #btn-dzwiek { display: inline-flex; align-items: center; gap: 0.45em; }
 .dz-ikona { width: 1.15em; height: 1.15em; flex: none; }
 #btn-dzwiek[aria-pressed="false"] .dz-fale { display: none; }
+@media (max-width: 900px) { #btn-dzwiek .hud-tekst { display: none; } }
 ```
 
 - [ ] **Krok 5: Weryfikacja**
@@ -4645,27 +4854,42 @@ async () => {
   d.ctx.createOscillator = () => { czasy.push(performance.now() / 1000); return osc(); };
   await czekaj(3300);
   d.ctx.createOscillator = osc;
-  // pogłos: długość odpowiedzi impulsowej (bufor 2-kanałowy) liczonej przy wejściu do sali
-  const poglos = {};
-  const buf = d.ctx.createBuffer.bind(d.ctx);
-  let sala = null;
-  d.ctx.createBuffer = (k, n, sr) => { if (k === 2 && sala) poglos[sala] = +(n / sr).toFixed(2); return buf(k, n, sr); };
-  for (const id of ["e1", "kino", "e5a", "atrium"]) {
-    const s = m.plan.sale.find((x) => x.id === id);
-    sala = id;
-    m.gracz.teleportuj((s.x0 + s.x1) / 2, (s.z0 + s.z1) / 2, { x: (s.x0 + s.x1) / 2, z: s.z1 });
-    await czekaj(500);
-  }
-  d.ctx.createBuffer = buf;
   btn.click();
   await czekaj(100);
   const wyciszony = { przycisk: btn.textContent, aria: btn.getAttribute("aria-pressed"), wyciszony: d.wyciszony() };
   btn.click();
-  return { stan, kroki, serce: czasy.slice(1).map((t, i) => +(t - czasy[i]).toFixed(2)), poglos, wyciszony, bledy: window.__errs };
+  return { stan, kroki, serce: czasy.slice(1).map((t, i) => +(t - czasy[i]).toFixed(2)), wyciszony, bledy: window.__errs };
 }
 ```
 
-Oczekiwane (próba): `stan` = `{ ctx: "running", przycisk: "Dźwięk: wł.", aria: "true", loader: "gotowy done" }`; `kroki` 13–14 (krok co 0,75 m); `serce` na przemian `0` i `1.1` (para uderzeń planowana razem, pary co `OKRES_SERCA`); `poglos` = `{ e1: 1.72, kino: 1.11, e5a: 2.35, atrium: 3.2 }` (atrium na suficie 3,2 s); `wyciszony` = `{ przycisk: "Dźwięk: wył.", aria: "false", wyciszony: true }`; `bledy: []`.
+Oczekiwane (próba): `stan` = `{ ctx: "running", przycisk: "Dźwięk: wł.", aria: "true", loader: "gotowy done" }`; `kroki` 13–14 (krok co 0,75 m); `serce` = `0, 0, 0, 1.1, 0, 0, 0, 1.1, …` (każde uderzenie to dwa głosy — głęboki sinus i trójkąt o 3× wyżej — a para „lub-dub” planowana razem, pary co `OKRES_SERCA`); `wyciszony` = `{ przycisk: "Dźwięk: wył.", aria: "false", wyciszony: true }`; `bledy: []`.
+
+   Pogłos — osobna sonda, bo silnik w bezczynności buduje z wyprzedzeniem odpowiedzi sal sąsiednich, a zapis przez `createBuffer` łapałby je pod złą salą. Dla każdej sali świeży silnik na `OfflineAudioContext`, bez planu (bez budowy sąsiadów), z zahaczonym setterem `ConvolverNode.prototype.buffer` — jedno `ustawSale(sala)` to jedno przypisanie:
+
+```js
+async () => {
+  const m = window.__mz;
+  const modul = await import("muzeum/dzwiek.js");
+  const OrygAC = window.AudioContext;
+  const opis = Object.getOwnPropertyDescriptor(ConvolverNode.prototype, "buffer");
+  let przypisania = [];
+  Object.defineProperty(ConvolverNode.prototype, "buffer", { configurable: true, get: opis.get, set(b) { if (b) przypisania.push(+b.duration.toFixed(2)); return opis.set.call(this, b); } });
+  const poglos = {};
+  try {
+    for (const id of ["e1", "kino", "e5a", "atrium"]) {
+      window.AudioContext = class extends OfflineAudioContext { constructor() { super(2, 48000, 48000); } };
+      przypisania = [];
+      const d = modul.initDzwiek();
+      window.AudioContext = OrygAC;
+      d.ustawSale(m.plan.sale.find((s) => s.id === id));
+      poglos[id] = przypisania.length === 1 ? przypisania[0] : przypisania;
+    }
+    return { poglos, bledy: window.__errs };
+  } finally { window.AudioContext = OrygAC; Object.defineProperty(ConvolverNode.prototype, "buffer", opis); }
+}
+```
+
+   Oczekiwane: `poglos` = `{ e1: 1.7, kino: 1.1, e5a: 2.4, atrium: 3.2 }` (odpowiedzi w pamięci podręcznej zaokrąglone do 0,1 s; atrium na suficie 3,2 s), `bledy: []`.
 
 3. Wejście w ciszy: przeładuj, `browser_click` w `#wejdz-cisza` → `window.__mz.dzwiek() === null` (żaden kontekst audio nie powstał), `#btn-dzwiek` = „Dźwięk: wył.”. Potem `browser_click` w `#btn-dzwiek` → `window.__mz.dzwiek().ctx.state === "running"`, przycisk „Dźwięk: wł.”.
 4. Kino słucha przełącznika:
@@ -4713,10 +4937,18 @@ async () => {
 
 Oczekiwane: `vMax` ≈ 11, `najkrotszyOdstepMs` ≥ 150 (5,6 kroku/s to 178 ms; przed krokiem 2a było ok. 68 ms), `bledy: []`. Spacer z punktu 2 nadal daje 13–14 kroków (poniżej prędkości marszu nic się nie zmienia).
 
+6. Po przeglądzie (prawdziwe kliki i klawisze):
+   - po wejściu kolejność Tab zaczyna się od `hud-back`; ukryte przyciski wejścia są nieosiągalne, a Enter ani klik na nich nie zmienia stanu dźwięku;
+   - przed wejściem klawisze, przeciągnięcie palcem i myszą nie ruszają gościa (0 m) i nie proszą o blokadę wskaźnika (szpieg na `requestPointerLock`), po wejściu działają;
+   - Kino z dźwiękiem: wzmocnienie filmu narasta od 0 do 0,25 w 2 s (liczone od pierwszego `playing`), wyciszenie w HUD go ucisza, `createMediaElementSource` wołane raz mimo kolejnych wejść i przełączeń; film ok. 19 dB nad tonem Kina;
+   - karta w tle: trzy filmy Kina stają, po powrocie ruszają z narastaniem;
+   - koszt `ustawSale` przy drzwiach (mediana z 5): atrium ok. 7,0 → 4,1 ms (przy 4× spowolnieniu CPU 26,1 → 14,6 ms); powrót do sali z gotową odpowiedzią ≈ 0;
+   - serce: drugi głos (trójkąt 3×, 0,2 × siła, zanik 0,10 s) — szczyt uderzenia bez filtra zmienia się o ≤ 1,5 dB; po górnoprzepustowym 150 Hz „lub” ok. 3,5–4,4 dB pod krokiem w pałacu (szczyt to atak; ostateczna ocena na słuch przy odbiorze).
+
 - [ ] **Krok 6: Commit**
 
 ```bash
-git add js/museum/dzwiek.js js/museum/main.js js/museum/player.js museum.html css/museum.css
+git add js/museum/dzwiek.js js/museum/main.js js/museum/player.js js/museum/sale-boczne.js museum.html css/museum.css
 git commit -m "$(cat <<'EOF'
 Muzeum: dźwięk na życzenie — ekran wejścia, kroki, pogłos sal, serce
 
