@@ -4985,7 +4985,7 @@ Cienie i poświata kosztują w tym kadrze poniżej 6 %. Okluzja w połowie rozdz
 **Kropkowane narożniki** (próba z przeglądu zrzutów): w bieli każde załamanie ścian obsypywało się kropkami. Źródłem nie była połowa rozdzielczości (pełna kropkuje tak samo) ani cienie, tylko odszumianie Poissona w GTAOPass — surowa okluzja (`gtao.output = 4`) jest gładka, odszumiona (`5`) kropkowana: próbki zza narożnika mają wagę normalnych 0, a ich zbiór zmienia się co piksel. Stąd `updatePdMaterial({ radius: 0 })` — przy 16 próbkach okluzja i bez filtra jest gładka (sprawdzone też pod ławką na parkiecie).
 
 **Pliki:**
-- Modyfikuj: `js/museum/plan.js`, `tests/plan.test.mjs`, `js/museum/render.js` (w całości), `js/museum/swiatla.js`, `js/museum/perf.js` (w całości), `js/museum/main.js`, `museum.html` (stempel)
+- Modyfikuj: `js/museum/plan.js`, `tests/plan.test.mjs`, `js/museum/render.js` (w całości), `js/museum/swiatla.js`, `js/museum/perf.js` (w całości), `js/museum/main.js`, `js/museum/zawieszenie.js`, `museum.html` (stempel)
 
 **Interfejsy:**
 - Konsumuje: `prace.obrazy` — `{ salaId, src, tex, wczytany, wczytaj(), zwolnij() }` (Zadanie 3), `initSwiatla` i `swiatla.wylaczLustro()` (Zadanie 5), `komunikat(tekst)` i `naZmianeSali(s)` w `main.js`, panel `#no-webgl` w `museum.html`.
@@ -5130,7 +5130,7 @@ const POZIOMY = {
   niski: { dpr: 1.25, gtao: false, lustro: 0, cienie: "brak", pula: { spot: 6, rect: 4 }, leniwe: true },
 };
 const wymuszony = new URLSearchParams(location.search).get("jakosc");
-const nazwaPoziomu = POZIOMY[wymuszony] ? wymuszony
+const nazwaPoziomu = Object.hasOwn(POZIOMY, wymuszony) ? wymuszony
   : dotykowy ? "niski" : (navigator.hardwareConcurrency ?? 8) <= 4 ? "sredni" : "wysoki";
 const jakosc = { nazwa: nazwaPoziomu, ...POZIOMY[nazwaPoziomu] };
 
@@ -5159,7 +5159,8 @@ host.appendChild(renderer.domElement);
 
 /* Utrata kontekstu WebGL (telefon pod presją pamięci, reset sterownika):
    three.js przestaje rysować i zostaje czarne płótno. Zamiast niego prośba
-   o odświeżenie — w panelu, którego używa też strażnik ładowania. */
+   o odświeżenie — w panelu, którego używa też strażnik ładowania. Panel
+   ogłasza się czytnikom ekranu (role="alert"), a fokus trafia na przycisk. */
 renderer.domElement.addEventListener("webglcontextlost", () => {
   const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
   const panel = document.getElementById("no-webgl");
@@ -5174,7 +5175,9 @@ renderer.domElement.addEventListener("webglcontextlost", () => {
   powrot.href = "index.html";
   powrot.textContent = t("muz.wrocKarta", "Wróć do karty budowania");
   panel.replaceChildren(tekst, odswiez, powrot);
+  panel.setAttribute("role", "alert");
   panel.hidden = false;
+  odswiez.focus();
 });
 
 // Mapa środowiskowa z kodu — 0 bajtów do pobrania. Siłę per strefa ustawia swiatla.js.
@@ -5260,6 +5263,23 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
     },
 ```
 
+5. Pod metodą `wylaczLustro` dopisz stopień cieni (sama flaga `renderer.shadowMap.enabled` tylko pomija przebieg map — skompilowane shadery dalej próbkują zamrożone mapy, a reflektory przesadzone potem do innej sali niosą stare macierze cieni):
+
+```js
+    /* Wyłączenie cieni na stałe — stopień degradacji z perf.js. Sama flaga
+       renderera (shadowMap.enabled) tylko pomija przebieg map cieni: skompilowane
+       shadery dalej próbkują ostatnie, zamrożone mapy. Dopiero castShadow = false
+       zmienia liczbę świateł z cieniem, więc three.js kompiluje shadery od nowa
+       — bez kodu cieni (jedna czkawka, którą strażnik i tak przeczekuje).
+       Zwraca, czy coś rzucało cień (na niskim poziomie nic — stopień przechodzi dalej). */
+    wylaczCienie() {
+      let rzucalo = false;
+      for (const p of spoty) if (p.swiatlo.castShadow) { p.swiatlo.castShadow = false; rzucalo = true; }
+      if (slonce.castShadow) { slonce.castShadow = false; rzucalo = true; }
+      return rzucalo;
+    },
+```
+
 - [ ] **Krok 7: `perf.js` — stopnie z zewnątrz**
 
 Zastąp zawartość `js/museum/perf.js` w całości:
@@ -5279,7 +5299,7 @@ Zastąp zawartość `js/museum/perf.js` w całości:
    ~120 klatek to około dwie sekundy przy 60 fps i wyraźnie więcej przy
    zadławionym starcie — czyli dokładnie ten okres, którego nie chcemy mierzyć. */
 const ROZGRZEWKA = 120;
-const PO_ZMIANIE = 60;    // wyłączenie cieni rekompiluje shadery — ta czkawka też nie jest pomiarem
+const PO_ZMIANIE = 60;    // wyłączenie cieni (castShadow = false w swiatla.js) kompiluje shadery od nowa — ta czkawka też nie jest pomiarem
 const OKNO = 90;          // klatek na jeden pomiar
 const PROG_FPS = 25;
 
@@ -5347,19 +5367,26 @@ const perf = initPerf({
     {
       nazwa: "cienie",
       tekst: () => t("muz.perf.cienie", "Wyłączyłem też cienie — ten sprzęt nie wyrabia."),
+      /* Najpierw castShadow = false w swiatla.js: zmienia liczbę świateł z cieniem, więc three.js raz
+         kompiluje shadery bez próbkowania map (czkawka mieści się w pauzie strażnika po zmianie).
+         Sama flaga renderera tylko pomijała przebieg map — shadery dalej czytały zamrożone cienie. */
       wykonaj: () => {
-        if (!renderer.shadowMap.enabled) return false;
+        const rzucalo = swiatla?.wylaczCienie() ?? false;
         renderer.shadowMap.enabled = false;
-        return true;
+        return rzucalo;
       },
     },
     {
       nazwa: "dpr",
       tekst: () => t("muz.perf.dpr", "Zmniejszyłem rozdzielczość obrazu — to ostatni krok."),
+      /* Schodzi o pół kroku, ale nie poniżej 0,75 — działa więc także na ekranach z DPR 1,
+         gdzie słabe komputery nie miały już co oddać. */
       wykonaj: () => {
-        if (renderer.getPixelRatio() <= 1) return false;
-        renderer.setPixelRatio(1);
-        composer.setPixelRatio(1);
+        const teraz = renderer.getPixelRatio();
+        if (teraz <= 0.75) return false;
+        const nowa = Math.max(0.75, teraz - 0.5);
+        renderer.setPixelRatio(nowa);
+        composer.setPixelRatio(nowa);
         return true;
       },
     },
@@ -5372,22 +5399,19 @@ const perf = initPerf({
 ```js
 /* ── Oszczędzanie w bezruchu ──────────────────────────────────────────────
    Gość stoi i nic się nie rusza → mniej klatek: po 2 s ok. 20 kl./s, po 20 s
-   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko albo przejazd wracają do
-   pełnej szybkości w tej samej klatce. W Kinie co najmniej 30 kl./s — gra film.
+   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko, zmiana rozmiaru okna albo
+   przejazd wracają do pełnej szybkości w tej samej klatce (po zmianie rozmiaru
+   płótno jest puste, więc następna klatka musi się narysować od razu).
+   W Kinie co najmniej 30 kl./s — gra film; w sali z gramofonem, gdy gra, co
+   najmniej 20 — kręci się płyta. Klatki pominięte nie psują animacji: eksponaty
+   i światła dostają prawdziwy czas (petla).
    Na telefonie i laptopie na baterii to różnica między „grzeje się” a „stoi”. */
 const BEZRUCH = [[20, 1 / 4], [2, 1 / 20]];   // [po ilu sekundach bezruchu, najkrótszy odstęp klatek w s]
 let ostatniRuch = performance.now(), ostatniaKlatka = 0;
+let salaGramofonu = null;                      // sala z płytą — ustalana raz w zbudujMuzeum()
 const ruch = () => { ostatniRuch = performance.now(); };
-for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove"]) {
+for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove", "resize", "orientationchange"]) {
   addEventListener(zdarzenie, ruch, { passive: true });
-}
-function odstepKlatek(teraz) {
-  if (nawigacja?.aktywna() || (gracz?.predkosc() ?? 0) > 0.05) { ostatniRuch = teraz; return 0; }
-  const bezruch = (teraz - ostatniRuch) / 1000;
-  let odstep = 0;
-  for (const [po, o] of BEZRUCH) if (bezruch >= po) { odstep = o; break; }
-  if (odstep && bylaSala?.rodzaj === "kino") odstep = Math.min(odstep, 1 / 30);
-  return odstep;
 }
 
 ```
@@ -5401,7 +5425,9 @@ function petla(teraz = performance.now()) {
   const odstep = odstepKlatek(teraz);
   if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
   ostatniaKlatka = teraz;
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const delta = clock.getDelta();
+  const dt = Math.min(delta, 0.05);    // gracz, nawigacja i strażnik: obcięcie chroni kolizje i pomiar przed skokami
+  const dtAnimacji = odstep ? Math.min(delta, 0.3) : dt;   // klatka po przerwie w bezruchu: eksponaty i światła dostają prawdziwy czas (płyta gramofonu 3,49 rad/s, nie 0,70)
   const czas = clock.elapsedTime;      // nie `t` — to nazwa tłumacza napisów wyżej
   if (!odstep) perf.tick(dt);          // strażnik mierzy tylko pełną szybkość — oszczędzanie to nie słaby sprzęt
 ```
@@ -5431,6 +5457,23 @@ function wczytajObrazy(s) {
 6. W `zbudujMuzeum()` usuń linię `for (const o of prace.obrazy) o.wczytaj();   // wszystkie od razu; salami — Zadanie 10`.
 7. `swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });` → `swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy, pula: jakosc.pula, lustro: jakosc.lustro, cienie: jakosc.cienie });`.
 8. W `Object.assign(window.__mz, { … })` dopisz `perf`.
+9. W reszcie pętli eksponaty i światła dostają prawdziwy czas klatki (po przerwie w bezruchu): `fn(czas, dt)` w pętli po `tickery` → `fn(czas, dtAnimacji)`, a `swiatla?.aktualizuj(dt);` → `swiatla?.aktualizuj(dtAnimacji);` — inaczej przy 4 kl./s obcięcie do 0,05 s spowalniało je pięciokrotnie (płyta gramofonu 0,70 zamiast 3,49 rad/s przy muzyce grającej w czasie rzeczywistym). Gracz, nawigacja i strażnik zostają przy obciętym `dt`.
+10. W `zbudujMuzeum()` zaraz pod `interaktywne.push(...eksponaty.interaktywne);` dopisz:
+
+```js
+  salaGramofonu = interaktywne.find((h) => h.userData.exhibit && h.userData.project?.id === "akordy-zmierzchu")?.userData.salaId ?? null;   // dla odstepKlatek()
+```
+
+- [ ] **Krok 8a: `zawieszenie.js` — nieudane wczytanie obrazu wraca przy następnym wejściu**
+
+Na niskim poziomie (telefon, słaba sieć) obraz, który się nie wczytał, zostawał na zawsze pustą płytą: `wczytany` zostawało `true`, więc `wczytajObrazy` już go nie ponawiało. W `obrazDo` → `wczytaj()` wywołanie zwrotne błędu w `ladowarka.load(…)` zastąp:
+
+```js
+      }, undefined, () => {
+        if (nr === this.zadanie) this.wczytany = false;   // następne wejście do sali spróbuje jeszcze raz; spóźniony błąd starego żądania nie rusza nowszego
+        console.warn(`zawieszenie.js: brak obrazu „${src}" — rama zostaje z neutralną płytą`);
+      });
+```
 
 - [ ] **Krok 9: `museum.html`** — podbij stempel `?v=` przy wszystkich modułach muzeum i przy `css/museum.css`.
 
@@ -5525,7 +5568,7 @@ async () => {
 }
 ```
 
-Oczekiwane: `wykonane` = `["gtao", "lustro", "cienie", "dpr"]`, każdy krok z własnym komunikatem w `#hud-perf`, piąty `zrobil: false`, `bledy: []`; zrzut sali nocy po degradacji — matowa posadzka, ciepłe linie i plamy snopów, bez czarnych dziur.
+Oczekiwane: `wykonane` = `["gtao", "lustro", "cienie", "dpr"]` — przy DPR 2 (1,5 → 1,0) i przy DPR 1 (1,0 → 0,75) — każdy krok z własnym komunikatem w `#hud-perf`, piąty `zrobil: false`, `bledy: []`; po stopniu cieni żaden widoczny oświetlany materiał nie ma `USE_SHADOWMAP` (program przekompilowany; jednorazowa czkawka mieści się w pauzie strażnika); zrzut sali nocy po degradacji — matowa posadzka, ciepłe linie i plamy snopów, bez czarnych dziur.
 
 4. Oszczędzanie w bezruchu (`browser_run_code_unsafe`; klatki liczone na `composer.render`):
 
@@ -5566,13 +5609,14 @@ Oczekiwane (próba 8 X, ekran 120 Hz): `wRuchu` ≈ odświeżanie ekranu (120), 
 
    Serce w bezruchu: przeładuj, wejdź **prawdziwym** klikiem w `#wejdz-dzwiek` (`page.locator("#wejdz-dzwiek").click()`), `__mz.gracz.teleportuj(0, -6.5, { x: 0, z: 10 })`, odczekaj 25 s bez ruchu, potem przez 4,5 s zapisuj chwile `ctx.createOscillator` (jak w weryfikacji Zadania 9). Oczekiwane: pary uderzeń planowane co `OKRES_SERCA` (1,1 s) z odchyłką do 0,05 s — nie co 1,0/1,25 s, jak przy planowaniu tylko w klatkach bezruchu.
 
-5. Utrata kontekstu: `window.__mz.renderer.getContext().getExtension("WEBGL_lose_context").loseContext()` → `#no-webgl` widoczny z tekstem „Karta graficzna zgubiła obraz muzeum…”, przyciskiem „Odśwież muzeum” (przeładowuje stronę) i odnośnikiem do karty budowania.
+   Po przeglądzie: po ponad 20 s bezruchu sześć zmian rozmiaru okna (i `orientationchange`) — żaden zrzut nie jest pustym płótnem, pętla wraca do pełnej szybkości; płyta gramofonu w bezruchu (4 kl./s, inna sala) kręci się z prędkością ≈ 3,49 rad/s; w sali gramofonu przy `window.__gramofonGra === true` co najmniej 20 kl./s, po zatrzymaniu znowu 4; serce nadal co 1,1 s.
+5. Utrata kontekstu: `window.__mz.renderer.getContext().getExtension("WEBGL_lose_context").loseContext()` → `#no-webgl` widoczny (z `role="alert"`, ognisko na przycisku) z tekstem „Karta graficzna zgubiła obraz muzeum…”, przyciskiem „Odśwież muzeum” (przeładowuje stronę) i odnośnikiem do karty budowania. Obraz, którego nie udało się wczytać, wczytuje się ponownie przy następnym wejściu do sali.
 6. Wykrywanie bez `?jakosc=` (CDP): `Emulation.setDeviceMetricsOverride({ width: 390, height: 844, deviceScaleFactor: 3, mobile: true })` + `Emulation.setTouchEmulationEnabled({ enabled: true, maxTouchPoints: 5 })` → `__mz.jakosc.nazwa === "niski"`, `dpr 1.25`, brak przewijania w bok; profil MacBooka + `Emulation.setHardwareConcurrencyOverride({ hardwareConcurrency: 4 })` → `"sredni"`; 10 wątków → `"wysoki"`.
 
 - [ ] **Krok 11: Commit**
 
 ```bash
-git add js/museum/plan.js tests/plan.test.mjs js/museum/render.js js/museum/swiatla.js js/museum/perf.js js/museum/main.js museum.html
+git add js/museum/plan.js tests/plan.test.mjs js/museum/render.js js/museum/swiatla.js js/museum/perf.js js/museum/main.js js/museum/zawieszenie.js museum.html
 git commit -m "$(cat <<'EOF'
 Muzeum: poziomy jakości, strażnik w czterech stopniach, obrazy salami
 
