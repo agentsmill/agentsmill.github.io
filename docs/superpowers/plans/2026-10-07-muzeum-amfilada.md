@@ -4496,7 +4496,7 @@ EOF
 
 ### Zadanie 10: Poziomy jakości, strażnik wydajności, obrazy salami, utrata kontekstu
 
-Trzy poziomy jakości wybierane na starcie (telefon → niski, komputer z ≤ 4 wątkami → średni, reszta → wysoki; `?jakosc=` wymusza), strażnik `perf.js` uogólniony do czterech stopni w kolejności ze specyfikacji, obrazy prac na telefonie wczytywane salami i komunikat zamiast czarnego ekranu po utracie kontekstu WebGL.
+Trzy poziomy jakości wybierane na starcie (telefon → niski, komputer z ≤ 4 wątkami → średni, reszta → wysoki; `?jakosc=` wymusza), strażnik `perf.js` uogólniony do czterech stopni w kolejności ze specyfikacji, obrazy prac na telefonie wczytywane salami, komunikat zamiast czarnego ekranu po utracie kontekstu WebGL i oszczędzanie w bezruchu (stojący gość: 20, potem 4 klatki na sekundę — decyzja właściciela 8 X).
 
 **Pomiar, który ustalił liczby** (próba 7 X, MacBook, profil 1440 × 900 przy DPR 2, atrium z widokiem na wylot — najgorszy kadr):
 
@@ -4894,7 +4894,45 @@ const perf = initPerf({
 });
 ```
 
-3. W `petla()` `perfTick(dt);` → `perf.tick(dt);`.
+3. **Oszczędzanie w bezruchu** (decyzja właściciela 8 X: muzeum nie może zarzynać telefonów i słabszych komputerów; stojący gość nie potrzebuje 120 klatek). Nad `const clock = new THREE.Clock();` wstaw:
+
+```js
+/* ── Oszczędzanie w bezruchu ──────────────────────────────────────────────
+   Gość stoi i nic się nie rusza → mniej klatek: po 2 s ok. 20 kl./s, po 20 s
+   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko albo przejazd wracają do
+   pełnej szybkości w tej samej klatce. W Kinie co najmniej 30 kl./s — gra film.
+   Na telefonie i laptopie na baterii to różnica między „grzeje się” a „stoi”. */
+const BEZRUCH = [[20, 1 / 4], [2, 1 / 20]];   // [po ilu sekundach bezruchu, najkrótszy odstęp klatek w s]
+let ostatniRuch = performance.now(), ostatniaKlatka = 0;
+const ruch = () => { ostatniRuch = performance.now(); };
+for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove"]) {
+  addEventListener(zdarzenie, ruch, { passive: true });
+}
+function odstepKlatek(teraz) {
+  if (nawigacja?.aktywna() || (gracz?.predkosc() ?? 0) > 0.05) { ostatniRuch = teraz; return 0; }
+  const bezruch = (teraz - ostatniRuch) / 1000;
+  let odstep = 0;
+  for (const [po, o] of BEZRUCH) if (bezruch >= po) { odstep = o; break; }
+  if (odstep && bylaSala?.rodzaj === "kino") odstep = Math.min(odstep, 1 / 30);
+  return odstep;
+}
+
+```
+
+a początek pętli — od `function petla() {` do `perfTick(dt);` włącznie — zastąp:
+
+```js
+function petla(teraz = performance.now()) {
+  requestAnimationFrame(petla);
+  const odstep = odstepKlatek(teraz);
+  if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
+  ostatniaKlatka = teraz;
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const czas = clock.elapsedTime;      // nie `t` — to nazwa tłumacza napisów wyżej
+  if (!odstep) perf.tick(dt);          // strażnik mierzy tylko pełną szybkość — oszczędzanie to nie słaby sprzęt
+```
+
+Strażnik (`perf.tick`) liczy tylko klatki pełnej szybkości: inaczej wziąłby 4 kl./s bezruchu za słaby sprzęt i wyłączał efekty. Odstęp o 4 ms krótszy od nominalnego, żeby drgania zegara rAF nie gubiły co drugiej klatki (20 kl./s przy ekranie 60 Hz to co trzecia klatka).
 4. Nad komentarzem funkcji `naZmianeSali` wstaw:
 
 ```js
@@ -4936,10 +4974,17 @@ async (page) => {
     wyniki[poziom] = await page.evaluate(async () => {
       const m = window.__mz;
       const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
-      const fps = async (ms) => {
-        let n = 0; const t0 = performance.now();
-        await new Promise((r) => { const f = () => { n++; performance.now() - t0 < ms ? requestAnimationFrame(f) : r(); }; requestAnimationFrame(f); });
-        return Math.round((n * 1000) / (performance.now() - t0));
+      // klatki NARYSOWANE (composer.render), nie wywołania rAF — w bezruchu pętla pomija rysowanie
+      let narysowane = 0;
+      const render = m.composer.render.bind(m.composer);
+      m.composer.render = (...a) => { narysowane++; return render(...a); };
+      const fps = async (ms, { aktywny = true } = {}) => {
+        // gość „rusza myszą” co 100 ms — inaczej oszczędzanie w bezruchu zaniżyłoby pomiar
+        const iv = aktywny ? setInterval(() => dispatchEvent(new PointerEvent("pointermove")), 100) : null;
+        const n0 = narysowane, t0 = performance.now();
+        await czekaj(ms);
+        clearInterval(iv);
+        return Math.round(((narysowane - n0) * 1000) / (performance.now() - t0));
       };
       await czekaj(1500);
       const stan = {
@@ -5006,8 +5051,45 @@ async () => {
 
 Oczekiwane: `wykonane` = `["gtao", "lustro", "cienie", "dpr"]`, każdy krok z własnym komunikatem w `#hud-perf`, piąty `zrobil: false`, `bledy: []`; zrzut sali nocy po degradacji — matowa posadzka, ciepłe linie i plamy snopów, bez czarnych dziur.
 
-4. Utrata kontekstu: `window.__mz.renderer.getContext().getExtension("WEBGL_lose_context").loseContext()` → `#no-webgl` widoczny z tekstem „Karta graficzna zgubiła obraz muzeum…”, przyciskiem „Odśwież muzeum” (przeładowuje stronę) i odnośnikiem do karty budowania.
-5. Wykrywanie bez `?jakosc=` (CDP): `Emulation.setDeviceMetricsOverride({ width: 390, height: 844, deviceScaleFactor: 3, mobile: true })` + `Emulation.setTouchEmulationEnabled({ enabled: true, maxTouchPoints: 5 })` → `__mz.jakosc.nazwa === "niski"`, `dpr 1.25`, brak przewijania w bok; profil MacBooka + `Emulation.setHardwareConcurrencyOverride({ hardwareConcurrency: 4 })` → `"sredni"`; 10 wątków → `"wysoki"`.
+4. Oszczędzanie w bezruchu (`browser_run_code_unsafe`; klatki liczone na `composer.render`):
+
+```js
+async (page) => {
+  await page.goto(`http://localhost:8902/museum.html?lang=pl&_=${Date.now()}`);
+  await page.locator("#wejdz-cisza").waitFor({ state: "visible" });
+  await page.locator("#wejdz-cisza").click();
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    const m = window.__mz;
+    window.__klatki = 0;
+    const render = m.composer.render.bind(m.composer);
+    m.composer.render = (...a) => { window.__klatki++; return render(...a); };
+  });
+  const kps = async (ms) => { const k0 = await page.evaluate(() => window.__klatki); await page.waitForTimeout(ms); return Math.round(((await page.evaluate(() => window.__klatki)) - k0) * 1000 / ms); };
+  const ruszaj = async (ms) => { const t0 = Date.now(); let i = 0; while (Date.now() - t0 < ms) { await page.mouse.move(600 + (i++ % 2) * 40, 450); await page.waitForTimeout(80); } };
+  const wynik = {};
+  const k0 = await page.evaluate(() => window.__klatki);
+  await ruszaj(3000);
+  wynik.wRuchu = Math.round(((await page.evaluate(() => window.__klatki)) - k0) / 3);
+  await page.waitForTimeout(2500);
+  wynik.bezruch3s = await kps(3000);
+  await page.waitForTimeout(16000);
+  wynik.bezruch25s = await kps(4000);
+  await ruszaj(400);
+  wynik.poRuchu = await kps(1000);
+  await page.evaluate(() => window.__mz.gracz.teleportuj(9.4, -8, { x: 18, y: 2.3, z: -8 }));
+  await page.waitForTimeout(25000);
+  wynik.kinoBezruch = await kps(3000);
+  wynik.perf = await page.evaluate(() => window.__mz.perf.wykonane());
+  wynik.bledy = await page.evaluate(() => window.__errs);
+  return wynik;
+}
+```
+
+Oczekiwane (próba 8 X, ekran 120 Hz): `wRuchu` ≈ odświeżanie ekranu (120), `bezruch3s` ≈ 20, `bezruch25s` ≈ 4, `poRuchu` z powrotem ≈ 120, `kinoBezruch` ≈ 30, `perf: []` (strażnik nie wziął bezruchu za słaby sprzęt), `bledy: []`. Na próbie CPU przeglądarki testów: 103 % w ruchu, 37 % po 3 s bezruchu, 15 % po 25 s.
+
+5. Utrata kontekstu: `window.__mz.renderer.getContext().getExtension("WEBGL_lose_context").loseContext()` → `#no-webgl` widoczny z tekstem „Karta graficzna zgubiła obraz muzeum…”, przyciskiem „Odśwież muzeum” (przeładowuje stronę) i odnośnikiem do karty budowania.
+6. Wykrywanie bez `?jakosc=` (CDP): `Emulation.setDeviceMetricsOverride({ width: 390, height: 844, deviceScaleFactor: 3, mobile: true })` + `Emulation.setTouchEmulationEnabled({ enabled: true, maxTouchPoints: 5 })` → `__mz.jakosc.nazwa === "niski"`, `dpr 1.25`, brak przewijania w bok; profil MacBooka + `Emulation.setHardwareConcurrencyOverride({ hardwareConcurrency: 4 })` → `"sredni"`; 10 wątków → `"wysoki"`.
 
 - [ ] **Krok 11: Commit**
 
@@ -5023,6 +5105,8 @@ poniżej 1/255; bez odszumiania Poissona, które kropkowało narożniki
 w bieli. Wysoki na DPR 1,5. Strażnik wyłącza kolejno GTAO,
 lustro, cienie i rozdzielczość. Na telefonie obrazy prac tylko do
 dwóch przejść od gościa. Utrata kontekstu WebGL — prośba o odświeżenie.
+Bezruch: po 2 s ok. 20, po 20 s ok. 4 klatki na sekundę, ruch od razu
+przywraca pełną szybkość, Kino trzyma 30 (CPU próby: 103 % → 15 %).
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 EOF
@@ -5672,10 +5756,17 @@ async (page) => {
     return await page.evaluate(async () => {
       const m = window.__mz;
       const czekaj = (ms) => new Promise((r) => setTimeout(r, ms));
-      const fps = async (ms) => {
-        let n = 0; const t0 = performance.now();
-        await new Promise((r) => { const f = () => { n++; performance.now() - t0 < ms ? requestAnimationFrame(f) : r(); }; requestAnimationFrame(f); });
-        return Math.round((n * 1000) / (performance.now() - t0));
+      // klatki NARYSOWANE (composer.render), nie wywołania rAF — w bezruchu pętla pomija rysowanie
+      let narysowane = 0;
+      const render = m.composer.render.bind(m.composer);
+      m.composer.render = (...a) => { narysowane++; return render(...a); };
+      const fps = async (ms, { aktywny = true } = {}) => {
+        // gość „rusza myszą” co 100 ms — inaczej oszczędzanie w bezruchu zaniżyłoby pomiar
+        const iv = aktywny ? setInterval(() => dispatchEvent(new PointerEvent("pointermove")), 100) : null;
+        const n0 = narysowane, t0 = performance.now();
+        await czekaj(ms);
+        clearInterval(iv);
+        return Math.round(((narysowane - n0) * 1000) / (performance.now() - t0));
       };
       await czekaj(1500);
       m.gracz.teleportuj(0, -6.5, { x: 0, z: 100 });
@@ -5685,13 +5776,17 @@ async (page) => {
       m.gracz.teleportuj(0, noc.z0 + 2.5, { x: 0, z: noc.z1 });
       await czekaj(2500);
       const wNocy = await fps(5000);
-      const wynik = { poziom: m.jakosc.nazwa, dpr: m.renderer.getPixelRatio(), atrium, wNocy, lustro: !!m.swiatla.lustro?.visible, perf: m.perf.wykonane(), bledy: window.__errs };
+      // bezruch: bez wejścia gościa pętla zwalnia — po 25 s ok. 4 klatki na sekundę
+      await czekaj(25000);
+      const bezruch = await fps(4000, { aktywny: false });
+      const wynik = { poziom: m.jakosc.nazwa, dpr: m.renderer.getPixelRatio(), atrium, wNocy, bezruch, lustro: !!m.swiatla.lustro?.visible, perf: m.perf.wykonane(), bledy: window.__errs };
       const niezgodne = [];
       const sprawdz = (warunek, opis) => { if (!warunek) niezgodne.push(opis); };
       sprawdz(wynik.poziom === "wysoki" && wynik.dpr === 1.5, "poziom albo DPR");
       sprawdz(wynik.atrium >= 60, "atrium poniżej 60 fps");
       sprawdz(wynik.wNocy >= 60, "sala nocy poniżej 60 fps");
       sprawdz(wynik.lustro, "lustro w sali nocy niewidoczne");
+      sprawdz(wynik.bezruch <= 6, "bezruch nie oszczędza klatek");
       sprawdz(wynik.perf.length === 0, "strażnik wydajności zdegradował scenę");
       sprawdz(wynik.bledy.length === 0, "błędy");
       wynik.niezgodne = niezgodne;
