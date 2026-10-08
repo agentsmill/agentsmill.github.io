@@ -119,7 +119,7 @@ export function initPlayer(kolizje) {
   let naZiemi = false, joyX = 0, joyY = 0;
   let zewnetrzna = null;      // prędkość zadana przez nawigacja.js (x, z) albo null
   let aktywnosc = -1e9;       // chwila ostatniego czynnego wejścia gościa — przerywa przejazd
-  let droga = 0;              // przebyta droga w bieżącym kroku [m]
+  let faza = 0;               // faza bieżącego kroku: 0–1
   let przeciaganie = null;    // { x, y, x0, y0, rusza } — przeciąganie myszą bez blokady
 
   const lista = () => !!document.querySelector(".list-panel:not([hidden])");
@@ -253,12 +253,13 @@ export function initPlayer(kolizje) {
       kapsula.translate(krok.copy(predkosc).multiplyScalar(dt));
       kolizja();
       camera.position.copy(kapsula.end);
-      // kroki: z przebytej drogi — szybszy chód to częstsze kroki; bujanie wyłączone przy reduced motion
+      // kroki: z przebytej drogi — do prędkości marszu szybciej znaczy częściej, powyżej krok się
+      // wydłuża (bieg i szybka podróż: 5,6 kroku/s, nie 10–15); bujanie wyłączone przy reduced motion
       const v = Math.hypot(predkosc.x, predkosc.z);
       if (naZiemi && v > 0.4) {
-        droga += v * dt;
-        if (droga >= DLUGOSC_KROKU) { droga -= DLUGOSC_KROKU; for (const f of sluchaczeKrokow) f(); }
-        if (!reduceMotion) camera.position.y += Math.sin((droga / DLUGOSC_KROKU) * Math.PI * 2) * AMPLITUDA_KROKU * Math.min(1, v / PREDKOSC);
+        faza += (v * dt) / (DLUGOSC_KROKU * Math.max(1, v / PREDKOSC));
+        if (faza >= 1) { faza -= 1; for (const f of sluchaczeKrokow) f(); }
+        if (!reduceMotion) camera.position.y += Math.sin(faza * Math.PI * 2) * AMPLITUDA_KROKU * Math.min(1, v / PREDKOSC);
       }
     },
   };

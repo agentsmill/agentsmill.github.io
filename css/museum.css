@@ -264,3 +264,27 @@ a { color: var(--pulse); }
 @media (min-width: 641px) and (max-width: 960px) and (pointer: fine) {
   .kosmos-wejscie { left: auto; right: 1rem; transform: none; }
 }
+
+/* Ekran wejścia (main.js: wejdz). Do pierwszej klatki loader jak dotąd; potem
+   tło staje się półprzezroczyste — za nim widać amfiladę — i przycisk przejmuje
+   kliknięcia, żeby klik obok nie ruszył spaceru przed wejściem. */
+.wejscie { display: none; flex-direction: column; align-items: center; gap: 0.8rem; }
+#loader.gotowy { background: radial-gradient(ellipse at center, rgba(12,16,24,0.35), rgba(12,16,24,0.88)); pointer-events: auto; }
+#loader.gotowy > svg, #loader.gotowy > p { display: none; }
+#loader.gotowy .wejscie { display: flex; }
+.wejscie h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 6vw, 3.6rem); letter-spacing: -0.02em; margin-bottom: 1rem; text-align: center; }
+.wejscie button {
+  font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #14100a; background: var(--pulse); border: 1px solid var(--pulse); border-radius: 99px;
+  padding: 0.85rem 1.6rem; min-width: 16rem; cursor: pointer;
+}
+.wejscie button.cicho { color: var(--ink-dim); background: transparent; border-color: var(--line); }
+.wejscie button:hover { box-shadow: 0 0 30px rgba(242, 196, 109, 0.3); }
+.wejscie button.cicho:hover { color: var(--pulse); border-color: var(--pulse-dim); box-shadow: none; }
+#loader.done { pointer-events: none; }
+#btn-dzwiek[aria-pressed="true"] { color: var(--pulse); border-color: var(--pulse-dim); }
+/* Ikona głośnika: fale tylko przy włączonym dźwięku. Na telefonie napis znika
+   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu. */
+#btn-dzwiek { display: inline-flex; align-items: center; gap: 0.45em; }
+.dz-ikona { width: 1.15em; height: 1.15em; flex: none; }
+#btn-dzwiek[aria-pressed="false"] .dz-fale { display: none; }

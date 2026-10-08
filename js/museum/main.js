@@ -15,6 +15,7 @@ import { initPerf } from "muzeum/perf.js";
 import { initSwiatla } from "muzeum/swiatla.js";
 import { initMinimapa } from "muzeum/minimapa.js";
 import { urzadzSaleBoczne } from "muzeum/sale-boczne.js";
+import { initDzwiek } from "muzeum/dzwiek.js";
 
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
@@ -33,7 +34,7 @@ function komunikat(tekst) {
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
-let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null, boczne = null;
+let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null, boczne = null, dzwiek = null;
 const interaktywne = [];     // trafienia raycastera: prace, eksponaty, sale boczne (Zadanie 8)
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
@@ -171,7 +172,42 @@ function naZmianeSali(s) {
   swiatla?.wejdz(s);
   minimapa?.sala(s.id);
   boczne?.wejscie(s.id);
+  dzwiek?.ustawSale(s);
 }
+
+/* ── Wejście i dźwięk ─────────────────────────────────────────────────────
+   Ekran ładowania staje się ekranem wejścia, gdy muzeum jest gotowe (pierwsza
+   klatka): za półprzezroczystym tłem widać już amfiladę. Kliknięcie przycisku
+   to gest użytkownika — tylko w nim przeglądarka pozwala uruchomić dźwięk. */
+const btnDzwiek = document.getElementById("btn-dzwiek");
+/* Napis w <span class="hud-tekst"> (na telefonie schowany — zostaje ikona
+   głośnika) i ten sam w aria-label, więc czytnik ekranu zawsze zna stan. */
+function napiszDzwiek(napis) {
+  btnDzwiek.querySelector(".hud-tekst").textContent = napis;
+  btnDzwiek.setAttribute("aria-label", napis);
+}
+function pokazStanDzwieku() {
+  const gra = !!dzwiek && !dzwiek.wyciszony();
+  btnDzwiek.setAttribute("aria-pressed", String(gra));
+  napiszDzwiek(gra ? t("muz.dzwiekWl", "Dźwięk: wł.") : t("muz.dzwiekWyl", "Dźwięk: wył."));
+}
+function wlaczDzwiek(tak) {
+  if (tak && !dzwiek) {
+    dzwiek = initDzwiek();
+    if (!dzwiek) { napiszDzwiek(t("muz.dzwiekBrak", "Dźwięk niedostępny")); btnDzwiek.disabled = true; return; }
+    dzwiek.ctx.resume();
+    if (bylaSala) dzwiek.ustawSale(bylaSala);
+  } else dzwiek?.wycisz(!tak);
+  boczne?.ustawDzwiek(tak);
+  pokazStanDzwieku();
+}
+function wejdz(zDzwiekiem) {
+  if (zDzwiekiem) wlaczDzwiek(true); else pokazStanDzwieku();
+  loader.classList.add("done");
+}
+document.getElementById("wejdz-dzwiek").addEventListener("click", () => wejdz(true));
+document.getElementById("wejdz-cisza").addEventListener("click", () => wejdz(false));
+btnDzwiek.addEventListener("click", () => wlaczDzwiek(!dzwiek || dzwiek.wyciszony()));
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
 
@@ -201,8 +237,14 @@ function petla() {
     try { fn(czas, dt); } catch (err) { console.error("tick error:", err); }
   }
   swiatla?.aktualizuj(dt);
+  dzwiek?.tick();
   composer.render();
-  if (firstFrame) { firstFrame = false; loader.classList.add("done"); window.__mzOtwarte?.(); }
+  if (firstFrame) {
+    firstFrame = false;
+    loader.classList.add("gotowy");             // ekran ładowania → ekran wejścia (patrz wejdz())
+    document.getElementById("wejdz-dzwiek").focus({ preventScroll: true });
+    window.__mzOtwarte?.();
+  }
 }
 
 addEventListener("resize", () => {
@@ -239,6 +281,7 @@ function zbudujMuzeum() {
 
   gracz = initPlayer(budynek.kolizje);         // po wszystkich kolizjach — Octree buduje się raz
   gracz.teleportuj(plan.start.x, plan.start.z);
+  gracz.naKrok(() => dzwiek?.krok());
   swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });
   nawigacja = initNawigacja({ plan, gracz, zaslona: document.getElementById("zaslona") });
   minimapa = initMinimapa({ plan, naSale: (id) => { endFocus(); closeList(); nawigacja.lecDoSali(id); } });
@@ -254,7 +297,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, boczne, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, boczne, dzwiek: () => dzwiek, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 
