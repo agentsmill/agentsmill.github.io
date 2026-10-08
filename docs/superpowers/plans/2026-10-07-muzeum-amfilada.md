@@ -3792,7 +3792,7 @@ EOF
 
 ### Zadanie 8: Sale boczne — Kino, Archiwum, drzwi do Kosmosu
 
-Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźwiękiem — Zadanie 9) i dwa ujęcia z GB10 na mniejszych; wideo wczytuje się dopiero przy wejściu do sali, a do tego czasu (i gdy wideo nie ruszy) widać plakat. Na plakacie dużego ekranu stoi bursztynowy znak ▶, dopóki wideo nie gra — także gdy przeglądarka odrzuci autoodtwarzanie (spec §9: „plakat i przycisk Odtwórz”); klik w ekran podprowadza i przełącza odtwarzanie. Archiwum to szafa z szufladą na każdy wpis `ARCHIVE` — kliknięcie wysuwa szufladę i otwiera tabliczkę z wpisem. Przy portalu na końcu amfilady pojawia się przycisk przejścia do Kosmosu.
+Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźwiękiem — Zadanie 9) i dwa ujęcia z GB10 na mniejszych; wideo wczytuje się dopiero przy wejściu do sali, a do tego czasu (i gdy wideo nie ruszy) widać plakat. Na plakacie dużego ekranu stoi bursztynowy znak ▶, dopóki wideo nie gra — także gdy przeglądarka odrzuci autoodtwarzanie (spec §9: „plakat i przycisk Odtwórz”). Klik w ekran spoza Kina podprowadza gościa na oś ekranu przed pierwszą ławkę i włącza film; klik w samym Kinie przełącza odtwarzanie na miejscu (ławki zagradzają prostą drogę zza swoich pleców). Archiwum to szafa z szufladą na każdy wpis `ARCHIVE` — kliknięcie wysuwa szufladę i otwiera tabliczkę z wpisem. Przy portalu na końcu amfilady pojawia się przycisk przejścia do Kosmosu.
 
 **Pliki:**
 - Utwórz: `js/museum/sale-boczne.js`
@@ -3802,7 +3802,7 @@ Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźw
 - Konsumuje: `Plan` (sale `kino`, `archiwum`, `plan.kosmos`), `Budynek`, `bryla`, `gladki`, `dodajKolizje`, `zarejestruj` (Zadanie 2), `nawigacja.podejdzDo` (Zadanie 6), globalne `ARCHIVE`, `#zaslona`.
 - Produkuje:
   - `urzadzSaleBoczne({ plan, budynek, archiwum, otworzWpis }) → { interaktywne, tickery, wejscie(salaId), ustawDzwiek(wl) }`.
-  - Trafienia bez `project`, z `userData.akcja()` i `userData.widok` — `main.js` podprowadza przed obiekt i woła akcję.
+  - Trafienia bez `project`, z `userData.akcja({ zSali })`, `userData.widok` i opcjonalnie `wMiejscu`, `odblokuj` — `main.js` (`dzialaj`) podprowadza przed obiekt i woła akcję z salą, z której gość kliknął; przy `wMiejscu` gość, który już jest w sali trafienia, nie idzie nigdzie; przy `odblokuj` po akcji zwalnia blokadę wskaźnika (szuflady, portal — nie ekran Kina).
   - `ui.js`: `otworzWpisArchiwum(wpis)`.
   - kotwica światła ekranu Kina (`rect`).
 
@@ -3814,12 +3814,21 @@ Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźw
    końcu amfilady. Pokój Leona nie potrzebuje tu niczego — prace i kolejkę
    stawiają zawieszenie.js i exhibits.js jak w każdej sali.
 
-   Trafienia stąd nie mają `project` — mają `akcja()`: main.js podprowadza
-   gościa przed obiekt (punkt `widok`) i dopiero wtedy ją woła. */
+   Trafienia stąd nie mają `project` — mają `akcja({ zSali })`: main.js
+   (dzialaj) podprowadza gościa przed obiekt (punkt `widok`) i dopiero wtedy
+   ją woła. `zSali` to sala, w której gość stał w chwili kliknięcia: ekran
+   Kina przełącza odtwarzanie gościowi, który już jest w środku, a temu, kto
+   przyszedł z zewnątrz, je włącza (samo wejście już je uruchomiło). Bez
+   argumentu akcja Kina działa jak „z zewnątrz”.
+   `wMiejscu: true` — gość będący w sali trafienia nie idzie nigdzie, akcja
+   rusza od razu (ławki Kina zagradzają prostą drogę zza ich pleców).
+   `odblokuj: true` — po akcji main.js zwalnia blokadę wskaźnika, żeby
+   tabliczkę i przycisk dało się kliknąć; ekran Kina tego nie ma, bo mysz ma
+   tam dalej rozglądać. */
 
 import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
-import { camera, fmtDate } from "muzeum/render.js";
+import { camera, fmtDate, reduceMotion } from "muzeum/render.js";
 import { bryla, gladki, dodajKolizje, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
 import { plotno } from "muzeum/textures.js";
 
@@ -3829,6 +3838,9 @@ const PLAKAT = "https://agentsmill.github.io/ai-video-portfolio/assets/media/sho
 const UJECIA = [["assets/wideo/mglawica.mp4", "assets/wideo/mglawica.webp"], ["assets/wideo/orbita.mp4", "assets/wideo/orbita.webp"]];
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
 const ladowarka = new THREE.TextureLoader();
+/* Podpis i małe ekrany Kina stoją tyle od lica ściany: listwy z wystroj.js (kino()) wystają na 6 cm,
+   a co siedzi głębiej, widać tylko między nimi (ekran w pasach, podpis z brakującymi literami). */
+const PRZED_LISTWAMI = 0.08;
 
 /* Znak „odtwórz” na plakacie dużego ekranu: widoczny, dopóki wideo nie gra —
    także gdy przeglądarka odrzuci autoodtwarzanie. Mówi gościowi, że ekran
@@ -3856,10 +3868,11 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(szer, wys), mat);
   const znak = glosny ? znakOdtwarzania() : null;
   if (znak) mesh.add(znak);
-  let video = null, dzwiek = false;
+  let video = null, dzwiek = false, chce = false;   // chce: wideo ma grać (graj() ustawia, pauza() zdejmuje)
   const sterowanie = {
     mesh,
     graj() {
+      chce = true;
       if (!video) {
         video = document.createElement("video");
         Object.assign(video, { crossOrigin: "anonymous", src, loop: true, muted: true, playsInline: true, preload: "auto" });
@@ -3874,10 +3887,15 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
       }
       video.muted = !(glosny && dzwiek);
       // autoodtwarzanie z dźwiękiem bywa odrzucone — wtedy gra bez dźwięku, zamiast wcale; druga odmowa
-      // zostawia plakat ze znakiem ▶ i gość klika ekran sam
-      video.play()?.catch?.(() => { video.muted = true; video.play()?.catch?.(() => {}); });
+      // zostawia plakat ze znakiem ▶ i gość klika ekran sam. Ponawiamy tylko po NotAllowedError i tylko
+      // gdy wideo wciąż ma grać: pause() odrzuca oczekujące play() jako AbortError, a ponowienie
+      // wskrzesiłoby wideo po wyjściu gościa z sali (zimne ładowanie trwa dłużej niż wejście i wyjście)
+      video.play()?.catch?.((err) => {
+        if (!chce || err?.name !== "NotAllowedError") return;
+        video.muted = true; video.play()?.catch?.(() => {});
+      });
     },
-    pauza() { video?.pause(); },
+    pauza() { chce = false; video?.pause(); },
     przelacz() { if (!video || video.paused) sterowanie.graj(); else sterowanie.pauza(); },
     ustawDzwiek(wl) { dzwiek = wl; if (video) video.muted = !(glosny && wl); },
   };
@@ -3897,7 +3915,7 @@ function kino(s, budynek, wynik) {
   const male = UJECIA.map(([src, plakat], i) => {
     const e = ekranWideo(src, plakat, 2.4, 1.35);
     const naMinus = i === 0;
-    e.mesh.position.set(s.x0 + 6.2, 2.1, naMinus ? s.z0 + POLMUR + 0.02 : s.z1 - POLMUR - 0.02);
+    e.mesh.position.set(s.x0 + 6.2, 2.1, naMinus ? s.z0 + POLMUR + PRZED_LISTWAMI : s.z1 - POLMUR - PRZED_LISTWAMI);
     e.mesh.rotation.y = naMinus ? 0 : Math.PI;
     budynek.grupa.add(e.mesh);
     return e;
@@ -3909,14 +3927,17 @@ function kino(s, budynek, wynik) {
     c.fillText(t("wideo.showreelOpis", "Przegląd produkcji — ujęcia generowane, nie kręcone."), 0, 160, 890);
   });
   const tab = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.52), new THREE.MeshBasicMaterial({ map: podpis, transparent: true, color: 0x9aa0aa }));
-  tab.position.set(s.x0 + 2.4, 2.0, s.z0 + POLMUR + 0.01);
+  tab.position.set(s.x0 + 2.4, 2.0, s.z0 + POLMUR + PRZED_LISTWAMI);
   budynek.grupa.add(tab);
 
   const traf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 6.6), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(xEkranu - 0.15, 2.35, cz);
   traf.userData = {
-    salaId: s.id, akcja: () => duzy.przelacz(),
-    widok: { pozycja: new THREE.Vector3(s.x0 + 4.6, 1.65, cz), cel: new THREE.Vector3(xEkranu, 2.35, cz) },
+    salaId: s.id, wMiejscu: true,
+    // z wnętrza sali przełącza; kto przyszedł z zewnątrz, ma wideo włączone (wejście już je uruchomiło, play jest idempotentne)
+    akcja: ({ zSali } = {}) => (zSali === s.id ? duzy.przelacz() : duzy.graj()),
+    // na osi ekranu, przed pierwszą ławką (x 11,12–11,68): prosta droga z drzwi jest wolna, a widok wycelowany w środek ekranu
+    widok: { pozycja: new THREE.Vector3(s.x0 + 2.2, 1.65, cz), cel: new THREE.Vector3(xEkranu, 2.35, cz) },
   };
   budynek.grupa.add(traf);
   wynik.interaktywne.push(traf);
@@ -3972,7 +3993,7 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     const traf = new THREE.Mesh(new THREE.BoxGeometry(0.2, rh, cw), new THREE.MeshBasicMaterial({ visible: false }));
     traf.position.set(lico + gl + 0.1, y, z);
     traf.userData = {
-      salaId: s.id,
+      salaId: s.id, odblokuj: true,
       akcja: () => {
         if (wysunieta && wysunieta !== sz) wysunieta.cel = wysunieta.baza;
         sz.cel = sz.baza + 0.28;
@@ -3985,7 +4006,8 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     wynik.interaktywne.push(traf);
   });
   wynik.tickery.push((_, dt) => {
-    for (const sz of szuflady) sz.g.position.x += (sz.cel - sz.g.position.x) * (1 - Math.exp(-dt * 10));
+    const k = reduceMotion ? 1 : 1 - Math.exp(-dt * 10);   // ograniczony ruch: szuflada od razu u celu
+    for (const sz of szuflady) sz.g.position.x += (sz.cel - sz.g.position.x) * k;
   });
 }
 
@@ -3999,12 +4021,14 @@ function kosmos(plan, budynek, wynik) {
     zaslona?.classList.add("widoczna");
     setTimeout(() => location.assign(`kosmos.html${window.__jezyk === "en" ? "?lang=en" : ""}`), 380);
   });
+  // „Wstecz” z kosmos.html może przywrócić muzeum z pamięci podręcznej stron (bfcache) razem z podniesioną zasłoną
+  addEventListener("pageshow", (e) => { if (e.persisted) zaslona?.classList.remove("widoczna"); });
   let pokazany = false;
   const pokaz = (tak) => { if (przycisk && tak !== pokazany) { pokazany = tak; przycisk.hidden = !tak; } };
   const traf = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(x, 2, z + 0.4);
   traf.userData = {
-    salaId: plan.kosmos.salaId, akcja: () => pokaz(true),
+    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true,
     widok: { pozycja: new THREE.Vector3(x, 1.65, z - 2.4), cel: new THREE.Vector3(x, 1.9, z + 1.8) },
   };
   budynek.grupa.add(traf);
@@ -4067,11 +4091,30 @@ function otworzWpisArchiwum(wpis) {
 - [ ] **Krok 3: `main.js`**
 
 1. Import z `ui.js` uzupełnij o `otworzWpisArchiwum`; pod importem `initMinimapa` dopisz `import { urzadzSaleBoczne } from "muzeum/sale-boczne.js";`; w deklaracji zmiennych modułu dopisz `boczne = null`.
-2. W `obsluzKlik` w gałęzi `if (hovered) {`, zaraz po linii z `focus && hovered === focus.hit`, dopisz:
+2. Pod funkcją `podejdz(hit)` dopisz:
 
 ```js
-    // ekran Kina, szuflada Archiwum, portal Kosmosu: podejdź, potem ich własna akcja
-    if (hovered.userData.akcja) { const h = hovered; endFocus(); nawigacja.podejdzDo(h, () => h.userData.akcja()); return; }
+/* Trafienia z własną akcją (ekran Kina, szuflada Archiwum, portal Kosmosu — sale-boczne.js): podejście do
+   punktu `widok`, na miejscu akcja({ zSali }), gdzie zSali to sala, w której gość stał w chwili kliknięcia.
+   `wMiejscu`: gość, który już jest w sali trafienia, nie idzie nigdzie (ławki Kina zagradzają prostą drogę
+   zza swoich pleców). `odblokuj`: po akcji zwolnij blokadę wskaźnika, żeby tabliczkę i przycisk dało się
+   kliknąć (ekran Kina tego nie chce — mysz ma tam dalej rozglądać). */
+function dzialaj(hit) {
+  endFocus();
+  const { akcja, wMiejscu, odblokuj, salaId } = hit.userData;
+  const zSali = bylaSala?.id;
+  // najpierw treść, potem odblokuj() — jak w focusOn (iOS nie ma exitPointerLock)
+  const wykonaj = () => { akcja({ zSali }); if (odblokuj) gracz?.odblokuj(); };
+  if (wMiejscu && zSali === salaId) wykonaj();
+  else nawigacja.podejdzDo(hit, wykonaj);
+}
+```
+
+   a w `obsluzKlik` w gałęzi `if (hovered) {`, zaraz po linii z `focus && hovered === focus.hit`, dopisz:
+
+```js
+    // ekran Kina, szuflada Archiwum, portal Kosmosu: ich własna akcja — po podejściu albo na miejscu (dzialaj)
+    if (hovered.userData.akcja) { dzialaj(hovered); return; }
 ```
 
 3. W `naZmianeSali` dopisz na końcu `boczne?.wejscie(s.id);`.
@@ -4099,20 +4142,29 @@ i dopisz `boczne` do `Object.assign(window.__mz, { … })`.
 - [ ] **Krok 5: `css/museum.css`**
 
 ```css
-/* Przycisk przejścia do Kosmosu przy portalu na końcu amfilady. */
+/* Przycisk przejścia do Kosmosu przy portalu na końcu amfilady. `left: 50%` + translateX to ta sama
+   pułapka, co przy .hud-hint wyżej: szerokość „shrink-to-fit” kończy się na połowie okna, więc na telefonie
+   etykieta łamałaby się na dwa wiersze. Stąd `nowrap`, a max-width trzyma przycisk w oknie z marginesem 1 rem. */
 .kosmos-wejscie {
   position: fixed; left: 50%; bottom: 4.5rem; transform: translateX(-50%); z-index: 35;
+  white-space: nowrap; max-width: calc(100vw - 2rem); overflow: hidden; text-overflow: ellipsis;
   font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: #14100a; background: var(--pulse); border: none; border-radius: 99px;
   padding: 0.8rem 1.4rem; cursor: pointer; box-shadow: 0 0 40px rgba(242, 196, 109, 0.35);
 }
 .kosmos-wejscie[hidden] { display: none; }
+/* Plan stoi w lewym dolnym rogu wszędzie poza telefonem i dotykiem (reguła przy .minimapa). W oknach do
+   ok. 880 px sięgałby pod wyśrodkowany przycisk, a do 960 px zostawałoby między nimi mniej niż 40 px —
+   przycisk przechodzi wtedy do prawego rogu. */
+@media (min-width: 641px) and (max-width: 960px) and (pointer: fine) {
+  .kosmos-wejscie { left: auto; right: 1rem; transform: none; }
+}
 ```
 
 - [ ] **Krok 6: Weryfikacja**
 
 1. Kanoniczna sonda: `interaktywne: 94` (64 + ekran Kina + 28 szuflad + portal).
-2. Kino: `m.gracz.teleportuj(9.4, -8, { x: 18, y: 2.3, z: -8 })` (przodem do ekranu); po 3 s ekran ma `material.map.isVideoTexture === true` (albo plakat, gdy przeglądarka nie odtwarza mp4 — nigdy czarna plama), a znak ▶ (płaszczyzna 0,8 m, dziecko siatki ekranu) jest niewidoczny. `userData.akcja()` trafienia Kina pauzuje — znak wraca; drugie wywołanie znów odtwarza. Autoodtwarzanie odrzucone: przed wejściem podmień `HTMLMediaElement.prototype.play` na funkcję zwracającą `Promise.reject(new DOMException("blokada", "NotAllowedError"))` — po wejściu plakat i znak ▶ zostają (na próbie: `przedWejsciem: true, odrzucone: true, poKliknieciu: false, poPauzie: true`). Wyjście z Kina pauzuje wideo.
+2. Kino: `m.gracz.teleportuj(9.4, -8, { x: 18, y: 2.3, z: -8 })` (przodem do ekranu); po 3 s ekran ma `material.map.isVideoTexture === true` (albo plakat, gdy przeglądarka nie odtwarza mp4 — nigdy czarna plama), a znak ▶ (płaszczyzna 0,8 m, dziecko siatki ekranu) jest niewidoczny. `userData.akcja({ zSali: "kino" })` trafienia Kina pauzuje — znak wraca; drugie takie wywołanie znów odtwarza; `akcja({ zSali: "atrium" })` (gość przyszedł z zewnątrz) zawsze odtwarza. Autoodtwarzanie odrzucone: przed wejściem podmień `HTMLMediaElement.prototype.play` na funkcję zwracającą `Promise.reject(new DOMException("blokada", "NotAllowedError"))` — po wejściu plakat i znak ▶ zostają (na próbie: `przedWejsciem: true, odrzucone: true, poKliknieciu: false, poPauzie: true`). Prawdziwy klik w ekran z atrium (6, −8): przejazd kończy się w ≈ (10,2; −8) na osi ekranu, film gra. Klik z wnętrza Kina — także zza ławek, np. (15, −10) — przełącza na miejscu, bez przejazdu. Małe ekrany i podpis stoją w całości przed listwami ścian (zrzut). Wyjście z Kina pauzuje wideo — także wyjście ok. 20 ms po wejściu przy zimnym wczytywaniu, zanim pierwsze `play()` się rozstrzygnie (po 5 s wszystkie trzy filmy mają `paused: true`).
 3. Archiwum:
 
 ```js
@@ -4128,7 +4180,7 @@ async () => {
 
 Oczekiwane: `szuflad === ARCHIVE.length` (28), tytuł = `ARCHIVE[5].title` („Latarnik AI”), szuflada wysunięta na zrzucie.
 
-4. Kosmos: `m.gracz.teleportuj(0, m.plan.kosmos.z - 2.5, { x: 0, y: 2, z: m.plan.kosmos.z + 5 })` → `#kosmos-wejscie` widoczny; `m.gracz.teleportuj(0, m.plan.kosmos.z - 7.5)` — ukryty. Kliknięcie przycisku: zasłona i `kosmos.html` (z `?lang=en` w wersji angielskiej).
+4. Kosmos: `m.gracz.teleportuj(0, m.plan.kosmos.z - 2.5, { x: 0, y: 2, z: m.plan.kosmos.z + 5 })` → `#kosmos-wejscie` widoczny; `m.gracz.teleportuj(0, m.plan.kosmos.z - 7.5)` — ukryty. Kliknięcie przycisku: zasłona i `kosmos.html` (z `?lang=en` w wersji angielskiej). Powrót z bfcache: po dodaniu `.widoczna` do `#zaslona` zdarzenie `new PageTransitionEvent("pageshow", { persisted: true })` zdejmuje zasłonę. Przycisk w jednym wierszu i bez nachodzenia na plan przy 390×844, 800×600, 900×700 i 1440×900. Klik w szufladę i w portal woła `gracz.odblokuj()` (szpieg na metodzie), klik w ekran Kina — nie. Przy `prefers-reduced-motion` szuflada stoi u celu w następnej klatce.
 5. Zrzuty: Kino z obrazem na ekranie, Archiwum z wysuniętą szufladą i tabliczką, portal z przyciskiem.
 
 - [ ] **Krok 7: Commit**
