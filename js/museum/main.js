@@ -13,6 +13,7 @@ import { initNawigacja } from "muzeum/nawigacja.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali } from "muzeum/ui.js";
 import { initPerf } from "muzeum/perf.js";
 import { initSwiatla } from "muzeum/swiatla.js";
+import { initMinimapa } from "muzeum/minimapa.js";
 
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
@@ -31,7 +32,7 @@ function komunikat(tekst) {
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
-let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null;
+let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null;
 const interaktywne = [];     // trafienia raycastera: prace, eksponaty, sale boczne (Zadanie 8)
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
@@ -150,11 +151,13 @@ renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = 
 function naZmianeSali(s) {
   hudEra.textContent = opisSali(s);
   swiatla?.wejdz(s);
+  minimapa?.sala(s.id);
 }
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
 
 const clock = new THREE.Clock();
+const wzrok = new THREE.Vector3();
 let firstFrame = true;
 function petla() {
   requestAnimationFrame(petla);
@@ -165,6 +168,8 @@ function petla() {
     nawigacja.update(dt);              // najpierw ster przejazdu, potem ruch z kolizjami
     gracz.update(dt);
     if (gracz.zablokowany()) celuj();
+    camera.getWorldDirection(wzrok);
+    minimapa?.aktualizuj(gracz.pozycjaX(), gracz.pozycjaZ(), wzrok.x, wzrok.z);
     const s = salaPod(plan, gracz.pozycjaX(), gracz.pozycjaZ());
     if (s && s !== bylaSala) { bylaSala = s; naZmianeSali(s); }
     const w = nawigacja.trwaWycieczka();
@@ -214,6 +219,7 @@ function zbudujMuzeum() {
   gracz.teleportuj(plan.start.x, plan.start.z);
   swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });
   nawigacja = initNawigacja({ plan, gracz, zaslona: document.getElementById("zaslona") });
+  minimapa = initMinimapa({ plan, naSale: (id) => { endFocus(); closeList(); nawigacja.lecDoSali(id); } });
 
   // podpowiedź gaśnie przy pierwszym czynnym ruchu; celownik żyje tylko w trybie klawiatury
   gracz.controls.addEventListener("lock", dismissHint);
@@ -226,7 +232,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, prace, swiatla, nawigacja, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 

@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Cormorant+Garamond:wght@600&display=swap&subset=latin-ext" rel="stylesheet">
-  <link rel="stylesheet" href="css/museum.css?v=202610081741">
+  <link rel="stylesheet" href="css/museum.css?v=202610081809">
 </head>
 <body>
 
@@ -57,6 +57,13 @@
 <!-- Zasłona przenikania: przy prefers-reduced-motion przejazd zastępuje krótkie
      zaciemnienie (nawigacja.js), a w Zadaniu 8 przejście do Kosmosu. -->
 <div id="zaslona" aria-hidden="true"></div>
+
+<!-- Plan w rogu (minimapa.js): sale jako przyciski — klik albo Enter to szybka
+     podróż. Na telefonie zwinięty do przycisku „Plan”. -->
+<nav class="minimapa" id="minimapa" aria-label="Plan muzeum" data-i18n-attr="aria-label:muz.planMuzeum">
+  <button class="hud-list mm-przelacz" type="button" aria-expanded="false" data-i18n="muz.plan">Plan</button>
+  <svg xmlns="http://www.w3.org/2000/svg" role="group"></svg>
+</nav>
 
 <!-- Celownik trybu chodzenia. Przy zablokowanym wskaźniku raycaster celuje
      środkiem ekranu, ale kursor jest schowany — bez tej kropki gość nie ma
@@ -128,29 +135,30 @@
 })();
 </script>
 
-<script src="js/projects-data.js?v=202610081741"></script>
+<script src="js/projects-data.js?v=202610081809"></script>
 <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
-      "muzeum/render.js":   "./js/museum/render.js?v=202610081741",
-      "muzeum/textures.js": "./js/museum/textures.js?v=202610081741",
-      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202610081741",
-      "muzeum/plan.js":     "./js/museum/plan.js?v=202610081741",
-      "muzeum/sale.js":     "./js/museum/sale.js?v=202610081741",
-      "muzeum/wystroj.js":  "./js/museum/wystroj.js?v=202610081741",
-      "muzeum/zawieszenie.js": "./js/museum/zawieszenie.js?v=202610081741",
-      "muzeum/swiatla.js":  "./js/museum/swiatla.js?v=202610081741",
-      "muzeum/nawigacja.js": "./js/museum/nawigacja.js?v=202610081741",
-      "muzeum/ui.js":       "./js/museum/ui.js?v=202610081741",
-      "muzeum/player.js":   "./js/museum/player.js?v=202610081741",
-      "muzeum/perf.js":     "./js/museum/perf.js?v=202610081741"
+      "muzeum/render.js":   "./js/museum/render.js?v=202610081809",
+      "muzeum/textures.js": "./js/museum/textures.js?v=202610081809",
+      "muzeum/exhibits.js": "./js/museum/exhibits.js?v=202610081809",
+      "muzeum/plan.js":     "./js/museum/plan.js?v=202610081809",
+      "muzeum/sale.js":     "./js/museum/sale.js?v=202610081809",
+      "muzeum/wystroj.js":  "./js/museum/wystroj.js?v=202610081809",
+      "muzeum/zawieszenie.js": "./js/museum/zawieszenie.js?v=202610081809",
+      "muzeum/swiatla.js":  "./js/museum/swiatla.js?v=202610081809",
+      "muzeum/nawigacja.js": "./js/museum/nawigacja.js?v=202610081809",
+      "muzeum/minimapa.js": "./js/museum/minimapa.js?v=202610081809",
+      "muzeum/ui.js":       "./js/museum/ui.js?v=202610081809",
+      "muzeum/player.js":   "./js/museum/player.js?v=202610081809",
+      "muzeum/perf.js":     "./js/museum/perf.js?v=202610081809"
     }
   }
 </script>
-<script src="js/i18n.js?v=202610081741"></script>
-<script src="js/gramofon.js?v=202610081741"></script>
-<script type="module" src="js/museum/main.js?v=202610081741"></script>
+<script src="js/i18n.js?v=202610081809"></script>
+<script src="js/gramofon.js?v=202610081809"></script>
+<script type="module" src="js/museum/main.js?v=202610081809"></script>
 </body>
 </html>
