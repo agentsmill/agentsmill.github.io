@@ -39,12 +39,12 @@ function materialySali(s) {
       posadzka: materialPBR("beton", { kolor: 0xaeaba5, szorstkosc: 0.62, normal: 0.3, bezKoloru: true }),
       sufit: gladki(0xf1f0ec, 0.95),
     };
-    case "noc": {
-      // posadzka to nakładka nad lustrem (swiatla.js): przezroczysta od początku, krycie ustawia lustro
-      const posadzka = bezOdbic(gladki(0x0d0f14, 0.32));
-      posadzka.transparent = true;
-      return { sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }), posadzka, sufit: gladki(0x0b0d12, 1) };
-    }
+    case "noc": return {
+      sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }),
+      // czarna płyta; lustro z swiatla.js przykrywa ją w sali bieżącej i następnej, w pozostałych salach nocy widać ją wprost
+      posadzka: bezOdbic(gladki(0x0d0f14, 0.32)),
+      sufit: gladki(0x0b0d12, 1),
+    };
     case "kino": return {
       sciana: bezOdbic(gladki(0x1d1517, 0.95)),
       posadzka: bezOdbic(gladki(0x2a1d20, 0.98)),
@@ -174,7 +174,6 @@ export function zbudujBudynek(plan) {
   const budynek = {
     grupa, kolizje,
     podlogi: [],                  // płyty posadzek z userData.salaId — cel kliknięć „idź tutaj”
-    posadzkiNocy: [],             // nakładki nad lustrem (swiatla.js)
     materialySal: new Map(),      // salaId → funkcje ustawiające przedświetlenie
     otwory: new Map(),            // salaId → środki otworów na każdej ścianie (wystroj.js)
     kotwice: [],                  // światła idealne; prawdziwe z puli rozdziela swiatla.js
@@ -196,7 +195,6 @@ export function zbudujBudynek(plan) {
     pod.userData.salaId = s.id;
     grupa.add(pod);
     budynek.podlogi.push(pod);
-    if (s.styl === "noc") budynek.posadzkiNocy.push(pod);
 
     const sufit = plyta(W, D, mat.sufit);
     sufit.rotation.x = Math.PI / 2;
