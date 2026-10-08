@@ -224,12 +224,21 @@ a { color: var(--pulse); }
 }
 .mm-sala { cursor: pointer; }
 .mm-sala rect { opacity: 0.5; transition: opacity 0.15s ease; }
-.mm-sala:hover rect, .mm-sala:focus-visible rect { opacity: 0.9; }
-.mm-sala:focus-visible { outline: none; }
+.mm-sala:hover rect { opacity: 0.9; }
+/* Na elemencie SVG przeglądarka rysuje własny pierścień ogniska także po kliku
+   i dotknięciu, nie tylko po klawiszu — a on zakrywa obwódkę sali, do której
+   gość właśnie poleciał. Dlatego wyłączony przy każdym :focus. Ognisko
+   klawiatury to przerywana jasna obwódka: inna niż najechanie i widoczna też
+   na sali bieżącej, więc stoi po regule .biezaca. */
+.mm-sala:focus { outline: none; }
 .mm-sala rect.biezaca { opacity: 1; stroke: var(--pulse); stroke-width: 0.6; }
+.mm-sala:focus-visible rect { opacity: 1; stroke: var(--ink); stroke-width: 0.6; stroke-dasharray: 2 1; }
 .mm-drzwi { stroke: var(--bg); stroke-width: 1.1; }
 .mm-kosmos { fill: var(--pulse); }
 .mm-ja path { fill: var(--pulse); stroke: #14100a; stroke-width: 0.3; }
+/* Strzałka, kreski drzwi i kropka portalu leżą nad salami: bez tego łapią klik
+   i dotyk w miejscu sali (gość pośrodku sali zasłaniał jej środek). */
+.mm-ja, .mm-drzwi, .mm-kosmos { pointer-events: none; }
 .mm-przelacz { display: none; }
 @media (max-width: 640px), (pointer: coarse) {
   .minimapa { bottom: auto; top: 4.2rem; }
