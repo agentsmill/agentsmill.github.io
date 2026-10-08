@@ -63,19 +63,26 @@ const perf = initPerf({
     {
       nazwa: "cienie",
       tekst: () => t("muz.perf.cienie", "Wyłączyłem też cienie — ten sprzęt nie wyrabia."),
+      /* Najpierw castShadow = false w swiatla.js: zmienia liczbę świateł z cieniem, więc three.js raz
+         kompiluje shadery bez próbkowania map (czkawka mieści się w pauzie strażnika po zmianie).
+         Sama flaga renderera tylko pomijała przebieg map — shadery dalej czytały zamrożone cienie. */
       wykonaj: () => {
-        if (!renderer.shadowMap.enabled) return false;
+        const rzucalo = swiatla?.wylaczCienie() ?? false;
         renderer.shadowMap.enabled = false;
-        return true;
+        return rzucalo;
       },
     },
     {
       nazwa: "dpr",
       tekst: () => t("muz.perf.dpr", "Zmniejszyłem rozdzielczość obrazu — to ostatni krok."),
+      /* Schodzi o pół kroku, ale nie poniżej 0,75 — działa więc także na ekranach z DPR 1,
+         gdzie słabe komputery nie miały już co oddać. */
       wykonaj: () => {
-        if (renderer.getPixelRatio() <= 1) return false;
-        renderer.setPixelRatio(1);
-        composer.setPixelRatio(1);
+        const teraz = renderer.getPixelRatio();
+        if (teraz <= 0.75) return false;
+        const nowa = Math.max(0.75, teraz - 0.5);
+        renderer.setPixelRatio(nowa);
+        composer.setPixelRatio(nowa);
         return true;
       },
     },
@@ -311,13 +318,18 @@ btnDzwiek.addEventListener("click", () => sprobujDzwiek(!dzwiek || dzwiek.wycisz
 
 /* ── Oszczędzanie w bezruchu ──────────────────────────────────────────────
    Gość stoi i nic się nie rusza → mniej klatek: po 2 s ok. 20 kl./s, po 20 s
-   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko albo przejazd wracają do
-   pełnej szybkości w tej samej klatce. W Kinie co najmniej 30 kl./s — gra film.
+   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko, zmiana rozmiaru okna albo
+   przejazd wracają do pełnej szybkości w tej samej klatce (po zmianie rozmiaru
+   płótno jest puste, więc następna klatka musi się narysować od razu).
+   W Kinie co najmniej 30 kl./s — gra film; w sali z gramofonem, gdy gra, co
+   najmniej 20 — kręci się płyta. Klatki pominięte nie psują animacji: eksponaty
+   i światła dostają prawdziwy czas (petla).
    Na telefonie i laptopie na baterii to różnica między „grzeje się” a „stoi”. */
 const BEZRUCH = [[20, 1 / 4], [2, 1 / 20]];   // [po ilu sekundach bezruchu, najkrótszy odstęp klatek w s]
 let ostatniRuch = performance.now(), ostatniaKlatka = 0;
+let salaGramofonu = null;                      // sala z płytą — ustalana raz w zbudujMuzeum()
 const ruch = () => { ostatniRuch = performance.now(); };
-for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove"]) {
+for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove", "resize", "orientationchange"]) {
   addEventListener(zdarzenie, ruch, { passive: true });
 }
 function odstepKlatek(teraz) {
@@ -326,6 +338,7 @@ function odstepKlatek(teraz) {
   let odstep = 0;
   for (const [po, o] of BEZRUCH) if (bezruch >= po) { odstep = o; break; }
   if (odstep && bylaSala?.rodzaj === "kino") odstep = Math.min(odstep, 1 / 30);
+  if (odstep && window.__gramofonGra === true && bylaSala?.id === salaGramofonu) odstep = Math.min(odstep, 1 / 20);   // gra gramofon: w jego sali płyta dostaje co najmniej 20 kl./s, jak film w Kinie
   return odstep;
 }
 
@@ -338,7 +351,9 @@ function petla(teraz = performance.now()) {
   const odstep = odstepKlatek(teraz);
   if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
   ostatniaKlatka = teraz;
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const delta = clock.getDelta();
+  const dt = Math.min(delta, 0.05);    // gracz, nawigacja i strażnik: obcięcie chroni kolizje i pomiar przed skokami
+  const dtAnimacji = odstep ? Math.min(delta, 0.3) : dt;   // klatka po przerwie w bezruchu: eksponaty i światła dostają prawdziwy czas (płyta gramofonu 3,49 rad/s, nie 0,70)
   const czas = clock.elapsedTime;      // nie `t` — to nazwa tłumacza napisów wyżej
   if (!odstep) perf.tick(dt);          // strażnik mierzy tylko pełną szybkość — oszczędzanie to nie słaby sprzęt
   if (gracz) {
@@ -356,9 +371,9 @@ function petla(teraz = performance.now()) {
     }
   }
   for (const fn of tickery) {
-    try { fn(czas, dt); } catch (err) { console.error("tick error:", err); }
+    try { fn(czas, dtAnimacji); } catch (err) { console.error("tick error:", err); }
   }
-  swiatla?.aktualizuj(dt);
+  swiatla?.aktualizuj(dtAnimacji);
   composer.render();
   if (firstFrame) {
     firstFrame = false;
@@ -392,6 +407,7 @@ function zbudujMuzeum() {
   interaktywne.push(...prace.interaktywne);
   const eksponaty = postawEksponaty(plan, budynek);   // przed graczem: dokłada kolizje podestów
   interaktywne.push(...eksponaty.interaktywne);
+  salaGramofonu = interaktywne.find((h) => h.userData.exhibit && h.userData.project?.id === "akordy-zmierzchu")?.userData.salaId ?? null;   // dla odstepKlatek()
   tickery.push(...eksponaty.tickery);
   boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum });   // też przed graczem: kolizja szafy
   interaktywne.push(...boczne.interaktywne);

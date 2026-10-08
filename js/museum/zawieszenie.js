@@ -166,7 +166,10 @@ function obrazDo(salaId, src, ustaw, wyczysc) {
         tex.anisotropy = 8;
         this.tex = tex;
         ustaw(tex);
-      }, undefined, () => console.warn(`zawieszenie.js: brak obrazu „${src}" — rama zostaje z neutralną płytą`));
+      }, undefined, () => {
+        if (nr === this.zadanie) this.wczytany = false;   // następne wejście do sali spróbuje jeszcze raz; spóźniony błąd starego żądania nie rusza nowszego
+        console.warn(`zawieszenie.js: brak obrazu „${src}" — rama zostaje z neutralną płytą`);
+      });
     },
     zwolnij() {
       if (!this.wczytany) return;

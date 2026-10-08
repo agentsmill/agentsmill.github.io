@@ -12,7 +12,7 @@
    ~120 klatek to około dwie sekundy przy 60 fps i wyraźnie więcej przy
    zadławionym starcie — czyli dokładnie ten okres, którego nie chcemy mierzyć. */
 const ROZGRZEWKA = 120;
-const PO_ZMIANIE = 60;    // wyłączenie cieni rekompiluje shadery — ta czkawka też nie jest pomiarem
+const PO_ZMIANIE = 60;    // wyłączenie cieni (castShadow = false w swiatla.js) kompiluje shadery od nowa — ta czkawka też nie jest pomiarem
 const OKNO = 90;          // klatek na jeden pomiar
 const PROG_FPS = 25;
 

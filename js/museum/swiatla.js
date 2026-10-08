@@ -234,6 +234,18 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
       lustro = null;
       return true;
     },
+    /* Wyłączenie cieni na stałe — stopień degradacji z perf.js. Sama flaga
+       renderera (shadowMap.enabled) tylko pomija przebieg map cieni: skompilowane
+       shadery dalej próbkują ostatnie, zamrożone mapy. Dopiero castShadow = false
+       zmienia liczbę świateł z cieniem, więc three.js kompiluje shadery od nowa
+       — bez kodu cieni (jedna czkawka, którą strażnik i tak przeczekuje).
+       Zwraca, czy coś rzucało cień (na niskim poziomie nic — stopień przechodzi dalej). */
+    wylaczCienie() {
+      let rzucalo = false;
+      for (const p of spoty) if (p.swiatlo.castShadow) { p.swiatlo.castShadow = false; rzucalo = true; }
+      if (slonce.castShadow) { slonce.castShadow = false; rzucalo = true; }
+      return rzucalo;
+    },
     aktualizuj(dt) {
       if (!biezaca) return;
       for (const p of spoty) animujPule(p, dt);

@@ -83,7 +83,8 @@ host.appendChild(renderer.domElement);
 
 /* Utrata kontekstu WebGL (telefon pod presją pamięci, reset sterownika):
    three.js przestaje rysować i zostaje czarne płótno. Zamiast niego prośba
-   o odświeżenie — w panelu, którego używa też strażnik ładowania. */
+   o odświeżenie — w panelu, którego używa też strażnik ładowania. Panel
+   ogłasza się czytnikom ekranu (role="alert"), a fokus trafia na przycisk. */
 renderer.domElement.addEventListener("webglcontextlost", () => {
   const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
   const panel = document.getElementById("no-webgl");
@@ -98,7 +99,9 @@ renderer.domElement.addEventListener("webglcontextlost", () => {
   powrot.href = "index.html";
   powrot.textContent = t("muz.wrocKarta", "Wróć do karty budowania");
   panel.replaceChildren(tekst, odswiez, powrot);
+  panel.setAttribute("role", "alert");
   panel.hidden = false;
+  odswiez.focus();
 });
 
 // Mapa środowiskowa z kodu — 0 bajtów do pobrania. Siłę per strefa ustawia swiatla.js.
