@@ -220,21 +220,37 @@ function pokazStanDzwieku() {
 }
 function wlaczDzwiek(tak) {
   if (tak && !dzwiek) {
-    dzwiek = initDzwiek();
+    dzwiek = initDzwiek(plan);
     if (!dzwiek) { napiszDzwiek(t("muz.dzwiekBrak", "Dźwięk niedostępny")); btnDzwiek.disabled = true; return; }
     dzwiek.ctx.resume();
     if (bylaSala) dzwiek.ustawSale(bylaSala);
+    boczne?.podlaczDzwiek(dzwiek);    // dźwięk showreelu w Kinie wchodzi przez wyjście silnika — słucha go też przycisk w HUD
   } else dzwiek?.wycisz(!tak);
   boczne?.ustawDzwiek(tak);
   pokazStanDzwieku();
 }
+/* Awaria dźwięku nie ma prawa zatrzymać wejścia ani zepsuć przycisku w HUD: wchodzimy w ciszy,
+   przycisk pokazuje „wył.”. Silnik, który się nie dokończył, zostaje wyciszony i odpięty — pętla klatek
+   nie woła wtedy niczego, co mogłoby rzucić. */
+function sprobujDzwiek(tak) {
+  try { wlaczDzwiek(tak); }
+  catch (err) {
+    console.warn("muzeum: dźwięk się nie uruchomił, wchodzimy w ciszy —", err);
+    try { dzwiek?.wycisz(true); } catch { /* i tak cisza */ }
+    dzwiek = null;
+    boczne?.ustawDzwiek(false);
+    pokazStanDzwieku();
+  }
+}
 function wejdz(zDzwiekiem) {
-  if (zDzwiekiem) wlaczDzwiek(true); else pokazStanDzwieku();
+  if (loader.classList.contains("done")) return;   // wejście już było: ukryte przyciski niczego nie zmieniają (Enter na nich)
+  gracz?.wpusc();                                  // od teraz klawisze, dotyk i mysz sterują gościem
+  if (zDzwiekiem) sprobujDzwiek(true); else pokazStanDzwieku();
   loader.classList.add("done");
 }
 document.getElementById("wejdz-dzwiek").addEventListener("click", () => wejdz(true));
 document.getElementById("wejdz-cisza").addEventListener("click", () => wejdz(false));
-btnDzwiek.addEventListener("click", () => wlaczDzwiek(!dzwiek || dzwiek.wyciszony()));
+btnDzwiek.addEventListener("click", () => sprobujDzwiek(!dzwiek || dzwiek.wyciszony()));
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
 

@@ -283,13 +283,19 @@ a { color: var(--pulse); }
   color: #14100a; background: var(--pulse); border: 1px solid var(--pulse); border-radius: 99px;
   padding: 0.85rem 1.6rem; min-width: 16rem; cursor: pointer;
 }
-.wejscie button.cicho { color: var(--ink-dim); background: transparent; border-color: var(--line); }
+/* „Wejdź w ciszy”: drugorzędny, ale czytelny — jasny napis na ciemnej, półprzezroczystej płytce (kontrast
+   ≥ 4,5:1 także na jasnej ścianie za ekranem wejścia) i widoczna obwódka. */
+.wejscie button.cicho { color: var(--ink); background: rgba(12, 16, 24, 0.72); border-color: rgba(233, 237, 245, 0.7); }
 .wejscie button:hover { box-shadow: 0 0 30px rgba(242, 196, 109, 0.3); }
 .wejscie button.cicho:hover { color: var(--pulse); border-color: var(--pulse-dim); box-shadow: none; }
-#loader.done { pointer-events: none; }
+/* Po wejściu loader znika też dla klawiatury i czytników: visibility zmienia się dopiero po zaniku (0,6 s,
+   jak opacity w #loader), więc ukryte przyciski wejścia nie stoją w kolejności Tab. */
+#loader.done { pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, visibility 0s 0.6s; }
 #btn-dzwiek[aria-pressed="true"] { color: var(--pulse); border-color: var(--pulse-dim); }
-/* Ikona głośnika: fale tylko przy włączonym dźwięku. Na telefonie napis znika
-   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu. */
+/* Ikona głośnika: fale tylko przy włączonym dźwięku. Do 900 px napis znika
+   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu
+   (z napisem w oknach 641–770 px era łamała się na pięć wierszy, a przełącznik języka wystawał). */
 #btn-dzwiek { display: inline-flex; align-items: center; gap: 0.45em; }
 .dz-ikona { width: 1.15em; height: 1.15em; flex: none; }
 #btn-dzwiek[aria-pressed="false"] .dz-fale { display: none; }
+@media (max-width: 900px) { #btn-dzwiek .hud-tekst { display: none; } }

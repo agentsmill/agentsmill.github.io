@@ -26,7 +26,7 @@ const DOCISK = 0.5;          // stały docisk do podłogi [m/s] — bez niego `n
    niż hamowanie — start ma być żwawy, a zatrzymanie miękkie, jak krok. */
 const ROZPED = 9, HAMOWANIE = 7;
 const AMPLITUDA_KROKU = 0.022;   // bujanie kamery [m]
-const DLUGOSC_KROKU = 0.75;      // [m] — bujanie i dźwięk kroków liczone z drogi, nie z czasu
+const DLUGOSC_KROKU = 0.75;      // [m] — krok w marszu; powyżej PREDKOSC wydłuża się z prędkością (częstość kroków stała: 5,6/s)
 const MARTWA_STREFA = 0.15;      // joystick
 const CZULOSC = 0.0032;          // [rad/px] — przeciąganie myszą i palcem
 const MAX_POCHYLENIE = 1.15;     // [rad] ok. 66° w górę i w dół
@@ -55,7 +55,7 @@ function rozejrzyj(dx, dy) {
    śledzi WŁASNY identifier dotyku, więc działają jednocześnie. Krótkie
    dotknięcie (bez przeciągnięcia) obsługuje main.js jako „idź tutaj” albo
    „podejdź do pracy” — tu tylko gesty ciągłe. */
-function dotyk({ naRuch, naRozgladanie }) {
+function dotyk({ czynny, naRuch, naRozgladanie }) {
   const host = document.createElement("div");
   host.className = "joy"; host.hidden = true;
   host.innerHTML = '<span class="joy-kciuk"></span>';
@@ -65,6 +65,7 @@ function dotyk({ naRuch, naRozgladanie }) {
   let idRozgladania = null, ostatniX = 0, ostatniY = 0;
 
   addEventListener("touchstart", (e) => {
+    if (!czynny()) return;     // przed wejściem (ekran wejścia) dotyk niczego nie rusza
     // samoleczenie: zgubione touchend nie blokuje nowego dotyku
     const zywy = (i) => i === null || [...e.touches].some((x) => x.identifier === i);
     if (!zywy(id)) id = null;
@@ -119,13 +120,14 @@ export function initPlayer(kolizje) {
   let naZiemi = false, joyX = 0, joyY = 0;
   let zewnetrzna = null;      // prędkość zadana przez nawigacja.js (x, z) albo null
   let aktywnosc = -1e9;       // chwila ostatniego czynnego wejścia gościa — przerywa przejazd
+  let wpuszczony = false;     // gość steruje dopiero po wpusc() (ekran wejścia); do tego czasu klawisze, dotyk i przeciąganie nic nie robią
   let faza = 0;               // faza bieżącego kroku: 0–1
   let przeciaganie = null;    // { x, y, x0, y0, rusza } — przeciąganie myszą bez blokady
 
   const lista = () => !!document.querySelector(".list-panel:not([hidden])");
 
   addEventListener("keydown", (e) => {
-    if (lista()) return;
+    if (!wpuszczony || lista()) return;      // przed wejściem żadnego ruchu, także blokady wskaźnika pod ekranem wejścia
     klawisze[e.code] = true;
     /* Pierwszy klawisz ruchu wchodzi w tryb gry: mysz rozgląda się bez
        przytrzymania. Klik zostaje dla „idź tutaj”. keydown jest gestem
@@ -138,6 +140,7 @@ export function initPlayer(kolizje) {
   addEventListener("blur", () => { for (const k in klawisze) klawisze[k] = false; });   // puszczony klawisz poza oknem nie może jechać dalej
 
   dotyk({
+    czynny: () => wpuszczony,
     naRuch: (dx, dy) => { joyX = dx; joyY = dy; },
     naRozgladanie: (dx, dy) => { rozejrzyj(dx, dy); aktywnosc = performance.now(); },
   });
@@ -147,7 +150,7 @@ export function initPlayer(kolizje) {
      obraca widoku i nie liczy się jako wejście gościa, więc nie kasuje przejazdu, który
      tym klikiem właśnie ruszył (ani trwającego, gdy gość przekierowuje się drugim klikiem). */
   renderer.domElement.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;
+    if (!wpuszczony || e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;
     przeciaganie = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, rusza: false };
   });
   addEventListener("pointermove", (e) => {
@@ -217,6 +220,9 @@ export function initPlayer(kolizje) {
        — wejście z ostatnich 150 ms. */
     aktywneWejscie: (od = performance.now() - 150) => aktywnosc > od,
     naKrok: (f) => sluchaczeKrokow.add(f),
+    /* Wołane przez main.js przy wejściu do muzeum (przycisk na ekranie wejścia): od teraz gość steruje.
+       `__mz.testRuch` i teleportuj() działają niezależnie od tego. */
+    wpusc() { wpuszczony = true; },
 
     /* Prędkość zadana z zewnątrz (nawigacja.js) albo null — wtedy znowu klawisze. */
     sterujZ(vx, vz) { zewnetrzna = vx === null || vx === undefined ? null : { x: vx, z: vz }; },

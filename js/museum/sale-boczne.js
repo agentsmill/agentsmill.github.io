@@ -33,6 +33,10 @@ const ladowarka = new THREE.TextureLoader();
 /* Podpis i małe ekrany Kina stoją tyle od lica ściany: listwy z wystroj.js (kino()) wystają na 6 cm,
    a co siedzi głębiej, widać tylko między nimi (ekran w pasach, podpis z brakującymi literami). */
 const PRZED_LISTWAMI = 0.08;
+/* Dźwięk showreelu wchodzi do silnika muzeum (dzwiek.js) na ok. ćwierć głośności i narasta od ciszy:
+   film ma szczyt −1,6 dBFS, cała synteza mieści się poniżej −22 dBFS, więc pełny poziom wchodzącego do Kina
+   gościa uderzałby o ponad 20 dB. */
+const GLOSNOSC_FILMU = 0.25, NARASTANIE_FILMU = 2;   // [1], [s]
 
 /* Znak „odtwórz” na plakacie dużego ekranu: widoczny, dopóki wideo nie gra —
    także gdy przeglądarka odrzuci autoodtwarzanie. Mówi gościowi, że ekran
@@ -50,7 +54,9 @@ function znakOdtwarzania() {
 
 /* Ekran z wideo wczytywanym dopiero przy pierwszym wejściu do Kina: do tego
    czasu plakat. Wideo z własnym dźwiękiem tylko na dużym ekranie, i tylko gdy
-   gość wszedł z dźwiękiem (ustawDzwiek). */
+   gość wszedł z dźwiękiem (ustawDzwiek). Ten dźwięk idzie przez silnik muzeum
+   (podlacz): sucho, bez pogłosu sali, z narastaniem — dzięki temu słucha go
+   przycisk w HUD, a iOS, który ignoruje video.volume, też ma ściszenie. */
 function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
   const mat = new THREE.MeshBasicMaterial({ color: 0x222222 });
   ladowarka.load(plakat, (tex) => {
@@ -61,10 +67,39 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
   const znak = glosny ? znakOdtwarzania() : null;
   if (znak) mesh.add(znak);
   let video = null, dzwiek = false, chce = false;   // chce: wideo ma grać (graj() ustawia, pauza() zdejmuje)
+  let silnik = null, film = null, wSilniku = false; // silnik: dzwiek.js; film: wzmocnienie dźwięku filmu; wSilniku: źródło już utworzone
+  let czekaNaStart = false;                         // graj() z dźwiękiem: narastanie liczy się od chwili, gdy wideo naprawdę zagra
+  /* Źródło z elementu powstaje dokładnie raz (drugie createMediaElementSource na tym samym elemencie
+     rzuca) i dopiero gdy są i wideo, i silnik; tylko duży ekran. Film → wzmocnienie → wyjście silnika. */
+  function polaczFilm() {
+    if (!glosny || !silnik || !video || wSilniku) return;
+    wSilniku = true;
+    try {
+      film = silnik.ctx.createGain();
+      film.gain.value = GLOSNOSC_FILMU;
+      silnik.ctx.createMediaElementSource(video).connect(film);
+      film.connect(silnik.wyjscie);
+    } catch (err) {
+      console.warn("sale-boczne.js: dźwięk filmu poza silnikiem muzeum —", err);
+      film = null;
+      video.volume = GLOSNOSC_FILMU;                // bez silnika choć ściszony (iOS tego nie uszanuje)
+    }
+  }
+  // od ciszy do GLOSNOSC_FILMU w NARASTANIE_FILMU s; wcześniejsze narastanie anulowane
+  function narastaj() {
+    if (!film) return;
+    const g = film.gain, t = silnik.ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(0, t);
+    g.linearRampToValueAtTime(GLOSNOSC_FILMU, t + NARASTANIE_FILMU);
+  }
   const sterowanie = {
     mesh,
     graj() {
       chce = true;
+      // narastanie tylko, gdy graj() naprawdę rusza film (nowy element albo po pauzie): drugie graj() na grającym — klik w ekran
+      // z zewnątrz woła je jeszcze raz po dojściu — nie ma prawa zgasić dźwięku w połowie filmu
+      const startuje = !video || video.paused;
       if (!video) {
         video = document.createElement("video");
         Object.assign(video, { crossOrigin: "anonymous", src, loop: true, muted: true, playsInline: true, preload: "auto" });
@@ -76,8 +111,12 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
           video.addEventListener("playing", () => { znak.visible = false; });
           video.addEventListener("pause", () => { znak.visible = true; });
         }
+        // zimne ładowanie potrafi trwać dłużej niż 2 s narastania — liczymy je od pierwszego „playing” po graj(), nie od graj()
+        video.addEventListener("playing", () => { if (czekaNaStart) { czekaNaStart = false; narastaj(); } });
       }
+      polaczFilm();
       video.muted = !(glosny && dzwiek);
+      if (glosny && dzwiek && startuje) { czekaNaStart = true; narastaj(); }
       // autoodtwarzanie z dźwiękiem bywa odrzucone — wtedy gra bez dźwięku, zamiast wcale; druga odmowa
       // zostawia plakat ze znakiem ▶ i gość klika ekran sam. Ponawiamy tylko po NotAllowedError i tylko
       // gdy wideo wciąż ma grać: pause() odrzuca oczekujące play() jako AbortError, a ponowienie
@@ -90,6 +129,7 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
     pauza() { chce = false; video?.pause(); },
     przelacz() { if (!video || video.paused) sterowanie.graj(); else sterowanie.pauza(); },
     ustawDzwiek(wl) { dzwiek = wl; if (video) video.muted = !(glosny && wl); },
+    podlacz(s) { silnik = s; polaczFilm(); },
   };
   return sterowanie;
 }
@@ -137,6 +177,7 @@ function kino(s, budynek, wynik) {
     wejdz() { duzy.graj(); male.forEach((e) => e.graj()); },
     wyjdz() { duzy.pauza(); male.forEach((e) => e.pauza()); },
     ustawDzwiek(wl) { duzy.ustawDzwiek(wl); },
+    podlacz(silnik) { duzy.podlacz(silnik); },
   };
 }
 
@@ -241,6 +282,12 @@ export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWp
   }
   const portal = kosmos(plan, budynek, wynik);
   let wKinie = false;
+  /* Karta w tle: filmy Kina stają, także wyciszone ujęcia z GB10 (nie dekodują się w ukryciu), a po powrocie
+     wchodzą od nowa — z narastaniem dźwięku. Tylko dla gościa, który jest w Kinie. */
+  document.addEventListener("visibilitychange", () => {
+    if (!wKinie) return;
+    if (document.hidden) sterKina?.wyjdz(); else sterKina?.wejdz();
+  });
   return {
     ...wynik,
     portal,                      // trafienie portalu Kosmosu — cel planu w rogu (main.js naKosmos)
@@ -252,5 +299,7 @@ export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWp
       if (teraz) sterKina?.wejdz(); else sterKina?.wyjdz();
     },
     ustawDzwiek(wl) { sterKina?.ustawDzwiek(wl); },
+    /* Wołane, gdy powstaje silnik dźwięku (main.js): dźwięk showreelu przechodzi przez jego wyjście. */
+    podlaczDzwiek(silnik) { sterKina?.podlacz(silnik); },
   };
 }
