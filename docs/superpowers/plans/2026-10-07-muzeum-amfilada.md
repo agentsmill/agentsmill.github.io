@@ -3796,12 +3796,13 @@ Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźw
 
 **Pliki:**
 - Utwórz: `js/museum/sale-boczne.js`
-- Modyfikuj: `js/museum/ui.js`, `js/museum/main.js`, `museum.html`, `css/museum.css`
+- Modyfikuj: `js/museum/ui.js`, `js/museum/main.js`, `js/museum/minimapa.js`, `museum.html`, `css/museum.css`
 
 **Interfejsy:**
 - Konsumuje: `Plan` (sale `kino`, `archiwum`, `plan.kosmos`), `Budynek`, `bryla`, `gladki`, `dodajKolizje`, `zarejestruj` (Zadanie 2), `nawigacja.podejdzDo` (Zadanie 6), globalne `ARCHIVE`, `#zaslona`.
 - Produkuje:
-  - `urzadzSaleBoczne({ plan, budynek, archiwum, otworzWpis }) → { interaktywne, tickery, wejscie(salaId), ustawDzwiek(wl) }`.
+  - `urzadzSaleBoczne({ plan, budynek, archiwum, otworzWpis }) → { interaktywne, tickery, wejscie(salaId), ustawDzwiek(wl), portal }` — `portal` to trafienie portalu Kosmosu (`userData.zDaleka`: liczy się z każdej odległości, o ile nie zasłania go mur).
+  - `minimapa.js`: `initMinimapa({ plan, naSale, naKosmos })` — cel „Kosmos” w marginesie za ostatnią salą.
   - Trafienia bez `project`, z `userData.akcja({ zSali })`, `userData.widok` i opcjonalnie `wMiejscu`, `odblokuj` — `main.js` (`dzialaj`) podprowadza przed obiekt i woła akcję z salą, z której gość kliknął; przy `wMiejscu` gość, który już jest w sali trafienia, nie idzie nigdzie; przy `odblokuj` po akcji zwalnia blokadę wskaźnika (szuflady, portal — nie ekran Kina).
   - `ui.js`: `otworzWpisArchiwum(wpis)`.
   - kotwica światła ekranu Kina (`rect`).
@@ -3824,7 +3825,10 @@ Kino gra showreel na dużym ekranie (z dźwiękiem, jeśli gość wszedł z dźw
    rusza od razu (ławki Kina zagradzają prostą drogę zza ich pleców).
    `odblokuj: true` — po akcji main.js zwalnia blokadę wskaźnika, żeby
    tabliczkę i przycisk dało się kliknąć; ekran Kina tego nie ma, bo mysz ma
-   tam dalej rozglądać. */
+   tam dalej rozglądać.
+   `zDaleka: true` — trafienie liczy się poza zasięgiem prac (portal widać z
+   całej amfilady), ale tylko niezasłonięte murem: main.js celuj() sprawdza
+   to promieniem po warstwie kolizji budynku. */
 
 import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
@@ -4012,7 +4016,10 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
 }
 
 /* Portal Kosmosu: gdy gość podejdzie (albo kliknie gwiazdy), pojawia się
-   przycisk przejścia; po kliknięciu zasłona i kosmos.html w tym samym języku. */
+   przycisk przejścia; po kliknięciu zasłona i kosmos.html w tym samym języku.
+   Portal to drogowskaz na końcu amfilady, więc klika się go z każdej odległości
+   (`zDaleka`, patrz main.js celuj()) — ale nie przez ściany. Zwraca trafienie:
+   plan w rogu też prowadzi do portalu (main.js naKosmos). */
 function kosmos(plan, budynek, wynik) {
   const { x, z } = plan.kosmos;
   const przycisk = document.getElementById("kosmos-wejscie");
@@ -4028,12 +4035,13 @@ function kosmos(plan, budynek, wynik) {
   const traf = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(x, 2, z + 0.4);
   traf.userData = {
-    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true,
+    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true, zDaleka: true,
     widok: { pozycja: new THREE.Vector3(x, 1.65, z - 2.4), cel: new THREE.Vector3(x, 1.9, z + 1.8) },
   };
   budynek.grupa.add(traf);
   wynik.interaktywne.push(traf);
   wynik.tickery.push(() => pokaz(Math.abs(camera.position.x - x) < 2.2 && camera.position.z > z - 3.5));
+  return traf;
 }
 
 export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWpis = () => {} }) {
@@ -4043,10 +4051,11 @@ export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWp
     if (s.rodzaj === "kino") sterKina = kino(s, budynek, wynik);
     if (s.rodzaj === "archiwum") archiwum(s, budynek, wynik, wpisy, otworzWpis);
   }
-  kosmos(plan, budynek, wynik);
+  const portal = kosmos(plan, budynek, wynik);
   let wKinie = false;
   return {
     ...wynik,
+    portal,                      // trafienie portalu Kosmosu — cel planu w rogu (main.js naKosmos)
     /* Wołane przy każdej zmianie sali: Kino gra tylko, gdy gość w nim jest. */
     wejscie(salaId) {
       const teraz = salaId === "kino";
@@ -4123,10 +4132,99 @@ function dzialaj(hit) {
 ```js
   boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum });   // też przed graczem: kolizja szafy
   interaktywne.push(...boczne.interaktywne);
+  zDaleka.push(...interaktywne.filter((h) => h.userData.zDaleka));
   tickery.push(...boczne.tickery);
 ```
 
 i dopisz `boczne` do `Object.assign(window.__mz, { … })`.
+
+5. **Portal Kosmosu klikalny z daleka.** Portal to drogowskaz na końcu amfilady — z atrium widać go 140 m dalej, a zasięg prac (`ZASIEG_PRAC = 14`) wycinał go z kliknięć: z progu ostatniej sali (17 m) i z atrium klik nie robił nic. Pod `const interaktywne = [];` dopisz:
+
+```js
+const zDaleka = [];          // z nich te, które liczą się poza zasięgiem prac (portal Kosmosu) — o ile nic ich nie zasłania
+```
+
+nad `function celuj(e) {` wstaw:
+
+```js
+/* Czy między okiem a trafieniem stoi mur, nadproże albo bok niszy? Sprawdza warstwę kolizji
+   budynku (tę samą, z której gracz buduje Octree). Promień kończy się 5 cm przed trafieniem,
+   żeby nie łapał brył tuż za nim; zasięg wraca do poprzedniej wartości, bo wołający liczy
+   dalej na swoim. */
+function zaslonieta(trafienie) {
+  const zasieg = ray.far;
+  ray.far = trafienie.distance - 0.05;
+  const jest = ray.intersectObject(budynek.kolizje, true).length > 0;
+  ray.far = zasieg;
+  return jest;
+}
+```
+
+a w `celuj` wybór trafienia — od ostatniego zdania komentarza o pośrednikach do końca bloku `if (!hovered && budynek) { … }` — zastąp:
+
+```js
+     pierwszy pośrednik z brzegu. Trafienie „z daleka” (portal) nigdy nie liczy się przez ścianę. */
+  const wybrane = traf.find((t) => {
+    const u = t.object.userData;
+    if (u.exhibit) return trafiaRzezbe(u.exhibit.group);
+    return !u.zDaleka || !zaslonieta(t);
+  });
+  hovered = wybrane ? wybrane.object : null;
+  punktPodlogi = null;
+  if (!hovered && budynek) {
+    ray.far = ZASIEG_PODLOGI;
+    const p = ray.intersectObjects(budynek.podlogi, false)[0];
+    /* Portal Kosmosu to drogowskaz na końcu amfilady — widać go z atrium, 140 m dalej, więc
+       zasięg prac go nie dotyczy. Liczy się, gdy nic bliższego nie wygrało, ale tylko jeśli
+       żaden mur, nadproże ani bok niszy go nie zasłania (zaslonieta), a bliższy z dwóch
+       wygrywa: portal albo punkt podłogi w zasięgu. Zasięg ustawiany przed każdym rzutem. */
+    ray.far = Infinity;
+    const daleki = ray.intersectObjects(zDaleka, false)[0];
+    if (daleki && (!p || daleki.distance < p.distance) && !zaslonieta(daleki)) hovered = daleki.object;
+    else if (p) punktPodlogi = p.point;
+    else {
+      const bliski = traf.find((t) => !t.object.userData.zDaleka);    // zasłonięty portal odpada także tutaj
+      if (bliski) hovered = bliski.object;
+    }
+  }
+```
+
+6. Wywołanie `initMinimapa` w `zbudujMuzeum()` zastąp:
+
+```js
+  minimapa = initMinimapa({
+    plan,
+    naSale: (id) => { endFocus(); closeList(); nawigacja.lecDoSali(id); },
+    naKosmos: () => { endFocus(); closeList(); dzialaj(boczne.portal); },    // cel za ostatnią salą: do portalu, na miejscu przycisk
+  });
+```
+
+- [ ] **Krok 3a: `minimapa.js` — cel „Kosmos” za ostatnią salą**
+
+Bursztynowa kropka portalu ma kilka pikseli i nie łapie kliknięć (Zadanie 7: leży nad salami). Klikalny jest przezroczysty prostokąt w marginesie planu za ostatnią salą, element z `aria-label` jak sale.
+
+1. Na końcu pierwszego akapitu komentarza nagłówka (`… klawiaturą (Tab, Enter).`) dopisz: `Tak samo cel „Kosmos” za ostatnią salą: klik, Enter albo Spacja prowadzą do portalu (naKosmos).`
+2. `export function initMinimapa({ plan, naSale }) {` → `export function initMinimapa({ plan, naSale, naKosmos = () => {} }) {`.
+3. W pętli po drzwiach linię `if (d.portal) { el("circle", { cx: d.z + 1.2, cy: -d.x, r: 0.9, class: "mm-kosmos" }); continue; }` zastąp:
+
+```js
+    if (d.portal) {
+      el("circle", { cx: d.z + 1.2, cy: -d.x, r: 0.9, class: "mm-kosmos" });
+      /* Cel „Kosmos”: przezroczysty prostokąt w marginesie za ostatnią salą, od portalu do prawej krawędzi
+         planu, na pełną szerokość tej sali. Kropka sama ma kilka pikseli i nie łapie kliknięć, a cel jest
+         elementem z aria-label — jak sale. Leży nad kropką, pod strzałką gościa. */
+      const ostatnia = plan.sale.find((q) => q.id === d.a);
+      const napis = t("muz.kosmos.szyld", "Kosmos →");
+      const cel = el("rect", {
+        x: d.z, y: -ostatnia.x1, width: maxZ - d.z, height: ostatnia.x1 - ostatnia.x0,
+        class: "mm-kosmos-cel", tabindex: "0", role: "button", "aria-label": napis,
+      });
+      el("title", {}, cel).textContent = napis;
+      cel.addEventListener("click", () => naKosmos());
+      cel.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); naKosmos(); } });
+      continue;
+    }
+```
 
 - [ ] **Krok 4: `museum.html`**
 
@@ -4161,6 +4259,16 @@ i dopisz `boczne` do `Object.assign(window.__mz, { … })`.
 }
 ```
 
+i pod regułą `.mm-ja, .mm-drzwi, .mm-kosmos { pointer-events: none; }` (Zadanie 7) dopisz:
+
+```css
+/* Cel „Kosmos” (minimapa.js): przezroczysty prostokąt w marginesie za ostatnią salą — sama kropka portalu
+   nie łapie kliknięć. Ognisko jak przy salach: po kliku bez obwódki przeglądarki, z klawiatury przerywana obwódka. */
+.mm-kosmos-cel { fill: transparent; pointer-events: all; cursor: pointer; }
+.mm-kosmos-cel:focus { outline: none; }
+.mm-kosmos-cel:focus-visible { stroke: var(--ink); stroke-width: 0.6; stroke-dasharray: 2 1; }
+```
+
 - [ ] **Krok 6: Weryfikacja**
 
 1. Kanoniczna sonda: `interaktywne: 94` (64 + ekran Kina + 28 szuflad + portal).
@@ -4181,12 +4289,13 @@ async () => {
 Oczekiwane: `szuflad === ARCHIVE.length` (28), tytuł = `ARCHIVE[5].title` („Latarnik AI”), szuflada wysunięta na zrzucie.
 
 4. Kosmos: `m.gracz.teleportuj(0, m.plan.kosmos.z - 2.5, { x: 0, y: 2, z: m.plan.kosmos.z + 5 })` → `#kosmos-wejscie` widoczny; `m.gracz.teleportuj(0, m.plan.kosmos.z - 7.5)` — ukryty. Kliknięcie przycisku: zasłona i `kosmos.html` (z `?lang=en` w wersji angielskiej). Powrót z bfcache: po dodaniu `.widoczna` do `#zaslona` zdarzenie `new PageTransitionEvent("pageshow", { persisted: true })` zdejmuje zasłonę. Przycisk w jednym wierszu i bez nachodzenia na plan przy 390×844, 800×600, 900×700 i 1440×900. Klik w szufladę i w portal woła `gracz.odblokuj()` (szpieg na metodzie), klik w ekran Kina — nie. Przy `prefers-reduced-motion` szuflada stoi u celu w następnej klatce.
+   Portal z daleka (prawdziwe kliki): z progu ostatniej sali (0, 120) — przejście do ≈ (0, 134,7) i przycisk; ze startu (0, −6,5) w świecący prostokąt na końcu widoku — szybka podróż (11 m/s), na miejscu przycisk, klik → `kosmos.html`. Z boku sali, gdy na linii portalu stoi mur, kursor zostaje zwykły, a klik nic nie robi. Cel „Kosmos” w planie w rogu: klik, Tab + Enter, Spacja i dotyk prowadzą do portalu; klik w prawy koniec ostatniej sali nadal leci do tej sali. Koszt `celuj()` przy ruchu myszy po widoku na wylot: mediana kilka µs.
 5. Zrzuty: Kino z obrazem na ekranie, Archiwum z wysuniętą szufladą i tabliczką, portal z przyciskiem.
 
 - [ ] **Krok 7: Commit**
 
 ```bash
-git add js/museum/sale-boczne.js js/museum/ui.js js/museum/main.js museum.html css/museum.css
+git add js/museum/sale-boczne.js js/museum/ui.js js/museum/main.js js/museum/minimapa.js museum.html css/museum.css
 git commit -m "$(cat <<'EOF'
 Muzeum: Kino ze showreelem, Archiwum z szufladami, drzwi do Kosmosu
 
