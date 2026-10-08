@@ -36,6 +36,28 @@ const CAT_HEX = Object.fromEntries(Object.entries(CATEGORIES).map(([k, v]) => [k
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const dotykowy = matchMedia("(pointer: coarse)").matches;
 
+/* ── Poziom jakości ───────────────────────────────────────────────────────
+   Start z detekcji: telefon i tablet (pointer: coarse) na niskim, słabszy
+   komputer (≤ 4 wątki) na średnim, reszta na wysokim; `?jakosc=` w adresie
+   wymusza poziom (testy, porównania). Dalej pilnuje perf.js — degradacja
+   jednokierunkowa GTAO → lustro → cienie → rozdzielczość.
+   Pomiar (MacBook, 1440 × 900, atrium na wylot — najgorszy kadr): bez GTAO
+   79 fps; GTAO w pełnej rozdzielczości 38; w połowie 58–61 przy DPR 1,75
+   i 79 przy DPR 1,5. Stąd wysoki = DPR 1,5 i okluzja zawsze w połowie (różnica
+   względem pełnej: poniżej 1/255 jasności pod ławką i w narożniku); 8 próbek
+   zamiast 16 oszczędzało ledwie 4 %, więc wszędzie, gdzie jest GTAO, jest 16.
+   Prostokątów zawsze 4: sala nocy ma ich tyle (podświetlenia ścian i progu),
+   a pula przydziela je całymi salami — mniejsza zostawiłaby noc bez świateł. */
+const POZIOMY = {
+  wysoki: { dpr: 1.5, gtao: true, lustro: 1024, cienie: "pelne", pula: { spot: 12, rect: 4 }, leniwe: false },
+  sredni: { dpr: 1.25, gtao: true, lustro: 512, cienie: "slonce", pula: { spot: 8, rect: 4 }, leniwe: false },
+  niski: { dpr: 1.25, gtao: false, lustro: 0, cienie: "brak", pula: { spot: 6, rect: 4 }, leniwe: true },
+};
+const wymuszony = new URLSearchParams(location.search).get("jakosc");
+const nazwaPoziomu = Object.hasOwn(POZIOMY, wymuszony) ? wymuszony
+  : dotykowy ? "niski" : (navigator.hardwareConcurrency ?? 8) <= 4 ? "sredni" : "wysoki";
+const jakosc = { nazwa: nazwaPoziomu, ...POZIOMY[nazwaPoziomu] };
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x050608);
 
@@ -48,16 +70,36 @@ const camera = new THREE.PerspectiveCamera(56, innerWidth / innerHeight, 0.05, 2
 camera.rotation.order = "YXZ";
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-/* Gęstość pikseli zależna od urządzenia: na telefonie limit 1,25 zamiast 1,75
-   to ponad dwa razy mniej pikseli na klatkę przy niewidocznej różnicy. */
-renderer.setPixelRatio(Math.min(devicePixelRatio, dotykowy ? 1.25 : 1.75));
+/* Gęstość pikseli z poziomu: na telefonie limit 1,25 zamiast natywnych 3 to
+   prawie sześć razy mniej pikseli na klatkę przy niewidocznej różnicy. */
+renderer.setPixelRatio(Math.min(devicePixelRatio, jakosc.dpr));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = jakosc.cienie !== "brak";
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 host.appendChild(renderer.domElement);
+
+/* Utrata kontekstu WebGL (telefon pod presją pamięci, reset sterownika):
+   three.js przestaje rysować i zostaje czarne płótno. Zamiast niego prośba
+   o odświeżenie — w panelu, którego używa też strażnik ładowania. */
+renderer.domElement.addEventListener("webglcontextlost", () => {
+  const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
+  const panel = document.getElementById("no-webgl");
+  const tekst = document.createElement("p");
+  tekst.textContent = t("muz.utrata", "Karta graficzna zgubiła obraz muzeum — na telefonie zdarza się to przy braku pamięci.");
+  const odswiez = document.createElement("button");
+  odswiez.type = "button";
+  odswiez.className = "hud-list";
+  odswiez.textContent = t("muz.odswiez", "Odśwież muzeum");
+  odswiez.addEventListener("click", () => location.reload());
+  const powrot = document.createElement("a");
+  powrot.href = "index.html";
+  powrot.textContent = t("muz.wrocKarta", "Wróć do karty budowania");
+  panel.replaceChildren(tekst, odswiez, powrot);
+  panel.hidden = false;
+});
 
 // Mapa środowiskowa z kodu — 0 bajtów do pobrania. Siłę per strefa ustawia swiatla.js.
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -66,7 +108,7 @@ scene.environment = srodowisko;
 scene.environmentIntensity = 0.15;
 
 // go() dostaje ciało w main.js, gdy powstaje gracz — tu tylko nieszkodliwy zaczep.
-window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: () => {} };
+window.__mz = { renderer, scene, camera, jakosc, composer: null, bloom: null, go: () => {} };
 
 /* MSAA w celu kompozytora: `antialias` renderera nie obejmuje rysowania do
    celu pośredniego, a bez wygładzania listwy, ramy i opaski drzwi strzępią się. */
@@ -75,11 +117,24 @@ const composer = new EffectComposer(renderer, cel);
 composer.addPass(new RenderPass(scene, camera));
 /* Okluzja otoczenia (GTAO): miękki cień w narożnikach, pod ławkami i u podstawy
    podestów. To ona odróżnia wnętrze od „płaskiego 3D” — szczególnie w bieli,
-   gdzie światło sufitu nie rzuca cieni. */
-const gtao = new GTAOPass(scene, camera, 16, 16);
-gtao.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1, thickness: 1, scale: 1, samples: 16 });
-gtao.blendIntensity = 1;
-composer.addPass(gtao);
+   gdzie światło sufitu nie rzuca cieni. Liczona w połowie rozdzielczości
+   (razem z przebiegiem normalnych): i tak jest rozmyta, a pikseli 4× mniej —
+   w pełnej zjadała ⅓ klatki. Na niskim poziomie nie powstaje wcale (jej cele
+   renderowania to pamięć, której telefon nie ma). */
+let gtao = null;
+if (jakosc.gtao) {
+  gtao = new GTAOPass(scene, camera, 16, 16);
+  gtao.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1, thickness: 1, scale: 1, samples: 16 });
+  /* Bez przestrzennego odszumiania (promień 0): przy 16 próbkach okluzja jest
+     już gładka, a filtr Poissona kropkował każde załamanie ścian — próbki zza
+     narożnika dostają wagę 0, a ich zbiór zmienia się co piksel (widać to było
+     w bieli, gdzie okluzja to prawie jedyny cień). */
+  gtao.updatePdMaterial({ radius: 0 });
+  gtao.blendIntensity = 1;
+  const pelna = gtao.setSize.bind(gtao);
+  gtao.setSize = (w, h) => pelna(Math.ceil(w / 2), Math.ceil(h / 2));
+  composer.addPass(gtao);
+}
 // (rozdzielczość, siła, promień, próg) — wysoki próg: świecą ekrany, szyldy i progi, nie ściany
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.5, 0.85);
 composer.addPass(bloom);
@@ -99,4 +154,4 @@ const M = {
 
 function bx(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
 
-export { renderer, scene, camera, composer, bloom, gtao, srodowisko, M, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };
+export { renderer, scene, camera, composer, bloom, gtao, jakosc, srodowisko, M, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };

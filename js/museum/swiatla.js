@@ -35,11 +35,14 @@ const RESZTKA_UDAWANIA = 0.12;
 
 const wykladniczo = (dt, tau) => (reduceMotion ? 1 : 1 - Math.exp(-dt / tau));
 
-export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect: 4 }, lustro: zLustrem = true }) {
+/* Opcje z poziomu jakości (render.js: jakosc): `pula` — liczba reflektorów i
+   prostokątów, `lustro` — rozdzielczość odbicia posadzki nocy (0 — bez lustra),
+   `cienie` — "pelne" (reflektory i słońce), "slonce" (tylko kierunkowe), "brak". */
+export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect: 4 }, lustro: rozdzielczoscLustra = 1024, cienie = "pelne" }) {
   /* ── Pula ─────────────────────────────────────────────────────────── */
   const spoty = Array.from({ length: pula.spot }, (_, i) => {
     const s = new THREE.SpotLight(0xffffff, 0, 0, 0.5, 0.5, 2);
-    if (i < 2) {   // dwa pierwsze miejsca puli rzucają cień — dostają je kotwice z `cien`
+    if (i < 2 && cienie === "pelne") {   // dwa pierwsze miejsca puli rzucają cień — dostają je kotwice z `cien`
       s.castShadow = true;
       s.shadow.mapSize.set(1024, 1024);
       s.shadow.bias = -0.0004;
@@ -53,7 +56,7 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
     return { swiatlo: r, obecna: null, nastepna: null, moc: 0 };
   });
   const slonce = new THREE.DirectionalLight(0xfff6ea, 0);
-  slonce.castShadow = true;
+  slonce.castShadow = cienie !== "brak";
   slonce.shadow.mapSize.set(1024, 1024);
   slonce.shadow.bias = -0.0005;
   slonce.shadow.radius = 4;
@@ -74,8 +77,8 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
      oraz po wylaczLustro(). Siłę odbicia wyznacza wyłącznie jego `color`:
      szary 0x9a9a9a mnoży odbity obraz. */
   let lustro = null;
-  if (zLustrem && plan.sale.some((s) => s.styl === "noc")) {
-    lustro = new Reflector(new THREE.PlaneGeometry(1, 1), { textureWidth: 1024, textureHeight: 1024, color: 0x9a9a9a, clipBias: 0.003 });
+  if (rozdzielczoscLustra && plan.sale.some((s) => s.styl === "noc")) {
+    lustro = new Reflector(new THREE.PlaneGeometry(1, 1), { textureWidth: rozdzielczoscLustra, textureHeight: rozdzielczoscLustra, color: 0x9a9a9a, clipBias: 0.003 });
     lustro.rotation.x = -Math.PI / 2;
     lustro.visible = false;
     const oryginal = lustro.onBeforeRender;
@@ -215,18 +218,21 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
   }
 
   return {
-    lustro,
+    get lustro() { return lustro; },   // getter: po wyłączeniu przez perf.js ma oddać null, nie stare lustro
     sala: () => biezaca,
     /* Wołane przez main.js przy każdej zmianie sali pod nogami gościa. */
     wejdz(s) {
       biezaca = s;
       przydziel(s);
     },
-    /* Wyłączenie lustra na stałe — stopień degradacji z perf.js (Zadanie 10). */
+    /* Wyłączenie lustra na stałe — stopień degradacji z perf.js. Zwraca, czy
+       było co wyłączyć (na niskim poziomie lustra nie ma od startu). */
     wylaczLustro() {
-      if (!lustro) return;
+      if (!lustro) return false;
       scene.remove(lustro);
+      lustro.dispose();
       lustro = null;
+      return true;
     },
     aktualizuj(dt) {
       if (!biezaca) return;

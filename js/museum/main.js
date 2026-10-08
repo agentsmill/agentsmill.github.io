@@ -2,8 +2,8 @@
    eksponaty → gracz → światła → nawigacja, pętla klatek i obsługa kliknięć.
    Każdy moduł ma jedną odpowiedzialność; tu tylko kolejność i przewody. */
 import * as THREE from "three";
-import { renderer, scene, camera, composer, bloom } from "muzeum/render.js";
-import { zbudujPlan, salaPod } from "muzeum/plan.js";
+import { renderer, scene, camera, composer, gtao, jakosc } from "muzeum/render.js";
+import { zbudujPlan, salaPod, odleglosciSal } from "muzeum/plan.js";
 import { zbudujBudynek } from "muzeum/sale.js";
 import { urzadz } from "muzeum/wystroj.js";
 import { powiesPrace } from "muzeum/zawieszenie.js";
@@ -32,7 +32,6 @@ function komunikat(tekst) {
   clearTimeout(chowanieId);
   chowanieId = setTimeout(() => { el.hidden = true; }, 6000);
 }
-const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
 let plan = null, budynek = null, gracz = null, prace = null, swiatla = null, nawigacja = null, minimapa = null, boczne = null, dzwiek = null;
 const interaktywne = [];     // trafienia raycastera: prace, eksponaty, sale boczne (Zadanie 8)
@@ -40,6 +39,48 @@ const zDaleka = [];          // z nich te, które liczą się poza zasięgiem pr
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
 let bylaSala = null, byloWycieczka = false;
+
+/* Strażnik wydajności (perf.js): stopnie od najdroższego przy najmniejszej
+   stracie wyglądu. Każdy zwraca, czy miał co wyłączyć. */
+const perf = initPerf({
+  komunikat,
+  stopnie: [
+    {
+      nazwa: "gtao",
+      tekst: () => t("muz.perf.gtao", "Wyłączyłem cieniowanie narożników, żeby złapać płynność."),
+      wykonaj: () => {
+        if (!gtao || !composer.passes.includes(gtao)) return false;
+        composer.removePass(gtao);
+        gtao.dispose();
+        return true;
+      },
+    },
+    {
+      nazwa: "lustro",
+      tekst: () => t("muz.perf.lustro", "Wyłączyłem odbicia w posadzce nocy."),
+      wykonaj: () => swiatla?.wylaczLustro() ?? false,
+    },
+    {
+      nazwa: "cienie",
+      tekst: () => t("muz.perf.cienie", "Wyłączyłem też cienie — ten sprzęt nie wyrabia."),
+      wykonaj: () => {
+        if (!renderer.shadowMap.enabled) return false;
+        renderer.shadowMap.enabled = false;
+        return true;
+      },
+    },
+    {
+      nazwa: "dpr",
+      tekst: () => t("muz.perf.dpr", "Zmniejszyłem rozdzielczość obrazu — to ostatni krok."),
+      wykonaj: () => {
+        if (renderer.getPixelRatio() <= 1) return false;
+        renderer.setPixelRatio(1);
+        composer.setPixelRatio(1);
+        return true;
+      },
+    },
+  ],
+});
 
 /* KOLEJNOŚĆ: najpierw treść, potem przeglądarka. odblokuj() schodzi do
    exitPointerLock(), którego WebKit na iOS nie ma — tabliczka musi się
@@ -191,6 +232,19 @@ renderer.domElement.addEventListener("pointerup", (e) => {
 renderer.domElement.addEventListener("pointermove", (e) => { if (!downAt) celuj(e); });
 renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; });
 
+/* Obrazy prac. Na niskim poziomie (telefon) salami: wczytane do dwóch przejść
+   od gościa, zwalniane od pięciu — pas pomiędzy chroni przed migotaniem, gdy
+   ktoś krąży przy progu. Wyżej wszystkie od razu, najbliższe najpierw
+   (wczytaj() drugi raz nic nie robi, więc kolejne sale nic nie kosztują). */
+function wczytajObrazy(s) {
+  const odl = odleglosciSal(plan, s.id);
+  const d = (o) => odl.get(o.salaId) ?? Infinity;
+  for (const o of [...prace.obrazy].sort((a, b) => d(a) - d(b))) {
+    if (!jakosc.leniwe || d(o) <= 2) o.wczytaj();
+    else if (d(o) > 4) o.zwolnij();
+  }
+}
+
 /* Zmiana sali pod nogami gościa — jedno miejsce, z którego dowiadują się o
    niej wszystkie moduły. aria-live na #hud-era ogłasza każde przypisanie,
    więc tylko przy zmianie. */
@@ -200,6 +254,7 @@ function naZmianeSali(s) {
   minimapa?.sala(s.id);
   boczne?.wejscie(s.id);
   dzwiek?.ustawSale(s);
+  wczytajObrazy(s);
 }
 
 /* ── Wejście i dźwięk ─────────────────────────────────────────────────────
@@ -254,14 +309,38 @@ btnDzwiek.addEventListener("click", () => sprobujDzwiek(!dzwiek || dzwiek.wycisz
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
 
+/* ── Oszczędzanie w bezruchu ──────────────────────────────────────────────
+   Gość stoi i nic się nie rusza → mniej klatek: po 2 s ok. 20 kl./s, po 20 s
+   ok. 4 kl./s. Ruch myszy, dotyk, klawisz, kółko albo przejazd wracają do
+   pełnej szybkości w tej samej klatce. W Kinie co najmniej 30 kl./s — gra film.
+   Na telefonie i laptopie na baterii to różnica między „grzeje się” a „stoi”. */
+const BEZRUCH = [[20, 1 / 4], [2, 1 / 20]];   // [po ilu sekundach bezruchu, najkrótszy odstęp klatek w s]
+let ostatniRuch = performance.now(), ostatniaKlatka = 0;
+const ruch = () => { ostatniRuch = performance.now(); };
+for (const zdarzenie of ["pointermove", "pointerdown", "wheel", "keydown", "keyup", "touchstart", "touchmove"]) {
+  addEventListener(zdarzenie, ruch, { passive: true });
+}
+function odstepKlatek(teraz) {
+  if (nawigacja?.aktywna() || (gracz?.predkosc() ?? 0) > 0.05) { ostatniRuch = teraz; return 0; }
+  const bezruch = (teraz - ostatniRuch) / 1000;
+  let odstep = 0;
+  for (const [po, o] of BEZRUCH) if (bezruch >= po) { odstep = o; break; }
+  if (odstep && bylaSala?.rodzaj === "kino") odstep = Math.min(odstep, 1 / 30);
+  return odstep;
+}
+
 const clock = new THREE.Clock();
 const wzrok = new THREE.Vector3();
 let firstFrame = true;
-function petla() {
+function petla(teraz = performance.now()) {
   requestAnimationFrame(petla);
+  dzwiek?.tick();                      // serce planowane 0,3 s naprzód — co wywołanie rAF, także w klatce pominiętej
+  const odstep = odstepKlatek(teraz);
+  if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
+  ostatniaKlatka = teraz;
   const dt = Math.min(clock.getDelta(), 0.05);
   const czas = clock.elapsedTime;      // nie `t` — to nazwa tłumacza napisów wyżej
-  perfTick(dt);
+  if (!odstep) perf.tick(dt);          // strażnik mierzy tylko pełną szybkość — oszczędzanie to nie słaby sprzęt
   if (gracz) {
     nawigacja.update(dt);              // najpierw ster przejazdu, potem ruch z kolizjami
     gracz.update(dt);
@@ -280,7 +359,6 @@ function petla() {
     try { fn(czas, dt); } catch (err) { console.error("tick error:", err); }
   }
   swiatla?.aktualizuj(dt);
-  dzwiek?.tick();
   composer.render();
   if (firstFrame) {
     firstFrame = false;
@@ -312,7 +390,6 @@ function zbudujMuzeum() {
   urzadz(plan, budynek);
   prace = powiesPrace(plan, budynek);
   interaktywne.push(...prace.interaktywne);
-  for (const o of prace.obrazy) o.wczytaj();   // wszystkie od razu; salami — Zadanie 10
   const eksponaty = postawEksponaty(plan, budynek);   // przed graczem: dokłada kolizje podestów
   interaktywne.push(...eksponaty.interaktywne);
   tickery.push(...eksponaty.tickery);
@@ -326,7 +403,7 @@ function zbudujMuzeum() {
   gracz = initPlayer(budynek.kolizje);         // po wszystkich kolizjach — Octree buduje się raz
   gracz.teleportuj(plan.start.x, plan.start.z);
   gracz.naKrok(() => dzwiek?.krok());
-  swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });
+  swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy, pula: jakosc.pula, lustro: jakosc.lustro, cienie: jakosc.cienie });
   nawigacja = initNawigacja({ plan, gracz, zaslona: document.getElementById("zaslona") });
   minimapa = initMinimapa({
     plan,
@@ -345,7 +422,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, boczne, dzwiek: () => dzwiek, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, swiatla, nawigacja, minimapa, boczne, dzwiek: () => dzwiek, perf, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { zbudujPlan, salaPod, trasa, punktWejscia, wyroznione, rozmiesc, strefaEpoki, POJ, DRZWI_SZ } from "../js/museum/plan.js";
+import { zbudujPlan, salaPod, trasa, odleglosciSal, punktWejscia, wyroznione, rozmiesc, strefaEpoki, POJ, DRZWI_SZ } from "../js/museum/plan.js";
 
 // projects-data.js to zwykły skrypt z globalnymi const — wyciągamy je bez zmieniania pliku
 const zrodlo = readFileSync(new URL("../js/projects-data.js", import.meta.url), "utf8");
@@ -111,6 +111,15 @@ test("trasa z atrium do pokoju Leona prowadzi kolejnymi drzwiami", () => {
   assert.equal(t.at(-1).b, "leon");
   for (let i = 1; i < t.length; i++) assert.ok([t[i].a, t[i].b].includes(t[i - 1].b), `przerwa w trasie przy ${t[i].id}`);
   assert.deepEqual(trasa(plan, "kino", "kino"), []);
+});
+
+test("odleglosciSal: przejścia od sali — amfilada kolejno, każda sala osiągalna, za progiem o jedno", () => {
+  const odl = odleglosciSal(plan, "atrium");
+  assert.equal(odl.get("atrium"), 0);
+  assert.equal(odl.size, plan.sale.length);
+  osiowe.slice(1).forEach((s, i) => assert.equal(odl.get(s.id), i + 1, s.id));
+  for (const d of plan.drzwi) if (d.b) assert.equal(Math.abs(odl.get(d.a) - odl.get(d.b)), 1, d.id);
+  assert.equal(odleglosciSal(plan, "leon").get("leon"), 0);
 });
 
 test("wycieczka: wszystkie wyróżnione, w kolejności dat", () => {

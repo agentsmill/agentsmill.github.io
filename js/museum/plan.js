@@ -227,16 +227,23 @@ export function salaPod(plan, x, z) {
   return plan.sale.find((s) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1) ?? null;
 }
 
-/* Kolejne drzwi na drodze z sali do sali (przeszukiwanie wszerz po grafie
-   drzwi). Pusta tablica — ta sama sala; null — nie ma drogi. */
-export function trasa(plan, odId, doId) {
-  if (odId === doId) return [];
+/* Graf przejść: sala → [[sąsiednia sala, drzwi]]. Portal Kosmosu (drzwi
+   bez `b`) nie prowadzi do żadnej sali. */
+function sasiedztwo(plan) {
   const sasiedzi = new Map(plan.sale.map((s) => [s.id, []]));
   for (const d of plan.drzwi) {
     if (!d.b) continue;
     sasiedzi.get(d.a).push([d.b, d]);
     sasiedzi.get(d.b).push([d.a, d]);
   }
+  return sasiedzi;
+}
+
+/* Kolejne drzwi na drodze z sali do sali (przeszukiwanie wszerz po grafie
+   drzwi). Pusta tablica — ta sama sala; null — nie ma drogi. */
+export function trasa(plan, odId, doId) {
+  if (odId === doId) return [];
+  const sasiedzi = sasiedztwo(plan);
   const skad = new Map([[odId, null]]);
   const kolejka = [odId];
   while (kolejka.length) {
@@ -248,6 +255,19 @@ export function trasa(plan, odId, doId) {
   const droga = [];
   for (let s = doId; skad.get(s); s = skad.get(s)[0]) droga.unshift(skad.get(s)[1]);
   return droga;
+}
+
+/* Ile przejść dzieli każdą salę od danej: 0 — ta sama, 1 — za progiem…
+   Obrazy prac na niskim poziomie jakości (main.js) żyją tylko w pobliżu gościa. */
+export function odleglosciSal(plan, odId) {
+  const sasiedzi = sasiedztwo(plan);
+  const odl = new Map([[odId, 0]]);
+  const kolejka = [odId];
+  while (kolejka.length) {
+    const s = kolejka.shift();
+    for (const [n] of sasiedzi.get(s) ?? []) if (!odl.has(n)) { odl.set(n, odl.get(s) + 1); kolejka.push(n); }
+  }
+  return odl;
 }
 
 /* Gdzie stanąć po wejściu do sali: 2,2 m za progiem, przodem w głąb sali. */
