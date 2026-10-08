@@ -37,6 +37,8 @@ Obowiązują w każdym zadaniu:
 node --test tests/plan.test.mjs
 ```
 
+Na komputerze właściciela Node ostrzega `MODULE_TYPELESS_PACKAGE_JSON` — źródłem jest `package.json` w katalogu domowym, poza repo (repo żadnego nie ma i mieć nie będzie). Żeby wynik był czysty, uruchamiaj tu testy jako `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/plan.test.mjs`; liczby testów w zadaniach dotyczą tej samej komendy.
+
 **Serwer podglądu worktree.** `.claude/launch.json` (nieśledzony przez git) wskazuje główny katalog repo, nie worktree. Dopisz do tablicy `configurations` drugi wpis i uruchamiaj podgląd przez `preview_start {name: "muzeum-worktree"}`:
 
 ```json
@@ -1675,7 +1677,7 @@ git rm js/museum/world.js js/museum/building.js
 
 - [ ] **Krok 11: Weryfikacja**
 
-1. `node --test tests/plan.test.mjs` — dalej `pass 13`.
+1. `node --test tests/plan.test.mjs` — dalej `pass 17` (13 testów planu + 4 dopisane w poprawce Zadania 1).
 2. `preview_start {name: "muzeum-worktree"}`, Playwright na `/museum.html`, odczekaj 6 s, kanoniczna sonda. Oczekiwane: `bledy: []`, `rysowan` > 200, `trojkatow` > 2000, `sal: 12`, `kolizje` > 100. Konsola bez błędów (`browser_console_messages` z poziomem `warning`).
 3. Przejście przez drzwi: w `browser_evaluate`:
 
@@ -2268,7 +2270,7 @@ Karta budowania nie czyta tej zmiennej — nic się na niej nie zmienia.
 
 - [ ] **Krok 6: Weryfikacja**
 
-1. `node --test tests/plan.test.mjs` — `pass 13` (plan już zakładał gramofon jako `cokol`).
+1. `node --test tests/plan.test.mjs` — `pass 17` (plan już zakładał gramofon jako `cokol`).
 2. Kanoniczna sonda: `interaktywne: 64` (55 prac + 9 eksponatów), `kolizje` ≥ 130.
 3. Eksponaty w salach:
 
@@ -4473,7 +4475,7 @@ export function odleglosciSal(plan, odId) {
 - [ ] **Krok 4: Uruchom — ma przejść**
 
 Run: `node --test tests/plan.test.mjs`
-Expected: `ℹ tests 14`, `ℹ pass 14`, `ℹ fail 0`.
+Expected: `ℹ tests 18`, `ℹ pass 18`, `ℹ fail 0`.
 
 - [ ] **Krok 5: `render.js` — poziomy jakości, okluzja w połowie, utrata kontekstu**
 
@@ -5212,7 +5214,7 @@ Oczekiwane (próba): `sale` = `["atrium:0", "archiwum:0", "kino:0", "e1:5", "e2:
 
 2. Angielski: `museum.html?lang=en` — ekran wejścia „The Museum of Building / Enter with sound / Enter in silence”; po wejściu HUD „Atrium”, „Sound: off”, „Show me around”, „List of exhibits”, podpowiedź „Click the floor to walk there …”; plan w rogu `aria-label` „Museum map”, sale boczne „Atrium / Cinema / Archive / Leon’s Room”; nagłówki listy po angielsku („I · III–IV 2025 — First experiments” …); tabliczka pracy z odnośnikiem „See it live ↗”. Szukanie polskich słów interfejsu w HUD, podpowiedzi, planie i liście (z `aria-label`) — „Wejdź”, „Dźwięk”, „Oprowadź”, „Lista”, „Kliknij”, „Zamknij”, „Kino”, „Archiwum”, „Pokój”, „Podejdź”, „Zobacz”, „Wróć” — daje pustą listę.
 3. Karta budowania (`index.html`, PL i `?lang=en`) i Kosmos (`kosmos.html`) wstają po nowym stemplu bez błędów w konsoli (ostrzeżenia o przestarzałych API three r185 w Kosmosie są stare i poza zakresem).
-4. `node --test tests/plan.test.mjs` — 14/14.
+4. `node --test tests/plan.test.mjs` — 18/18.
 
 - [ ] **Krok 9: Commit**
 
@@ -5256,7 +5258,7 @@ Sprawdzenie całości wg §10 specyfikacji na serwerze worktree (`muzeum-worktre
 - [ ] **Krok 1: Testy planu**
 
 Run: `node --test tests/plan.test.mjs`
-Expected: `ℹ tests 14`, `ℹ pass 14`, `ℹ fail 0`.
+Expected: `ℹ tests 18`, `ℹ pass 18`, `ℹ fail 0`.
 
 - [ ] **Krok 2: Odbiór na komputerze (§10.1–3, 5, 6, 8)**
 
@@ -5676,7 +5678,7 @@ Odbiór wg §10 na serwerze lokalnym, profil MacBooka 1440 × 900 przy DPR 2.
 |---|---|
 | 1. błędy, 404 | zero w `__errs`, w konsoli i w odpowiedziach sieci |
 | 2. scena | wywołania rysowania > 0 (próba: 1439 w atrium) |
-| 3. plan | 12 sal, 55 prac = 55 projektów (52 w salach epok + 3 u Leona); test planu 14/14 |
+| 3. plan | 12 sal, 55 prac = 55 projektów (52 w salach epok + 3 u Leona); test planu 18/18 |
 | 4. przejazdy | atrium → druga sala VI przez wszystkie drzwi bez zaklinowania (15,1 s); każda z 12 sal osiągalna z planu w rogu |
 | 5. klik | podłoga: odchylenie 0,087 m; praca: 0,058 m i tabliczka (tolerancja 0,3 m) |
 | 6. kolizje | ściana, podest, ławka — zatrzymanie |
