@@ -1772,6 +1772,10 @@ const JASNOSC_EKRANU = { palac: 0.8, biel: 0.9, noc: 1.0, kino: 1.0, zabawy: 0.9
    na białej ścianie wygląda naturalnie. */
 const SUFIT_EKRANU = { noc: 0.3, kino: 0.3 };
 const PROPORCJE = { ekran: 900 / 562, druk: 1024 / 576, plansza: 1.6 };
+/* Odległość plamy snopu od ściany [m]. Niezmiennik: plama leży ZA płytą pod
+   tabliczką (jej lico jest 0,010 m od ściany, patrz tabliczka()) — w jednej
+   płaszczyźnie z licem tabliczki (0,012) plama i tekst walczą o głębię. */
+const PLAMA_OD_SCIANY = 0.006;
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
 
 /* Punkt na licu ściany i obrót przodem do wnętrza sali (lokalne +Z pracy
@@ -1903,11 +1907,13 @@ function sredniaJasnosc(obraz) {
 function obrazDo(salaId, src, ustaw, wyczysc) {
   return {
     salaId, src, tex: null, wczytany: false,
+    zadanie: 0,        // numer ostatniego żądania — starsze, które jeszcze leci, nie nadpisze nowszego
     wczytaj() {
       if (this.wczytany) return;
       this.wczytany = true;
+      const nr = ++this.zadanie;
       ladowarka.load(src, (tex) => {
-        if (!this.wczytany) { tex.dispose(); return; }   // zwolniony, zanim doszedł
+        if (!this.wczytany || nr !== this.zadanie) { tex.dispose(); return; }   // zwolniony albo wyprzedzony nowszym żądaniem, zanim doszedł
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.anisotropy = 8;
         this.tex = tex;
@@ -2007,7 +2013,7 @@ function powies(s, w, budynek, wynik) {
     const plama = new THREE.Mesh(new THREE.PlaneGeometry(r, r), new THREE.MeshBasicMaterial({
       map: owal(), color: 0xffd8a6, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false,
     }));
-    plama.position.set(m.x + m.nx * 0.012, w.y + 0.12, m.z + m.nz * 0.012);
+    plama.position.set(m.x + m.nx * PLAMA_OD_SCIANY, w.y + 0.12, m.z + m.nz * PLAMA_OD_SCIANY);
     plama.rotation.y = m.ry;
     plama.userData.kotwica = kotwica;
     budynek.grupa.add(plama);
