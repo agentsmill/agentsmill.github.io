@@ -2787,6 +2787,7 @@ const DLUGOSC_KROKU = 0.75;      // [m] — bujanie i dźwięk kroków liczone z
 const MARTWA_STREFA = 0.15;      // joystick
 const CZULOSC = 0.0032;          // [rad/px] — przeciąganie myszą i palcem
 const MAX_POCHYLENIE = 1.15;     // [rad] ok. 66° w górę i w dół
+const PROG_KLIKU = 8;            // [px] — ruch do tego progu od wciśnięcia to klik z drżeniem ręki, nie przeciąganie (ten sam próg ma main.js: `dist > 8`)
 /* Górny limit kroku całkowania. Przy 0,05 s i biegu (8 m/s) kapsuła przesuwa
    się o 0,4 m na klatkę, a przeskok przez mur 0,4 m wymaga ponad 1,1 m (mur +
    dwa promienie) — zapas jest. Dłuższa klatka (karta w tle) zjadłaby ten
@@ -2876,7 +2877,7 @@ export function initPlayer(kolizje) {
   let zewnetrzna = null;      // prędkość zadana przez nawigacja.js (x, z) albo null
   let aktywnosc = -1e9;       // chwila ostatniego czynnego wejścia gościa — przerywa przejazd
   let droga = 0;              // przebyta droga w bieżącym kroku [m]
-  let przeciaganie = null;    // { x, y } — przeciąganie myszą bez blokady
+  let przeciaganie = null;    // { x, y, x0, y0, rusza } — przeciąganie myszą bez blokady
 
   const lista = () => !!document.querySelector(".list-panel:not([hidden])");
 
@@ -2898,15 +2899,21 @@ export function initPlayer(kolizje) {
     naRozgladanie: (dx, dy) => { rozejrzyj(dx, dy); aktywnosc = performance.now(); },
   });
 
-  // przeciąganie myszą: rozglądanie bez blokady wskaźnika (klik bez ruchu obsługuje main.js)
+  /* Przeciąganie myszą: rozglądanie bez blokady wskaźnika. Ruch do PROG_KLIKU px od
+     miejsca wciśnięcia to jeszcze klik z drżeniem ręki (klik obsługuje main.js) — nie
+     obraca widoku i nie liczy się jako wejście gościa, więc nie kasuje przejazdu, który
+     tym klikiem właśnie ruszył (ani trwającego, gdy gość przekierowuje się drugim klikiem). */
   renderer.domElement.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "touch" || controls.isLocked || e.button !== 0) return;
-    przeciaganie = { x: e.clientX, y: e.clientY };
+    przeciaganie = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, rusza: false };
   });
   addEventListener("pointermove", (e) => {
     if (!przeciaganie || e.pointerType === "touch") return;
-    const dx = e.clientX - przeciaganie.x, dy = e.clientY - przeciaganie.y;
-    przeciaganie = { x: e.clientX, y: e.clientY };
+    const p = przeciaganie;
+    if (!p.rusza && Math.hypot(e.clientX - p.x0, e.clientY - p.y0) <= PROG_KLIKU) return;
+    p.rusza = true;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
     if (dx || dy) { rozejrzyj(dx, dy); aktywnosc = performance.now(); }
   });
   addEventListener("pointerup", () => { przeciaganie = null; });
@@ -2959,9 +2966,13 @@ export function initPlayer(kolizje) {
     pozycjaX: () => kapsula.end.x,
     pozycjaZ: () => kapsula.end.z,
     predkosc: () => Math.hypot(predkosc.x, predkosc.z),
-    /* Czy gość sam coś zrobił przed chwilą (klawisz, joystick, przeciągnięcie,
-       mysz w blokadzie) — wtedy nawigacja.js oddaje mu ster. */
-    aktywneWejscie: () => performance.now() - aktywnosc < 150,
+    /* Czy gość sam coś zrobił PO chwili `od` (znacznik performance.now() z początku
+       przejazdu albo postoju wycieczki): klawisz, joystick, przeciągnięcie, mysz w
+       blokadzie, palec rozglądający — wtedy nawigacja.js oddaje mu ster. Liczy się tylko
+       wejście nowsze niż `od`: okno „ostatnie 150 ms” gubiło kliki, bo ruch ręki tuż przed
+       kliknięciem, które przejazd uruchomiło, wyglądał jak sprzeciw wobec niego. Bez `od`
+       — wejście z ostatnich 150 ms. */
+    aktywneWejscie: (od = performance.now() - 150) => aktywnosc > od,
     naKrok: (f) => sluchaczeKrokow.add(f),
 
     /* Prędkość zadana z zewnątrz (nawigacja.js) albo null — wtedy znowu klawisze. */
@@ -3020,8 +3031,9 @@ export function initPlayer(kolizje) {
    idzie do gracza jako prędkość (gracz.sterujZ), więc kolizje i grawitacja
    liczą się jak przy chodzeniu. Łagodny start i hamowanie przed celem;
    wzrok podąża za kierunkiem ruchu, a pod koniec drogi do pracy — już ku
-   niej. Każde czynne wejście gościa (klawisz, joystick, przeciągnięcie)
-   przerywa przejazd i oddaje mu ster. */
+   niej. Każde czynne wejście gościa (klawisz, joystick, przeciągnięcie, mysz
+   w blokadzie, palec) NOWSZE niż start przejazdu przerywa go i oddaje mu ster;
+   drżenie ręki sprzed kliknięcia, które przejazd uruchomiło, się nie liczy. */
 
 import * as THREE from "three";
 import { camera, reduceMotion } from "muzeum/render.js";
@@ -3038,8 +3050,8 @@ const POSTOJ_WYCIECZKI = 7;            // [s] przy każdej wyróżnionej pracy
 const WZROK = 1.62;                    // wysokość punktu, w który patrzy idący
 
 export function initNawigacja({ plan, gracz, zaslona = null }) {
-  let jazda = null;      // { punkty, i, v, tempo, patrzNa, poDojsciu, faza, czas, bezPostepu, ostatniaOdl }
-  let wycieczka = null;  // { lista, i, czekaj, otworz, zamknij }
+  let jazda = null;      // { punkty, i, v, tempo, patrzNa, poDojsciu, faza, czas, bezPostepu, ostatniaOdl, start }
+  let wycieczka = null;  // { lista, i, czekaj, start, otworz, zamknij } — start: początek postoju (znacznik dla aktywneWejscie)
   const tu = new THREE.Vector3(), cel = new THREE.Vector3(), kierunek = new THREE.Vector3();
   const mac = new THREE.Matrix4(), kwat = new THREE.Quaternion();
 
@@ -3082,12 +3094,19 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
 
   function jedz(x, z, { tempo = SPACER, patrzNa = null, poDojsciu = null } = {}) {
     if (reduceMotion) {
-      przenikanie(() => { gracz.teleportuj(x, z, patrzNa ?? undefined); poDojsciu?.(); });
+      przenikanie(() => {
+        // klik w podłogę (bez patrzNa): zostajemy przodem tam, gdzie gość patrzył — teleportuj() bez celu obracałby go w głąb amfilady
+        const wzrok = patrzNa ? null : camera.quaternion.clone();
+        gracz.teleportuj(x, z, patrzNa ?? undefined);
+        if (wzrok) camera.quaternion.copy(wzrok);
+        poDojsciu?.();
+      });
       return;
     }
     jazda = {
       punkty: punktyDo(x, z), i: 0, v: gracz.predkosc(), tempo, patrzNa, poDojsciu,
       faza: "ruch", czas: 0, bezPostepu: 0, ostatniaOdl: Infinity,
+      start: performance.now(),     // aktywneWejscie(start): liczy się tylko wejście nowsze niż początek przejazdu
     };
   }
 
@@ -3104,16 +3123,22 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
     camera.updateProjectionMatrix();
   }
 
+  /* Koniec przejazdu. `udane` — gość dotarł (poDojsciu); inaczej przejazd się urwał
+     (utknięcie). Wycieczka nie może na tym stanąć: o następnym przystanku rządzi
+     czekaj > 0, a po nieudanym przejeździe nikt go nie ustawia — więc idziemy do
+     następnego przystanku (albo kończymy, jeśli to był ostatni). Przerwanie przez gościa
+     zeruje wycieczkę wcześniej (przerwij()), więc tu nic dalej nie rusza. */
   function zakoncz(udane) {
     const j = jazda;
     jazda = null;
     gracz.sterujZ(null);
     if (udane) j?.poDojsciu?.();
+    else if (wycieczka) nastepnyPrzystanek();
   }
 
   function przerwij() {
+    wycieczka = null;                    // najpierw wycieczka: zakoncz(false) nie ma wtedy dokąd iść dalej
     if (jazda) zakoncz(false);
-    wycieczka = null;
   }
 
   function nastepnyPrzystanek() {
@@ -3127,18 +3152,18 @@ export function initNawigacja({ plan, gracz, zaslona = null }) {
     const daleko = tu.distanceTo(pozycja) > 25;
     jedz(pozycja.x, pozycja.z, {
       tempo: daleko ? LOT : SPACER, patrzNa: patrz,
-      poDojsciu: () => { if (wycieczka !== w) return; w.otworz(hit); w.czekaj = POSTOJ_WYCIECZKI; },
+      poDojsciu: () => { if (wycieczka !== w) return; w.otworz(hit); w.czekaj = POSTOJ_WYCIECZKI; w.start = performance.now(); },
     });
   }
 
   function update(dt) {
     if (wycieczka && !jazda && wycieczka.czekaj > 0) {
-      if (gracz.aktywneWejscie()) { wycieczka = null; return; }
+      if (gracz.aktywneWejscie(wycieczka.start)) { wycieczka = null; return; }
       wycieczka.czekaj -= dt;
       if (wycieczka.czekaj <= 0) nastepnyPrzystanek();
     }
     if (!jazda) { ustawKat(KAT, dt); return; }
-    if (gracz.aktywneWejscie()) { przerwij(); return; }
+    if (gracz.aktywneWejscie(jazda.start)) { przerwij(); return; }
     gracz.pozycjaDo(tu);
 
     if (jazda.faza === "obrot") {          // na miejscu: wzrok dochodzi do pracy, potem tabliczka
