@@ -11,6 +11,7 @@ import { PODSTAWY, postawEksponaty } from "muzeum/exhibits.js";
 import { initPlayer } from "muzeum/player.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali } from "muzeum/ui.js";
 import { initPerf } from "muzeum/perf.js";
+import { initSwiatla } from "muzeum/swiatla.js";
 
 const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
@@ -28,7 +29,7 @@ function komunikat(tekst) {
 }
 const perfTick = initPerf({ composer, bloom, renderer, komunikat });
 
-let plan = null, budynek = null, gracz = null, prace = null;
+let plan = null, budynek = null, gracz = null, prace = null, swiatla = null;
 const interaktywne = [];     // trafienia raycastera: prace (Zadanie 3), eksponaty (Zadanie 4), sale boczne (Zadanie 8)
 const tickery = [];          // funkcje (t, dt) wołane co klatkę
 let focus = null;            // { hit } — praca z otwartą tabliczką
@@ -112,6 +113,7 @@ renderer.domElement.addEventListener("pointermove", (e) => celuj(e));
    aria-live na #hud-era ogłasza każde przypisanie, więc tylko przy zmianie. */
 function naZmianeSali(s) {
   hudEra.textContent = opisSali(s);
+  swiatla?.wejdz(s);
 }
 
 /* ── Pętla ────────────────────────────────────────────────────────────── */
@@ -137,6 +139,7 @@ function petla() {
   for (const fn of tickery) {
     try { fn(t, dt); } catch (err) { console.error("tick error:", err); }
   }
+  swiatla?.aktualizuj(dt);
   composer.render();
   if (firstFrame) { firstFrame = false; loader.classList.add("done"); window.__mzOtwarte?.(); }
 }
@@ -165,6 +168,7 @@ function zbudujMuzeum() {
 
   gracz = initPlayer(budynek.kolizje);         // po wszystkich kolizjach — Octree buduje się raz
   gracz.teleportuj(plan.start.x, plan.start.z);
+  swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy });
   gracz.controls.addEventListener("lock", dismissHint);
   addEventListener("touchstart", dismissHint, { once: true, passive: true });
   gracz.controls.addEventListener("lock", () => { celownik.hidden = false; });
@@ -178,7 +182,7 @@ function zbudujMuzeum() {
      tablica co `interaktywne`, a go(z) z jednym argumentem, jak dawniej, stawia
      gracza na osi amfilady (x = 0). */
   Object.assign(window.__mz, {
-    plan, budynek, gracz, prace, interaktywne, interactives: interaktywne,
+    plan, budynek, gracz, prace, swiatla, interaktywne, interactives: interaktywne,
     go: (x, z) => (z === undefined ? gracz.teleportuj(0, x) : gracz.teleportuj(x, z)),
   });
 

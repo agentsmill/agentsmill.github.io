@@ -280,7 +280,7 @@ function powies(s, w, budynek, wynik) {
       salaId: s.id, typ: "spot",
       pozycja: new THREE.Vector3(m.x + m.nx * 0.36, w.y + wys / 2 + 0.24, m.z + m.nz * 0.36),
       cel: new THREE.Vector3(m.x, w.y - wys * 0.15, m.z),
-      kat: 1.05, polcien: 0.85, zasieg: 4, kolor: 0xffd49a, moc: 5 * (w.wyrozniona ? 1.3 : 1),
+      kat: 0.75, polcien: 0.7, zasieg: 3, kolor: 0xffd49a, moc: 3.5 * (w.wyrozniona ? 1.3 : 1),
     });
   }
 }

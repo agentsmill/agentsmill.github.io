@@ -114,11 +114,11 @@ function palac(s, budynek) {
     budynek.grupa.add(g);
   }
   const W = s.x1 - s.x0, D = s.z1 - s.z0;
-  swietlik(budynek, s, W * 0.5, D * 0.58, "#fff6e8", "rgba(80,70,55,0.55)", new THREE.Color(1.25, 1.2, 1.12), 0xfff0dc, s.rodzaj === "atrium" ? 5.5 : 7.5);
+  swietlik(budynek, s, W * 0.5, D * 0.58, "#fff6e8", "rgba(80,70,55,0.55)", new THREE.Color(1.25, 1.2, 1.12), 0xfff0dc, s.rodzaj === "atrium" ? 4.5 : 6);
 }
 
 function biel(s, budynek) {
-  swietlik(budynek, s, s.x1 - s.x0 - 1.2, s.z1 - s.z0 - 1.2, "#ffffff", "rgba(150,150,150,0.5)", new THREE.Color(1.08, 1.08, 1.08), 0xffffff, 2.9);
+  swietlik(budynek, s, s.x1 - s.x0 - 1.2, s.z1 - s.z0 - 1.2, "#ffffff", "rgba(150,150,150,0.5)", new THREE.Color(1.08, 1.08, 1.08), 0xffffff, 2.2);
 }
 
 function noc(s, budynek) {

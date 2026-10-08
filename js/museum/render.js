@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
@@ -72,6 +73,13 @@ window.__mz = { renderer, scene, camera, composer: null, bloom: null, go: () => 
 const cel = new THREE.WebGLRenderTarget(16, 16, { samples: 4, type: THREE.HalfFloatType });
 const composer = new EffectComposer(renderer, cel);
 composer.addPass(new RenderPass(scene, camera));
+/* Okluzja otoczenia (GTAO): miękki cień w narożnikach, pod ławkami i u podstawy
+   podestów. To ona odróżnia wnętrze od „płaskiego 3D” — szczególnie w bieli,
+   gdzie światło sufitu nie rzuca cieni. */
+const gtao = new GTAOPass(scene, camera, 16, 16);
+gtao.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1, thickness: 1, scale: 1, samples: 16 });
+gtao.blendIntensity = 1;
+composer.addPass(gtao);
 // (rozdzielczość, siła, promień, próg) — wysoki próg: świecą ekrany, szyldy i progi, nie ściany
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.5, 0.85);
 composer.addPass(bloom);
@@ -79,6 +87,7 @@ composer.addPass(new OutputPass());
 composer.setSize(innerWidth, innerHeight);
 window.__mz.composer = composer;
 window.__mz.bloom = bloom;
+window.__mz.gtao = gtao;
 
 /* ── Budowniczowie eksponatów ─────────────────────────────────────────── */
 
@@ -90,4 +99,4 @@ const M = {
 
 function bx(w, h, d, mat) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); }
 
-export { renderer, scene, camera, composer, bloom, srodowisko, M, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };
+export { renderer, scene, camera, composer, bloom, gtao, srodowisko, M, bx, reduceMotion, dotykowy, CAT_HEX, fmtDate };

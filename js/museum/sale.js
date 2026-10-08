@@ -39,11 +39,12 @@ function materialySali(s) {
       posadzka: materialPBR("beton", { kolor: 0xaeaba5, szorstkosc: 0.62, normal: 0.3, bezKoloru: true }),
       sufit: gladki(0xf1f0ec, 0.95),
     };
-    case "noc": return {
-      sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }),
-      posadzka: bezOdbic(gladki(0x0d0f14, 0.32)),
-      sufit: gladki(0x0b0d12, 1),
-    };
+    case "noc": {
+      // posadzka to nakładka nad lustrem (swiatla.js): przezroczysta od początku, krycie ustawia lustro
+      const posadzka = bezOdbic(gladki(0x0d0f14, 0.32));
+      posadzka.transparent = true;
+      return { sciana: materialPBR("tynk", { kolor: 0x3a4357, normal: 0.7 }), posadzka, sufit: gladki(0x0b0d12, 1) };
+    }
     case "kino": return {
       sciana: bezOdbic(gladki(0x1d1517, 0.95)),
       posadzka: bezOdbic(gladki(0x2a1d20, 0.98)),
