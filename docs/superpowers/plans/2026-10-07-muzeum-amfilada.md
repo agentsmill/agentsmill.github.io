@@ -5056,6 +5056,7 @@ a początek pętli — od `function petla() {` do `perfTick(dt);` włącznie —
 ```js
 function petla(teraz = performance.now()) {
   requestAnimationFrame(petla);
+  dzwiek?.tick();                      // serce planowane 0,3 s naprzód — co wywołanie rAF, także w klatce pominiętej
   const odstep = odstepKlatek(teraz);
   if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
   ostatniaKlatka = teraz;
@@ -5064,7 +5065,9 @@ function petla(teraz = performance.now()) {
   if (!odstep) perf.tick(dt);          // strażnik mierzy tylko pełną szybkość — oszczędzanie to nie słaby sprzęt
 ```
 
-Strażnik (`perf.tick`) liczy tylko klatki pełnej szybkości: inaczej wziąłby 4 kl./s bezruchu za słaby sprzęt i wyłączał efekty. Odstęp o 4 ms krótszy od nominalnego, żeby drgania zegara rAF nie gubiły co drugiej klatki (20 kl./s przy ekranie 60 Hz to co trzecia klatka).
+i usuń linię `dzwiek?.tick();` spod `swiatla?.aktualizuj(dt);` (Zadanie 9) — dźwięk ma teraz swoje miejsce na początku pętli.
+
+Strażnik (`perf.tick`) liczy tylko klatki pełnej szybkości: inaczej wziąłby 4 kl./s bezruchu za słaby sprzęt i wyłączał efekty. Odstęp o 4 ms krótszy od nominalnego, żeby drgania zegara rAF nie gubiły co drugiej klatki (20 kl./s przy ekranie 60 Hz to co trzecia klatka). `dzwiek.tick()` stoi przed bramką bezruchu, bo serce planuje uderzenia tylko 0,3 s naprzód: przy 4 kl./s klatki dzieli 250–270 ms, więc zapas spadłby do kilkudziesięciu milisekund i każde zacięcie wątku gubiłoby uderzenie. Samo `tick()` to porównanie liczb — co klatkę rAF nic nie kosztuje.
 4. Nad komentarzem funkcji `naZmianeSali` wstaw:
 
 ```js
@@ -5219,6 +5222,8 @@ async (page) => {
 ```
 
 Oczekiwane (próba 8 X, ekran 120 Hz): `wRuchu` ≈ odświeżanie ekranu (120), `bezruch3s` ≈ 20, `bezruch25s` ≈ 4, `poRuchu` z powrotem ≈ 120, `kinoBezruch` ≈ 30, `perf: []` (strażnik nie wziął bezruchu za słaby sprzęt), `bledy: []`. Na próbie CPU przeglądarki testów: 103 % w ruchu, 37 % po 3 s bezruchu, 15 % po 25 s.
+
+   Serce w bezruchu: przeładuj, wejdź **prawdziwym** klikiem w `#wejdz-dzwiek` (`page.locator("#wejdz-dzwiek").click()`), `__mz.gracz.teleportuj(0, -6.5, { x: 0, z: 10 })`, odczekaj 25 s bez ruchu, potem przez 4,5 s zapisuj chwile `ctx.createOscillator` (jak w weryfikacji Zadania 9). Oczekiwane: pary uderzeń planowane co `OKRES_SERCA` (1,1 s) z odchyłką do 0,05 s — nie co 1,0/1,25 s, jak przy planowaniu tylko w klatkach bezruchu.
 
 5. Utrata kontekstu: `window.__mz.renderer.getContext().getExtension("WEBGL_lose_context").loseContext()` → `#no-webgl` widoczny z tekstem „Karta graficzna zgubiła obraz muzeum…”, przyciskiem „Odśwież muzeum” (przeładowuje stronę) i odnośnikiem do karty budowania.
 6. Wykrywanie bez `?jakosc=` (CDP): `Emulation.setDeviceMetricsOverride({ width: 390, height: 844, deviceScaleFactor: 3, mobile: true })` + `Emulation.setTouchEmulationEnabled({ enabled: true, maxTouchPoints: 5 })` → `__mz.jakosc.nazwa === "niski"`, `dpr 1.25`, brak przewijania w bok; profil MacBooka + `Emulation.setHardwareConcurrencyOverride({ hardwareConcurrency: 4 })` → `"sredni"`; 10 wątków → `"wysoki"`.
