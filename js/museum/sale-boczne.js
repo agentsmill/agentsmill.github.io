@@ -3,12 +3,21 @@
    końcu amfilady. Pokój Leona nie potrzebuje tu niczego — prace i kolejkę
    stawiają zawieszenie.js i exhibits.js jak w każdej sali.
 
-   Trafienia stąd nie mają `project` — mają `akcja()`: main.js podprowadza
-   gościa przed obiekt (punkt `widok`) i dopiero wtedy ją woła. */
+   Trafienia stąd nie mają `project` — mają `akcja({ zSali })`: main.js
+   (dzialaj) podprowadza gościa przed obiekt (punkt `widok`) i dopiero wtedy
+   ją woła. `zSali` to sala, w której gość stał w chwili kliknięcia: ekran
+   Kina przełącza odtwarzanie gościowi, który już jest w środku, a temu, kto
+   przyszedł z zewnątrz, je włącza (samo wejście już je uruchomiło). Bez
+   argumentu akcja Kina działa jak „z zewnątrz”.
+   `wMiejscu: true` — gość będący w sali trafienia nie idzie nigdzie, akcja
+   rusza od razu (ławki Kina zagradzają prostą drogę zza ich pleców).
+   `odblokuj: true` — po akcji main.js zwalnia blokadę wskaźnika, żeby
+   tabliczkę i przycisk dało się kliknąć; ekran Kina tego nie ma, bo mysz ma
+   tam dalej rozglądać. */
 
 import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
-import { camera, fmtDate } from "muzeum/render.js";
+import { camera, fmtDate, reduceMotion } from "muzeum/render.js";
 import { bryla, gladki, dodajKolizje, zarejestruj, PRZEDSWIETLENIE } from "muzeum/sale.js";
 import { plotno } from "muzeum/textures.js";
 
@@ -18,6 +27,9 @@ const PLAKAT = "https://agentsmill.github.io/ai-video-portfolio/assets/media/sho
 const UJECIA = [["assets/wideo/mglawica.mp4", "assets/wideo/mglawica.webp"], ["assets/wideo/orbita.mp4", "assets/wideo/orbita.webp"]];
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
 const ladowarka = new THREE.TextureLoader();
+/* Podpis i małe ekrany Kina stoją tyle od lica ściany: listwy z wystroj.js (kino()) wystają na 6 cm,
+   a co siedzi głębiej, widać tylko między nimi (ekran w pasach, podpis z brakującymi literami). */
+const PRZED_LISTWAMI = 0.08;
 
 /* Znak „odtwórz” na plakacie dużego ekranu: widoczny, dopóki wideo nie gra —
    także gdy przeglądarka odrzuci autoodtwarzanie. Mówi gościowi, że ekran
@@ -45,10 +57,11 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(szer, wys), mat);
   const znak = glosny ? znakOdtwarzania() : null;
   if (znak) mesh.add(znak);
-  let video = null, dzwiek = false;
+  let video = null, dzwiek = false, chce = false;   // chce: wideo ma grać (graj() ustawia, pauza() zdejmuje)
   const sterowanie = {
     mesh,
     graj() {
+      chce = true;
       if (!video) {
         video = document.createElement("video");
         Object.assign(video, { crossOrigin: "anonymous", src, loop: true, muted: true, playsInline: true, preload: "auto" });
@@ -63,10 +76,15 @@ function ekranWideo(src, plakat, szer, wys, { glosny = false } = {}) {
       }
       video.muted = !(glosny && dzwiek);
       // autoodtwarzanie z dźwiękiem bywa odrzucone — wtedy gra bez dźwięku, zamiast wcale; druga odmowa
-      // zostawia plakat ze znakiem ▶ i gość klika ekran sam
-      video.play()?.catch?.(() => { video.muted = true; video.play()?.catch?.(() => {}); });
+      // zostawia plakat ze znakiem ▶ i gość klika ekran sam. Ponawiamy tylko po NotAllowedError i tylko
+      // gdy wideo wciąż ma grać: pause() odrzuca oczekujące play() jako AbortError, a ponowienie
+      // wskrzesiłoby wideo po wyjściu gościa z sali (zimne ładowanie trwa dłużej niż wejście i wyjście)
+      video.play()?.catch?.((err) => {
+        if (!chce || err?.name !== "NotAllowedError") return;
+        video.muted = true; video.play()?.catch?.(() => {});
+      });
     },
-    pauza() { video?.pause(); },
+    pauza() { chce = false; video?.pause(); },
     przelacz() { if (!video || video.paused) sterowanie.graj(); else sterowanie.pauza(); },
     ustawDzwiek(wl) { dzwiek = wl; if (video) video.muted = !(glosny && wl); },
   };
@@ -86,7 +104,7 @@ function kino(s, budynek, wynik) {
   const male = UJECIA.map(([src, plakat], i) => {
     const e = ekranWideo(src, plakat, 2.4, 1.35);
     const naMinus = i === 0;
-    e.mesh.position.set(s.x0 + 6.2, 2.1, naMinus ? s.z0 + POLMUR + 0.02 : s.z1 - POLMUR - 0.02);
+    e.mesh.position.set(s.x0 + 6.2, 2.1, naMinus ? s.z0 + POLMUR + PRZED_LISTWAMI : s.z1 - POLMUR - PRZED_LISTWAMI);
     e.mesh.rotation.y = naMinus ? 0 : Math.PI;
     budynek.grupa.add(e.mesh);
     return e;
@@ -98,14 +116,17 @@ function kino(s, budynek, wynik) {
     c.fillText(t("wideo.showreelOpis", "Przegląd produkcji — ujęcia generowane, nie kręcone."), 0, 160, 890);
   });
   const tab = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.52), new THREE.MeshBasicMaterial({ map: podpis, transparent: true, color: 0x9aa0aa }));
-  tab.position.set(s.x0 + 2.4, 2.0, s.z0 + POLMUR + 0.01);
+  tab.position.set(s.x0 + 2.4, 2.0, s.z0 + POLMUR + PRZED_LISTWAMI);
   budynek.grupa.add(tab);
 
   const traf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 6.6), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(xEkranu - 0.15, 2.35, cz);
   traf.userData = {
-    salaId: s.id, akcja: () => duzy.przelacz(),
-    widok: { pozycja: new THREE.Vector3(s.x0 + 4.6, 1.65, cz), cel: new THREE.Vector3(xEkranu, 2.35, cz) },
+    salaId: s.id, wMiejscu: true,
+    // z wnętrza sali przełącza; kto przyszedł z zewnątrz, ma wideo włączone (wejście już je uruchomiło, play jest idempotentne)
+    akcja: ({ zSali } = {}) => (zSali === s.id ? duzy.przelacz() : duzy.graj()),
+    // na osi ekranu, przed pierwszą ławką (x 11,12–11,68): prosta droga z drzwi jest wolna, a widok wycelowany w środek ekranu
+    widok: { pozycja: new THREE.Vector3(s.x0 + 2.2, 1.65, cz), cel: new THREE.Vector3(xEkranu, 2.35, cz) },
   };
   budynek.grupa.add(traf);
   wynik.interaktywne.push(traf);
@@ -161,7 +182,7 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     const traf = new THREE.Mesh(new THREE.BoxGeometry(0.2, rh, cw), new THREE.MeshBasicMaterial({ visible: false }));
     traf.position.set(lico + gl + 0.1, y, z);
     traf.userData = {
-      salaId: s.id,
+      salaId: s.id, odblokuj: true,
       akcja: () => {
         if (wysunieta && wysunieta !== sz) wysunieta.cel = wysunieta.baza;
         sz.cel = sz.baza + 0.28;
@@ -174,7 +195,8 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     wynik.interaktywne.push(traf);
   });
   wynik.tickery.push((_, dt) => {
-    for (const sz of szuflady) sz.g.position.x += (sz.cel - sz.g.position.x) * (1 - Math.exp(-dt * 10));
+    const k = reduceMotion ? 1 : 1 - Math.exp(-dt * 10);   // ograniczony ruch: szuflada od razu u celu
+    for (const sz of szuflady) sz.g.position.x += (sz.cel - sz.g.position.x) * k;
   });
 }
 
@@ -188,12 +210,14 @@ function kosmos(plan, budynek, wynik) {
     zaslona?.classList.add("widoczna");
     setTimeout(() => location.assign(`kosmos.html${window.__jezyk === "en" ? "?lang=en" : ""}`), 380);
   });
+  // „Wstecz” z kosmos.html może przywrócić muzeum z pamięci podręcznej stron (bfcache) razem z podniesioną zasłoną
+  addEventListener("pageshow", (e) => { if (e.persisted) zaslona?.classList.remove("widoczna"); });
   let pokazany = false;
   const pokaz = (tak) => { if (przycisk && tak !== pokazany) { pokazany = tak; przycisk.hidden = !tak; } };
   const traf = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(x, 2, z + 0.4);
   traf.userData = {
-    salaId: plan.kosmos.salaId, akcja: () => pokaz(true),
+    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true,
     widok: { pozycja: new THREE.Vector3(x, 1.65, z - 2.4), cel: new THREE.Vector3(x, 1.9, z + 1.8) },
   };
   budynek.grupa.add(traf);

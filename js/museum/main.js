@@ -55,6 +55,21 @@ function podejdz(hit) {
   nawigacja.podejdzDo(hit, () => focusOn(hit));
 }
 
+/* Trafienia z własną akcją (ekran Kina, szuflada Archiwum, portal Kosmosu — sale-boczne.js): podejście do
+   punktu `widok`, na miejscu akcja({ zSali }), gdzie zSali to sala, w której gość stał w chwili kliknięcia.
+   `wMiejscu`: gość, który już jest w sali trafienia, nie idzie nigdzie (ławki Kina zagradzają prostą drogę
+   zza swoich pleców). `odblokuj`: po akcji zwolnij blokadę wskaźnika, żeby tabliczkę i przycisk dało się
+   kliknąć (ekran Kina tego nie chce — mysz ma tam dalej rozglądać). */
+function dzialaj(hit) {
+  endFocus();
+  const { akcja, wMiejscu, odblokuj, salaId } = hit.userData;
+  const zSali = bylaSala?.id;
+  // najpierw treść, potem odblokuj() — jak w focusOn (iOS nie ma exitPointerLock)
+  const wykonaj = () => { akcja({ zSali }); if (odblokuj) gracz?.odblokuj(); };
+  if (wMiejscu && zSali === salaId) wykonaj();
+  else nawigacja.podejdzDo(hit, wykonaj);
+}
+
 bindFocusControl({
   onFocusEnd: () => { focus = null; },
   goToHit: (hit) => podejdz(hit),     // pozycja z listy eksponatów
@@ -128,8 +143,8 @@ function obsluzKlik(e) {
   celuj(e);
   if (hovered) {
     if (focus && hovered === focus.hit) return;
-    // ekran Kina, szuflada Archiwum, portal Kosmosu: podejdź, potem ich własna akcja
-    if (hovered.userData.akcja) { const h = hovered; endFocus(); nawigacja.podejdzDo(h, () => h.userData.akcja()); return; }
+    // ekran Kina, szuflada Archiwum, portal Kosmosu: ich własna akcja — po podejściu albo na miejscu (dzialaj)
+    if (hovered.userData.akcja) { dzialaj(hovered); return; }
     podejdz(hovered);
   } else if (punktPodlogi) {
     endFocus();

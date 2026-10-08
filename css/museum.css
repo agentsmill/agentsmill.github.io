@@ -247,11 +247,20 @@ a { color: var(--pulse); }
   .minimapa.otwarta svg { display: block; }
 }
 
-/* Przycisk przejścia do Kosmosu przy portalu na końcu amfilady. */
+/* Przycisk przejścia do Kosmosu przy portalu na końcu amfilady. `left: 50%` + translateX to ta sama
+   pułapka, co przy .hud-hint wyżej: szerokość „shrink-to-fit” kończy się na połowie okna, więc na telefonie
+   etykieta łamałaby się na dwa wiersze. Stąd `nowrap`, a max-width trzyma przycisk w oknie z marginesem 1 rem. */
 .kosmos-wejscie {
   position: fixed; left: 50%; bottom: 4.5rem; transform: translateX(-50%); z-index: 35;
+  white-space: nowrap; max-width: calc(100vw - 2rem); overflow: hidden; text-overflow: ellipsis;
   font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: #14100a; background: var(--pulse); border: none; border-radius: 99px;
   padding: 0.8rem 1.4rem; cursor: pointer; box-shadow: 0 0 40px rgba(242, 196, 109, 0.35);
 }
 .kosmos-wejscie[hidden] { display: none; }
+/* Plan stoi w lewym dolnym rogu wszędzie poza telefonem i dotykiem (reguła przy .minimapa). W oknach do
+   ok. 880 px sięgałby pod wyśrodkowany przycisk, a do 960 px zostawałoby między nimi mniej niż 40 px —
+   przycisk przechodzi wtedy do prawego rogu. */
+@media (min-width: 641px) and (max-width: 960px) and (pointer: fine) {
+  .kosmos-wejscie { left: auto; right: 1rem; transform: none; }
+}
