@@ -6551,7 +6551,13 @@ Odbiór wg §10 na serwerze lokalnym, profil MacBooka 1440 × 900 przy DPR 2.
 - GTAO zawsze w połowie rozdzielczości (różnica w obrazie < 1/255) i bez odszumiania Poissona, które kropkowało narożniki w bieli.
 - Jasne zrzuty w strefach nocy i Kina przygaszone do średniej jasności 0,3 (inaczej świeciły jak lampy).
 
-**Do oceny właściciela:** zrzuty stref; faktura tynku atrium (wielkie, jasne ściany pokazują plamy faktury — świadomie zostawione do decyzji); pomiar fps na telefonie.
+**Decyzje właściciela w trakcie wdrożenia (8 X):**
+- Oszczędzanie w bezruchu: po 2 s ok. 20 kl./s, po 20 s ok. 4 kl./s; w Kinie co najmniej 30, w sali gramofonu, gdy gra, co najmniej 20; każdy ruch wraca do pełnej szybkości.
+- Posadzka nocy: pełne lustro (bez martwej nakładki).
+- Dźwięk: showreel przez silnik muzeum na ok. ¼ głośności z narastaniem 2 s (słucha przycisku w HUD, także na iPhonie); serce z cichą, wyższą warstwą (słychać je na głośnikach laptopa); ton sal białych bez zmian.
+- Zgłoszenie „wejście do Kosmosu nie działa”: portal klikalny z każdej odległości (nigdy przez mur), cel „Kosmos” w planie w rogu.
+
+**Do oceny właściciela:** zrzuty stref; faktura tynku atrium (wielkie, jasne ściany pokazują plamy faktury — świadomie zostawione do decyzji); pomiar fps na telefonie; na prawdziwym sprzęcie: tryb klawiatury z blokadą wskaźnika (szuflady, odnośnik na tabliczce, przycisk Kosmosu, podpis przy kursorze), iPhone (autoodtwarzanie w Kinie, także w trybie oszczędzania energii; dotknięcia z drżeniem), powrót z Kosmosu przyciskiem Wstecz w Chrome i Safari (bez czarnej zasłony); na słuch: serce na głośnikach laptopa, ton sal białych, poziom showreelu; pierwszy kadr z atrium (sala I oświetlona z wyprzedzeniem, nie żywą lampą — pula prostokątów zajęta przez Kino i Archiwum).
 ```
 
 Jeśli którakolwiek wartość odbiega od próby (fps niżej, inny przystanek, błąd w konsoli) — wpisz zmierzoną, a odchylenie opisz pod tabelą zamiast je wygładzać.
