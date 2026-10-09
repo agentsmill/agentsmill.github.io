@@ -266,3 +266,46 @@ Publikacja (push na `main`) dopiero po zgodzie właściciela, jak przy „Monito
   właściciela przed publikacją.
 - **Telefon.** Pamięć karty i GTAO to dwa najdroższe elementy; niski poziom wyłącza GTAO i
   lustro od startu, a tekstury prac są wczytywane salami.
+
+## Wynik wdrożenia
+
+Odbiór wg §10, 9 X 2026, na serwerze lokalnym i kodzie w stanie `3990ac5` (stempel `?v=202610090830`). Profil MacBooka: okno 1440 × 900 przy emulowanym DPR 2 (Apple M5, ekran 120 Hz, zasilacz, Chrome 155 z oknem); poziom z detekcji — wysoki, renderer rysuje przy DPR 1,5. Fps to klatki naprawdę narysowane przy ruchu gościa. Ekran 120 Hz jest sufitem pomiaru, nie wynikiem, a komputer pracował w tym czasie także nad innymi zadaniami.
+
+| test | wynik |
+|---|---|
+| 1. błędy, 404 | zero w `__errs`, w konsoli i w odpowiedziach sieci: muzeum (PL i EN), karta budowania (PL i EN) i Kosmos |
+| 2. scena | wywołania rysowania > 0 (1441 w atrium; próba: 1439) |
+| 3. plan | 12 sal, 55 prac = 55 projektów (52 w salach epok + 3 u Leona); test planu 18/18 |
+| 4. przejazdy | atrium → druga sala VI przez wszystkie drzwi bez zaklinowania (15,1 s); każda z 12 sal osiągalna z planu w rogu (sprawdzone przy `prefers-reduced-motion`, czyli jako przenikanie) |
+| 5. klik | podłoga: odchylenie 0,087 m; praca: 0,055 m i tabliczka (tolerancja 0,3 m) |
+| 6. kolizje | ściana (x = 5,45 przy licu 5,8 m), podest (1,85 m od środka), ławka (0,63 m od środka) — zatrzymanie przed bryłą |
+| 7. wycieczka | 12 wyróżnionych („Agent AI Bajarz” … „Trener LEK”), miesiące rosnąco, w miesiącu kolejność sal; 87 s przy `prefers-reduced-motion`, 152 s z przejazdami (te same przystanki, ta sama kolejność) |
+| 8. dźwięk | z dźwiękiem: `running`; przełącznik wycisza (szczyt sygnału na wyjściu 0,11 → 0 → 0,12) i włącza z powrotem; w ciszy kontekst nie powstaje, a przycisk uruchamia go później |
+| 9. telefon | poziom niski, nagłówek w jednym wierszu, plan zwinięty (po rozwinięciu 358 px), brak przewijania w bok; dotknięcie podłogi prowadzi (6,09 m), joystick (4,22 m), rozglądanie (0,256 rad przy 80 px) |
+| 10. fps | atrium na wylot 79, sala nocy z lustrem 85 (wysoki: DPR 1,5); w bezruchu 4 kl./s; strażnik niczego nie zdegradował |
+| 11. zrzuty | atrium (×2), pałac, biel, noc, Kino, Archiwum, Pokój Leona, drzwi Kosmosu, ekran wejścia, telefon — u właściciela |
+| 12. PL/EN | komplet napisów muzeum w obu językach (Kosmos zostaje po polsku z założenia) |
+
+**Odchylenia od wartości z próby (zmierzone, nie wygładzone):**
+- Sala nocy z lustrem: 85 kl./s, nie 96. Cztery serie dały 84–85, więc to nie szum. Ta sama sala z lustrem ukrytym w przeglądarce: 99–100, czyli różnicę robi lustro — pełne lustro posadzki z decyzji 8 X, bez martwej nakładki; jak wyglądała próba, nie sprawdzano. Wynik zostaje 25 kl./s nad progiem 60.
+- Rozbieżności w granicach szumu: wywołania rysowania 1441 (próba 1439), klik w pracę 0,055 m (0,058 m), joystick 4,22 m (4,19 m).
+- Reszta zgodna z próbą: atrium na wylot 79, przejazd 15,1 s, klik w podłogę 0,087 m, kolizje 5,45 / 1,85 / 0,63, wycieczka 12 przystanków w 87 s, portal Kosmosu z atrium i z planu w rogu (z = 134,7).
+
+**Odstępstwa od specyfikacji (z pomiaru):**
+- Wysoki poziom ma DPR 1,5, nie 1,75: przy 1,75 atrium na wylot dawało 58–61 fps, przy 1,5 — 79.
+- GTAO zawsze w połowie rozdzielczości (różnica w obrazie < 1/255) i bez odszumiania Poissona, które kropkowało narożniki w bieli.
+- Jasne zrzuty w strefach nocy i Kina przygaszone do średniej jasności 0,3 (inaczej świeciły jak lampy).
+
+**Decyzje właściciela w trakcie wdrożenia (8 X):**
+- Oszczędzanie w bezruchu: po 2 s ok. 20 kl./s, po 20 s ok. 4 kl./s; w Kinie co najmniej 30, w sali gramofonu, gdy gra, co najmniej 20; każdy ruch wraca do pełnej szybkości.
+- Posadzka nocy: pełne lustro (bez martwej nakładki).
+- Dźwięk: showreel przez silnik muzeum na ok. ¼ głośności z narastaniem 2 s (słucha przycisku w HUD, także na iPhonie); serce z cichą, wyższą warstwą (słychać je na głośnikach laptopa); ton sal białych bez zmian.
+- Zgłoszenie „wejście do Kosmosu nie działa”: portal klikalny z każdej odległości (nigdy przez mur), cel „Kosmos” w planie w rogu.
+
+**Sprawdzenia dodatkowe** (poza skryptami §10, ten sam serwer i profil):
+- Portal Kosmosu: klik z atrium prowadzi do drzwi (z = 134,7, przycisk widoczny), cel w planie w rogu tak samo; z Archiwum i z Kina, przez mur, klik nie robi nic.
+- Oszczędzanie w bezruchu: po 3–6 s ok. 20 kl./s, po 25 s 4 kl./s, w Kinie 30 kl./s (film gra dalej); jedno zdarzenie myszy przywraca pełną szybkość od razu (82 kl./s w pierwszej sekundzie). Dolny próg 20 kl./s w sali gramofonu przy graniu nie był sprawdzany: wymaga zewnętrznego odtwarzacza YouTube.
+- Start na zimno (świeży kontekst przeglądarki, pusta pamięć podręczna): ekran wejścia po ok. 2 s, kroje szyldów z polskimi literami wczytane przed budową sceny, zero błędów.
+- Archiwum: wszystkie 28 kart szuflad ma narysowany tytuł i datę; z odległości 2 m (miejsce, do którego prowadzi klik w szufladę) są czytelne.
+
+**Do oceny właściciela:** zrzuty stref; faktura tynku atrium (wielkie, jasne ściany pokazują plamy faktury — świadomie zostawione do decyzji); karty szuflad w Archiwum (z wejścia do sali, 8 m od szafy, tytuły są drobne, a tekst na karcie rozciąga się w poziomie prawie dwukrotnie); pomiar fps na telefonie; na prawdziwym sprzęcie: tryb klawiatury z blokadą wskaźnika (szuflady, odnośnik na tabliczce, przycisk Kosmosu, podpis przy kursorze), iPhone (autoodtwarzanie w Kinie, także w trybie oszczędzania energii; dotknięcia z drżeniem), powrót z Kosmosu przyciskiem Wstecz w Chrome i Safari (bez czarnej zasłony); na słuch: serce na głośnikach laptopa, ton sal białych, poziom showreelu; pierwszy kadr z atrium (sala I oświetlona z wyprzedzeniem, nie żywą lampą — pula prostokątów zajęta przez Kino i Archiwum).
