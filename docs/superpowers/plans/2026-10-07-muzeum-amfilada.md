@@ -45,7 +45,7 @@ Na komputerze właściciela Node ostrzega `MODULE_TYPELESS_PACKAGE_JSON` — źr
 {
   "name": "muzeum-worktree",
   "runtimeExecutable": "sh",
-  "runtimeArgs": ["-c", "python3 -m http.server \"${PORT:-8902}\" --directory /Users/mpawelczuk/omniportoflio/.claude/worktrees/bold-dubinsky-0860c5"],
+  "runtimeArgs": ["-c", "python3 -m http.server \"${PORT:-8902}\" --directory <worktree>"],
   "port": 8902,
   "autoPort": true
 }
@@ -6056,7 +6056,7 @@ Sprawdzenie całości wg §10 specyfikacji na serwerze worktree (`muzeum-worktre
 
 **Pułapki narzędzi (z próby — każda kosztowała fałszywy wynik):**
 - `browser_run_code_unsafe` z `filename` czyta tylko pliki z worktree — sondy zapisuj do `.playwright-mcp/` worktree.
-- Ścieżki zrzutów w sondach **bezwzględne** (`/…/bold-dubinsky-0860c5/.playwright-mcp/…`); względna ląduje w katalogu serwera Playwright, czyli w głównym checkoucie.
+- Ścieżki zrzutów w sondach **bezwzględne** (`<worktree>/.playwright-mcp/…`); względna ląduje w katalogu serwera Playwright, czyli w głównym checkoucie.
 - Sesja CDP trzyma swoje emulacje (rozmiar, DPR, dotyk, `prefers-reduced-motion`) do odłączenia, także między wywołaniami — każda sonda kończy się `cdp.detach()` w `finally`. Zrzut przez `page.screenshot` nakłada z powrotem rozmiar Playwrighta, więc zrzuty telefonu rób przy `page.setViewportSize`, nie przy `Emulation.setDeviceMetricsOverride`.
 - Przeglądarka pamięta język (`localStorage`) — każda sonda otwiera `museum.html?lang=pl` (albo `?lang=en`) jawnie.
 
@@ -6294,7 +6294,7 @@ Oczekiwane: `zAtrium` = `{ z: ≈134.7, przycisk: true }` (szybka podróż przez
 ```js
 async (page) => {
   const ADRES = "http://localhost:8902";
-  const W = "/Users/mpawelczuk/omniportoflio/.claude/worktrees/bold-dubinsky-0860c5/.playwright-mcp";
+  const W = "<worktree>/.playwright-mcp";
   await page.setViewportSize({ width: 390, height: 844 });
   const cdp = await page.context().newCDPSession(page);
   try {
@@ -6450,7 +6450,7 @@ Oczekiwane: `poziom: "wysoki"`, `dpr: 1.5`, `atrium >= 60` (próba: 79), `wNocy 
 
 ```js
 async (page) => {
-  const W = "/Users/mpawelczuk/omniportoflio/.claude/worktrees/bold-dubinsky-0860c5/.playwright-mcp";
+  const W = "<worktree>/.playwright-mcp";
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("http://localhost:8902/museum.html?lang=pl");
   await page.locator("#wejdz-cisza").waitFor({ state: "visible" });
