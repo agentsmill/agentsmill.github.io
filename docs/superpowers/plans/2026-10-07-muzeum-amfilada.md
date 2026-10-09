@@ -5686,7 +5686,7 @@ function buildList(lista, plan) {
       if (!wSali.has(p.id) || h.userData.exhibit) wSali.set(p.id, h);
     }
     const items = [...wSali.values()]
-      .sort((a, b) => (a.userData.project.date < b.userData.project.date ? -1 : 1))
+      .sort((a, b) => a.userData.project.date.localeCompare(b.userData.project.date))
       .map((h) => {
         const p = h.userData.project;
         pozycje.push(h);
@@ -5716,21 +5716,32 @@ function buildList(lista, plan) {
 
 /* Podpis przy kursorze: co zrobi kliknięcie w pracę — „Podejdź · tytuł”.
    Podłogę („idź tutaj”) pokazuje już znacznik. W blokadzie wskaźnika podpis
-   stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu. */
-let bylPodpis = "";
+   stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu.
+   Podczas przejazdu też go nie ma — gość już idzie (w blokadzie celuj() leci co
+   klatkę, więc bez tego warunku podpis wracałby po każdym schowaniu).
+   Rozmiar podpisu czytamy raz, przy zmianie tekstu — nie przy każdym ruchu myszy.
+   Na krawędziach okna podpis zostaje w oknie: z prawej przesunięty w lewo, przy
+   dolnej krawędzi stoi nad kursorem. */
+let bylPodpis = "", szerPodpisu = 0, wysPodpisu = 0;
+function schowajPodpis() { podpis.hidden = true; bylPodpis = ""; }
 function podpisz(e) {
   const p = hovered?.userData.project;
-  const tekst = p && !dotykowy && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
-  if (tekst !== bylPodpis) { podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst; }
+  const tekst = p && !dotykowy && !nawigacja?.aktywna() && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
+  if (tekst !== bylPodpis) {
+    podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst;
+    if (tekst) { szerPodpisu = podpis.offsetWidth; wysPodpisu = podpis.offsetHeight; }
+  }
   if (!tekst) return;
   const x = gracz?.zablokowany() || !e ? innerWidth / 2 : e.clientX;
   const y = gracz?.zablokowany() || !e ? innerHeight / 2 : e.clientY;
-  podpis.style.transform = `translate(${Math.round(x + 16)}px, ${Math.round(y + 18)}px)`;
+  const lewo = Math.min(x + 16, innerWidth - szerPodpisu - 8);
+  const gora = y + 18 + wysPodpisu > innerHeight - 8 ? Math.max(8, y - 18 - wysPodpisu) : y + 18;
+  podpis.style.transform = `translate(${Math.round(lewo)}px, ${Math.round(gora)}px)`;
 }
 ```
 
-3. W `podejdz(hit)` po `endFocus();` dopisz `podpis.hidden = true; bylPodpis = "";   // podpis nie jedzie z gościem przez cały przejazd`.
-4. Obsługę `pointerleave` zastąp: `renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; podpisz(); });`.
+3. W `podejdz(hit)` po `endFocus();` dopisz `schowajPodpis();   // podpis nie jedzie z gościem przez cały przejazd`.
+4. Obsługę `pointerleave` zastąp: `renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; schowajPodpis(); });`. Obsługę `pointerdown` na płótnie zastąp: `renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; hovered = null; schowajPodpis(); });   // w trakcie przeciągania celuj() stoi — podpis nie może zamarznąć w miejscu wciśnięcia`, a w obsłudze `resize` (na początku) dopisz `schowajPodpis();   // szerokość podpisu zależy od okna (max-width: 70vw) — wraca przy najbliższym ruchu myszy, już zmierzony od nowa`.
 5. W `bindFocusControl({ … })` po `goToHit` dopisz `goToRoom: (id) => nawigacja?.lecDoSali(id),   // nagłówek sali w liście`.
 6. `buildList(interaktywne);` → `buildList(interaktywne, plan);`.
 
@@ -5745,10 +5756,68 @@ function podpisz(e) {
 
 2. Podpowiedź dotykowa (z Zadania 6) mówi „przeciągnij, żeby się rozejrzeć”, a lewa połowa ekranu to joystick (player.js) — w `<span class="hint-dotyk" …>` tekst zastąp: `Dotknij podłogi, żeby tam pójść, albo pracy, żeby podejść · lewy kciuk idzie, prawy się rozgląda`.
 3. Dwie etykiety ARIA bez tłumaczenia (zostały po starym muzeum): do `<a class="hud-back" … aria-label="Wróć do karty budowania">` dopisz `data-i18n-attr="aria-label:muz.wrocKarta"`, a do `<button class="hud-list" id="btn-list" … aria-label="Lista eksponatów">` — `data-i18n-attr="aria-label:muz.listaEksponatow"`.
+4. Panel braku WebGL (`#no-webgl`) po angielsku: drugi akapit `<p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>` zastąp `<p><a href="index.html" data-i18n="muz.wrocKarta">Wróć do karty budowania</a><span data-i18n="muz.brakWebglDalej"> — tam jest wszystko, tylko płasko.</span></p>` (`data-i18n` na całym `<p>` skasowałby odnośnik). Skrypt awaryjny „muzeum nie chce się otworzyć” (bez zależności — i18n.js też może się nie wczytać) wybiera język sam: na jego początku wstaw
+
+```js
+  /* Język panelu jak w i18n.js (?lang= w adresie, potem zapamiętany wybór), ale bez zależności od
+     niego: i18n.js też może się nie wczytać, więc adres i localStorage czyta ten skrypt sam. */
+  function angielski() {
+    var m = /[?&]lang=(en|pl)(?:&|$)/.exec(location.search);
+    if (m) return m[1] === "en";
+    try { return localStorage.getItem("mp-jezyk") === "en"; } catch (e) { return false; }
+  }
+```
+
+   a przypisanie `panel.innerHTML = …` zastąp:
+
+```js
+    panel.innerHTML = angielski()
+      ? "<p>The museum won’t open — not all of its parts could be loaded.</p>" +
+        "<p>Most often this is a brief loss of network or a blocked external script. Try refreshing the page.</p>" +
+        '<p><a href="index.html">Back to the building record</a> — everything is there, just flat.</p>'
+      : "<p>Muzeum nie chce się otworzyć — nie udało się wczytać wszystkich jego części.</p>" +
+        "<p>Najczęściej to chwilowy brak sieci albo blokada zewnętrznych skryptów. Spróbuj odświeżyć stronę.</p>" +
+        '<p><a href="index.html">Wróć do karty budowania</a> — tam jest wszystko, tylko płasko.</p>';
+```
 
 - [ ] **Krok 4: `css/museum.css`**
 
-Regułę `.list-era { … }` zastąp:
+1. Jedna pigułka nagłówka — przyciski, przełącznik PL/EN, nazwa sali i podpowiedź stoją na tym samym ciemnym tle w 90 % (przy 70–72 % napisy w bieli i u Leona miały 1,0–3,2:1; Zadanie 12 wymaga nazwy sali czytelnej także w jasnych salach). Regułę `.hud-back, .hud-list { … }` (z komentarzem nad nią) zastąp:
+
+```css
+/* Jedna pigułka nagłówka: przyciski, nazwa sali (.hud-era) i podpowiedź (.hint-mysz, .hint-dotyk)
+   stoją na tym samym ciemnym tle w 90 % — napis ma ≥ 4,5:1 także na białej ścianie i jasnej
+   posadzce (przy 70–72 % wychodziło 2,7–3,2:1). */
+.hud-back, .hud-list {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-dim); text-decoration: none;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border: 1px solid var(--line); border-radius: 99px; padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+```
+
+pod regułą `.hud-back:hover, .hud-list:hover { … }` dopisz:
+
+```css
+/* Przełącznik PL/EN wstrzykuje i18n.js (styl wspólny z kartą budowania, tło 72 %) — w nagłówku muzeum
+   stoi na tej samej pigułce 90 % co reszta; wyższa swoistość selektora wygrywa ze stylem wstrzykniętym później. */
+.hud-top .lang-switch { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+```
+
+a regułę `.hud-era { … }` zastąp:
+
+```css
+.hud-era {
+  margin-left: auto; margin-right: auto;
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--pulse-dim); text-align: center;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border-radius: 99px; padding: 0.3rem 0.85rem;
+}
+```
+
+2. Regułę `.list-era { … }` zastąp:
 
 ```css
 /* Nagłówek sali: przycisk szybkiej podróży (ui.js: buildList). */
@@ -5758,34 +5827,46 @@ Regułę `.list-era { … }` zastąp:
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--pulse-dim); margin: 1.6rem 0 0.6rem;
 }
-.list-sala::after { content: " →"; opacity: 0; transition: opacity 0.15s ease; }
+/* Strzałka jest ozdobą: „/ ''” to pusty tekst alternatywny, więc czytnik ekranu jej nie czyta (przeglądarki
+   bez tej składni dostają pierwszą, zwykłą deklarację). Na dotyku nie ma najechania — strzałka stoi przygaszona. */
+.list-sala::after { content: " →"; content: " →" / ""; opacity: 0; transition: opacity 0.15s ease; }
 .list-sala:hover, .list-sala:focus-visible { color: var(--pulse); }
 .list-sala:hover::after, .list-sala:focus-visible::after { opacity: 1; }
+@media (hover: none) { .list-sala::after { opacity: 0.6; } }
 ```
 
-pod regułą `.hud-hint.gone { opacity: 0; }` dopisz (na jasnym parkiecie pałacu, w bieli i u Leona szara podpowiedź i bursztynowa nazwa sali ginęły — stara posadzka i stropy były ciemne):
+3. Pod regułą `.hud-hint.gone { opacity: 0; }` dopisz:
 
 ```css
-/* Na jasnym parkiecie pałacu i bieli szary napis ginął — pigułka z
-   półprzezroczystym tłem, osobna dla każdej linii, gdy tekst się łamie. */
+/* Na jasnym parkiecie pałacu, w bieli i u Leona szary napis ginął — pigułka z tłem
+   jak w nagłówku (90 %), osobna dla każdej linii, gdy tekst się łamie. */
 .hint-mysz, .hint-dotyk {
-  background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink-dim);
+  background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--ink-dim);
   border-radius: 99px; padding: 0.3rem 0.85rem; line-height: 2.1;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
-/* Nazwa sali: w jasnych salach (biel, Pokój Leona, strop pałacu) bursztyn
-   ginął na jasnym tle — ciemna poświata wokół liter, bez ramki. */
-.hud-era { text-shadow: 0 0 6px rgba(12, 16, 24, 0.9), 0 0 14px rgba(12, 16, 24, 0.6); }
 ```
 
-a na końcu pliku dopisz:
+4. W bloku `@media (max-width: 640px), (pointer: coarse)` regułę `.hud-era { … }` zastąp (pigułka na szerokość napisu, środkiem wiersza pod przyciskami):
+
+```css
+  .hud-era {
+    display: block; order: 5; flex: 0 1 auto;          /* pigułka na szerokość napisu, środkiem wiersza pod przyciskami */
+    margin: 0.2rem auto 0; padding: 0.1rem 0.7rem; font-size: 0.62rem; letter-spacing: 0.05em; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+```
+
+5. Na końcu pliku dopisz:
 
 ```css
 
 /* Podpis przy kursorze (main.js: podpisz) — „Podejdź · tytuł”. Przesuwany
    transformacją, więc nie przelicza układu strony przy każdym ruchu myszy. */
 .podpis {
-  position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none;
+  /* z-index nad HUD-em i podpowiedzią (30): odwrócony podpis przy dolnej krawędzi nachodzi na pasek podpowiedzi,
+     a pod celownikiem (35) i tabliczką (40). */
+  position: fixed; left: 0; top: 0; z-index: 32; pointer-events: none;
   max-width: min(28rem, 70vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.05em; color: var(--ink);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
@@ -5803,7 +5884,7 @@ a na końcu pliku dopisz:
     "muz.podpowiedzMysz": "<b>Click the floor</b> to walk there · drag to look around · click a work to walk up to it · <b>WASD</b> works too",
 ```
 
-2. Pod `"muz.listaPelna": " of exhibits",` dopisz `"muz.listaEksponatow": "List of exhibits",`.
+2. Pod `"muz.listaPelna": " of exhibits",` dopisz `"muz.listaEksponatow": "List of exhibits",`, a pod `"muz.brakWebgl": …` dopisz `"muz.brakWebglDalej": " — everything is there, just flat.",`.
 3. Pod `"muz.wrocKarta": "Back to the building record",` dopisz:
 
 ```js
@@ -5825,7 +5906,7 @@ a na końcu pliku dopisz:
     "muz.sala.kino": "Cinema",
     "muz.sala.archiwum": "Archive",
     "muz.sala.leon": "Leon’s Room",
-    "muz.typ.ekran": "a screenshot of a working thing",
+    "muz.typ.ekran": "screenshot of a working thing",
     "muz.typ.druk": "an AI visualisation",
     "muz.typ.plansza": "a title board",
     "muz.podejdz": "Walk up",
@@ -5873,7 +5954,7 @@ Expected: jedna linia — wszystkie stemple (na próbie 37) z tą samą wartośc
 Testy planu muzeum (czysta logika, bez przeglądarki):
 
 ```bash
-node --test tests/plan.test.mjs
+node --test tests/plan.test.mjs   # Node ≥ 22.12: moduły ES w plikach .js bez package.json
 ```
 
 ````
@@ -5881,11 +5962,12 @@ node --test tests/plan.test.mjs
 3. W „Dodanie projektu” linię zaczynającą się od „- Po zmianie danych podbij” zastąp:
 
 ```markdown
-- **Muzeum:** praca zawiśnie sama w sali swojej epoki (epoka ponad 10 prac dzieli się na
-  dwie sale). Eksponat autorski na podeście to builder w `js/museum/exhibits.js` i wpis w
+- **Muzeum:** praca zawiśnie sama w sali swojej epoki (każde zaczęte 10 prac to osobna
+  sala). Eksponat autorski na podeście to builder w `js/museum/exhibits.js` i wpis w
   `PODSTAWY` tamże.
 - Po każdej zmianie podbij wspólny stempel `?v=` — jedna wartość na wszystkich trzech
   stronach: `sed -i '' -E "s/\?v=[0-9]{12}/?v=$(date +%Y%m%d%H%M)/g" index.html kosmos.html museum.html`
+  (`-i ''` to forma BSD/macOS; w GNU sed: `sed -i -E …`)
 ```
 
 4. Na końcu, pod linią o przeglądzie z 30 IX, dopisz:
@@ -5939,6 +6021,7 @@ Oczekiwane (próba): `sale` = `["atrium:0", "archiwum:0", "kino:0", "e1:5", "e2:
 2. Angielski: `museum.html?lang=en` — ekran wejścia „The Museum of Building / Enter with sound / Enter in silence”; po wejściu HUD „Atrium”, „Sound: off”, „Show me around”, „List of exhibits”, podpowiedź „Click the floor to walk there …”; plan w rogu `aria-label` „Museum map”, sale boczne „Atrium / Cinema / Archive / Leon’s Room”; nagłówki listy po angielsku („I · III–IV 2025 — First experiments” …); tabliczka pracy z odnośnikiem „See it live ↗”. Szukanie polskich słów interfejsu w HUD, podpowiedzi, planie i liście (z `aria-label`) — „Wejdź”, „Dźwięk”, „Oprowadź”, „Lista”, „Kliknij”, „Zamknij”, „Kino”, „Archiwum”, „Pokój”, „Podejdź”, „Zobacz”, „Wróć” — daje pustą listę.
 3. Karta budowania (`index.html`, PL i `?lang=en`) i Kosmos (`kosmos.html`) wstają po nowym stemplu bez błędów w konsoli (ostrzeżenia o przestarzałych API three r185 w Kosmosie są stare i poza zakresem).
 4. `node --test tests/plan.test.mjs` — 18/18.
+5. Po przeglądzie: nagłówek (nazwa sali, przyciski, PL/EN) i podpowiedź mają ≥ 4,5:1 w atrium, e1, e3, e4, e5a, u Leona i w Kinie, przy 1440 × 900 i 390 × 844 (najgorzej: pigułka 90 % nad czystą bielą — 4,92:1); podpis przy kursorze zostaje w oknie przy wszystkich czterech krawędziach (przy prawej przesunięty w lewo, przy dolnej nad kursorem), znika przy wciśnięciu, w czasie przeciągania i przez cały przejazd; pod `?lang=en` panel braku WebGL i panel awaryjny są po angielsku; strzałka nagłówka sali nie trafia do drzewa dostępności.
 
 - [ ] **Krok 9: Commit**
 
