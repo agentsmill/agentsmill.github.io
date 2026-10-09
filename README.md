@@ -29,7 +29,7 @@ python3 -m http.server 8901
 Testy planu muzeum (czysta logika, bez przeglądarki):
 
 ```bash
-node --test tests/plan.test.mjs
+node --test tests/plan.test.mjs   # Node ≥ 22.12: moduły ES w plikach .js bez package.json
 ```
 
 Deploy: push na `main` → GitHub Pages.
@@ -46,11 +46,12 @@ cat, desc, tech, links) — karta, muzeum i Kosmos ułożą go same. Jedno uderz
 - **Wyróżnienie:** `featured: N` — liczba to miejsce w siatce wyróżnionych.
 - **Wersja angielska:** tytuł i opis w `PROJEKTY` w `js/i18n.js`; bez wpisu projekt zostaje
   po polsku.
-- **Muzeum:** praca zawiśnie sama w sali swojej epoki (epoka ponad 10 prac dzieli się na
-  dwie sale). Eksponat autorski na podeście to builder w `js/museum/exhibits.js` i wpis w
+- **Muzeum:** praca zawiśnie sama w sali swojej epoki (każde zaczęte 10 prac to osobna
+  sala). Eksponat autorski na podeście to builder w `js/museum/exhibits.js` i wpis w
   `PODSTAWY` tamże.
 - Po każdej zmianie podbij wspólny stempel `?v=` — jedna wartość na wszystkich trzech
   stronach: `sed -i '' -E "s/\?v=[0-9]{12}/?v=$(date +%Y%m%d%H%M)/g" index.html kosmos.html museum.html`
+  (`-i ''` to forma BSD/macOS; w GNU sed: `sed -i -E …`)
 
 Wersja angielska: przełącznik PL/EN albo link z `?lang=en`.
 

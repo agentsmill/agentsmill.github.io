@@ -104,7 +104,7 @@ function buildList(lista, plan) {
       if (!wSali.has(p.id) || h.userData.exhibit) wSali.set(p.id, h);
     }
     const items = [...wSali.values()]
-      .sort((a, b) => (a.userData.project.date < b.userData.project.date ? -1 : 1))
+      .sort((a, b) => a.userData.project.date.localeCompare(b.userData.project.date))
       .map((h) => {
         const p = h.userData.project;
         pozycje.push(h);

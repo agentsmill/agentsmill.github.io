@@ -103,7 +103,7 @@ function focusOn(hit) {
 /* Podejście do pracy: przejazd przez drzwi, na miejscu tabliczka. */
 function podejdz(hit) {
   endFocus();
-  podpis.hidden = true; bylPodpis = "";   // podpis nie jedzie z gościem przez cały przejazd
+  schowajPodpis();   // podpis nie jedzie z gościem przez cały przejazd
   nawigacja.podejdzDo(hit, () => focusOn(hit));
 }
 
@@ -221,16 +221,27 @@ function celuj(e) {
 
 /* Podpis przy kursorze: co zrobi kliknięcie w pracę — „Podejdź · tytuł”.
    Podłogę („idź tutaj”) pokazuje już znacznik. W blokadzie wskaźnika podpis
-   stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu. */
-let bylPodpis = "";
+   stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu.
+   Podczas przejazdu też go nie ma — gość już idzie (w blokadzie celuj() leci co
+   klatkę, więc bez tego warunku podpis wracałby po każdym schowaniu).
+   Rozmiar podpisu czytamy raz, przy zmianie tekstu — nie przy każdym ruchu myszy.
+   Na krawędziach okna podpis zostaje w oknie: z prawej przesunięty w lewo, przy
+   dolnej krawędzi stoi nad kursorem. */
+let bylPodpis = "", szerPodpisu = 0, wysPodpisu = 0;
+function schowajPodpis() { podpis.hidden = true; bylPodpis = ""; }
 function podpisz(e) {
   const p = hovered?.userData.project;
-  const tekst = p && !dotykowy && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
-  if (tekst !== bylPodpis) { podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst; }
+  const tekst = p && !dotykowy && !nawigacja?.aktywna() && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
+  if (tekst !== bylPodpis) {
+    podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst;
+    if (tekst) { szerPodpisu = podpis.offsetWidth; wysPodpisu = podpis.offsetHeight; }
+  }
   if (!tekst) return;
   const x = gracz?.zablokowany() || !e ? innerWidth / 2 : e.clientX;
   const y = gracz?.zablokowany() || !e ? innerHeight / 2 : e.clientY;
-  podpis.style.transform = `translate(${Math.round(x + 16)}px, ${Math.round(y + 18)}px)`;
+  const lewo = Math.min(x + 16, innerWidth - szerPodpisu - 8);
+  const gora = y + 18 + wysPodpisu > innerHeight - 8 ? Math.max(8, y - 18 - wysPodpisu) : y + 18;
+  podpis.style.transform = `translate(${Math.round(lewo)}px, ${Math.round(gora)}px)`;
 }
 
 function obsluzKlik(e) {
@@ -246,7 +257,7 @@ function obsluzKlik(e) {
   } else if (focus) endFocus();
 }
 
-renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; hovered = null; schowajPodpis(); });   // w trakcie przeciągania celuj() stoi — podpis nie może zamarznąć w miejscu wciśnięcia
 renderer.domElement.addEventListener("pointerup", (e) => {
   if (!downAt) return;
   const dist = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
@@ -255,7 +266,7 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   obsluzKlik(e);
 });
 renderer.domElement.addEventListener("pointermove", (e) => { if (!downAt) celuj(e); });
-renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; podpisz(); });
+renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; schowajPodpis(); });
 
 /* Obrazy prac. Na niskim poziomie (telefon) salami: wczytane do dwóch przejść
    od gościa, zwalniane od pięciu — pas pomiędzy chroni przed migotaniem, gdy
@@ -402,6 +413,7 @@ function petla(teraz = performance.now()) {
 }
 
 addEventListener("resize", () => {
+  schowajPodpis();   // szerokość podpisu zależy od okna (max-width: 70vw) — wraca przy najbliższym ruchu myszy, już zmierzony od nowa
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);

@@ -203,6 +203,7 @@
     "muz.eksponaty": "Exhibits",
     "muz.zamknij": "Close",
     "muz.brakWebgl": "This browser has no WebGL — the museum needs it to exist.",
+    "muz.brakWebglDalej": " — everything is there, just flat.",
     "muz.wrocKarta": "Back to the building record",
     // Muzeum 3.0 (amfilada): wejście, dźwięk, plan, sale, wydajność
     "muz.tytul": "The Museum of Building",
@@ -222,7 +223,7 @@
     "muz.sala.kino": "Cinema",
     "muz.sala.archiwum": "Archive",
     "muz.sala.leon": "Leon’s Room",
-    "muz.typ.ekran": "a screenshot of a working thing",
+    "muz.typ.ekran": "screenshot of a working thing",
     "muz.typ.druk": "an AI visualisation",
     "muz.typ.plansza": "a title board",
     "muz.podejdz": "Walk up",

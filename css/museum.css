@@ -49,18 +49,26 @@ a { color: var(--pulse); }
   display: flex; align-items: center; gap: 1rem;
   padding: 0.9rem 1.2rem;
 }
+/* Jedna pigułka nagłówka: przyciski, nazwa sali (.hud-era) i podpowiedź (.hint-mysz, .hint-dotyk)
+   stoją na tym samym ciemnym tle w 90 % — napis ma ≥ 4,5:1 także na białej ścianie i jasnej
+   posadzce (przy 70–72 % wychodziło 2,7–3,2:1). */
 .hud-back, .hud-list {
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--ink-dim); text-decoration: none;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
   border: 1px solid var(--line); border-radius: 99px; padding: 0.45rem 0.9rem;
   cursor: pointer;
 }
 .hud-back:hover, .hud-list:hover { color: var(--pulse); border-color: var(--pulse-dim); }
+/* Przełącznik PL/EN wstrzykuje i18n.js (styl wspólny z kartą budowania, tło 72 %) — w nagłówku muzeum
+   stoi na tej samej pigułce 90 % co reszta; wyższa swoistość selektora wygrywa ze stylem wstrzykniętym później. */
+.hud-top .lang-switch { background: color-mix(in srgb, var(--bg) 90%, transparent); }
 .hud-era {
   margin-left: auto; margin-right: auto;
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--pulse-dim); text-align: center;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border-radius: 99px; padding: 0.3rem 0.85rem;
 }
 /* `left: 0; right: 0` zamiast dawnego `left: 50%` + translateX. Przesunięcie
    transformem jest CZYSTO wizualne: układ nadal liczył szerokość od połowy
@@ -74,16 +82,13 @@ a { color: var(--pulse); }
   padding: 0 1.2rem; transition: opacity 0.8s ease;
 }
 .hud-hint.gone { opacity: 0; }
-/* Na jasnym parkiecie pałacu i bieli szary napis ginął — pigułka z
-   półprzezroczystym tłem, osobna dla każdej linii, gdy tekst się łamie. */
+/* Na jasnym parkiecie pałacu, w bieli i u Leona szary napis ginął — pigułka z tłem
+   jak w nagłówku (90 %), osobna dla każdej linii, gdy tekst się łamie. */
 .hint-mysz, .hint-dotyk {
-  background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink-dim);
+  background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--ink-dim);
   border-radius: 99px; padding: 0.3rem 0.85rem; line-height: 2.1;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
-/* Nazwa sali: w jasnych salach (biel, Pokój Leona, strop pałacu) bursztyn
-   ginął na jasnym tle — ciemna poświata wokół liter, bez ramki. */
-.hud-era { text-shadow: 0 0 6px rgba(12, 16, 24, 0.9), 0 0 14px rgba(12, 16, 24, 0.6); }
 /* Wariant dla dotyku — kryterium to samo, co przy joysticku na końcu pliku
    (urządzenie bez precyzyjnego wskaźnika). Kto dostaje joystick, dostaje też
    podpowiedź o kciukach zamiast o klawiszu Shift. */
@@ -154,9 +159,12 @@ a { color: var(--pulse); }
   font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--pulse-dim); margin: 1.6rem 0 0.6rem;
 }
-.list-sala::after { content: " →"; opacity: 0; transition: opacity 0.15s ease; }
+/* Strzałka jest ozdobą: „/ ''” to pusty tekst alternatywny, więc czytnik ekranu jej nie czyta (przeglądarki
+   bez tej składni dostają pierwszą, zwykłą deklarację). Na dotyku nie ma najechania — strzałka stoi przygaszona. */
+.list-sala::after { content: " →"; content: " →" / ""; opacity: 0; transition: opacity 0.15s ease; }
 .list-sala:hover, .list-sala:focus-visible { color: var(--pulse); }
 .list-sala:hover::after, .list-sala:focus-visible::after { opacity: 1; }
+@media (hover: none) { .list-sala::after { opacity: 0.6; } }
 .list-item {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: none; border: none; border-bottom: 1px solid var(--line);
@@ -198,8 +206,8 @@ a { color: var(--pulse); }
   }
   .hud-tekst { display: none; }          /* zostaje „←" i „Lista"; pełne nazwy w aria-label */
   .hud-era {
-    display: block; order: 5; flex: 0 0 100%;
-    margin: 0.2rem 0 0; font-size: 0.62rem; letter-spacing: 0.05em; line-height: 1.15;
+    display: block; order: 5; flex: 0 1 auto;          /* pigułka na szerokość napisu, środkiem wiersza pod przyciskami */
+    margin: 0.2rem auto 0; padding: 0.1rem 0.7rem; font-size: 0.62rem; letter-spacing: 0.05em; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .hud-hint { font-size: 0.66rem; letter-spacing: 0.05em; bottom: 0.9rem; }
@@ -319,7 +327,9 @@ a { color: var(--pulse); }
 /* Podpis przy kursorze (main.js: podpisz) — „Podejdź · tytuł”. Przesuwany
    transformacją, więc nie przelicza układu strony przy każdym ruchu myszy. */
 .podpis {
-  position: fixed; left: 0; top: 0; z-index: 25; pointer-events: none;
+  /* z-index nad HUD-em i podpowiedzią (30): odwrócony podpis przy dolnej krawędzi nachodzi na pasek podpowiedzi,
+     a pod celownikiem (35) i tabliczką (40). */
+  position: fixed; left: 0; top: 0; z-index: 32; pointer-events: none;
   max-width: min(28rem, 70vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.05em; color: var(--ink);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
