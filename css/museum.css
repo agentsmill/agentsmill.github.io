@@ -176,11 +176,12 @@ a { color: var(--pulse); }
 .list-item:hover { color: var(--pulse); }
 .list-item .li-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-right: 0.7rem; }
 
-/* Komunikat strażnika wydajności / ślepego zaułka tury */
+/* Komunikat strażnika wydajności / ślepego zaułka tury. Tło 92 %: przy 85 % napis miał nad białą
+   ścianą 4,16:1, teraz 5,2:1. */
 .hud-perf {
   position: fixed; right: 1rem; bottom: 1rem; z-index: 30; max-width: 22rem;
-  font-family: var(--font-mono, monospace); font-size: 0.72rem; color: #8C95A8;
-  background: rgba(12,16,24,0.85); border: 1px solid #232B3D;
+  font-family: var(--font-mono, monospace); font-size: 0.72rem; color: var(--ink-dim);
+  background: color-mix(in srgb, var(--bg) 92%, transparent); border: 1px solid var(--line);
   border-radius: 6px; padding: 0.5rem 0.7rem;
 }
 
@@ -206,7 +207,6 @@ a { color: var(--pulse); }
     font-size: 0.62rem; letter-spacing: 0.03em; padding: 0.4rem 0.6rem;
     min-height: 32px; display: inline-flex; align-items: center; white-space: nowrap;
   }
-  .hud-tekst { display: none; }          /* zostaje „←" i „Lista"; pełne nazwy w aria-label */
   .hud-era {
     display: block; order: 5; flex: 0 1 auto;          /* pigułka na szerokość napisu, środkiem wiersza pod przyciskami */
     margin: 0.2rem auto 0; padding: 0.1rem 0.7rem; font-size: 0.62rem; letter-spacing: 0.05em; line-height: 1.15;
@@ -318,13 +318,14 @@ a { color: var(--pulse); }
    jak opacity w #loader), więc ukryte przyciski wejścia nie stoją w kolejności Tab. */
 #loader.done { pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, visibility 0s 0.6s; }
 #btn-dzwiek[aria-pressed="true"] { color: var(--pulse); border-color: var(--pulse-dim); }
-/* Ikona głośnika: fale tylko przy włączonym dźwięku. Do 900 px napis znika
-   (.hud-tekst) i zostaje sama ikona — nagłówek mieści się w jednym wierszu
-   (z napisem w oknach 641–770 px era łamała się na pięć wierszy, a przełącznik języka wystawał). */
+/* Ikona głośnika: fale tylko przy włączonym dźwięku. Do 900 px znikają wszystkie napisy .hud-tekst —
+   zostają „←”, ikona głośnika i „Lista”, pełne nazwy w aria-label — i nagłówek mieści się w jednym
+   wierszu. Z napisami w oknach 641–770 px era łamała się na pięć wierszy, a przełącznik języka
+   wystawał za okno (641–660 px: z „EN” zostawało „E”). */
 #btn-dzwiek { display: inline-flex; align-items: center; gap: 0.45em; }
 .dz-ikona { width: 1.15em; height: 1.15em; flex: none; }
 #btn-dzwiek[aria-pressed="false"] .dz-fale { display: none; }
-@media (max-width: 900px) { #btn-dzwiek .hud-tekst { display: none; } }
+@media (max-width: 900px) { .hud-tekst { display: none; } }
 
 /* Podpis przy kursorze (main.js: podpisz) — „Podejdź · tytuł”. Przesuwany
    transformacją, więc nie przelicza układu strony przy każdym ruchu myszy. */

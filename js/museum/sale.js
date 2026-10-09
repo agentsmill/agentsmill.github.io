@@ -14,6 +14,9 @@ import { srodowisko } from "muzeum/render.js";
 
 const KAFEL = 3;                                          // metry świata na kafel tekstury ścian i stropów
 const KAFEL_POSADZKI = { palac: 2.2, biel: 6, zabawy: 2.2 };
+/* Atrium (decyzja właściciela z 9 X: „spokojniej, drobniej”): tynk o połowę drobniejszy niż w innych salach.
+   Przy kaflu 3 m ciemny pas i jasne krążki mapy koloru stały na wielkich ścianach jak zacieki. */
+const KAFEL_SCIAN = { atrium: 1.5 };
 
 /* Ile sala „świeci sama”, gdy nie ma przy niej prawdziwych świateł (patrz
    swiatla.js) — ułamek koloru materiału oddawany jako emisja. */
@@ -30,7 +33,11 @@ function bezOdbic(m) { m.envMap = srodowisko; m.envMapIntensity = 0; return m; }
 function materialySali(s) {
   switch (s.styl) {
     case "palac": return {
-      sciana: materialPBR("tynk", { kolor: s.kolor, normal: 0.35 }),
+      /* Atrium: tynk równy, bez plam (decyzja właściciela z 9 X) — mapa koloru przy kontraście 0,35, płytsza
+         faktura (normalne 0,2 zamiast 0,35), jednolita szorstkość zamiast mapy ARM; drobniejszy kafel — KAFEL_SCIAN. */
+      sciana: s.rodzaj === "atrium"
+        ? materialPBR("tynk", { kolor: s.kolor, normal: 0.2, kontrast: 0.35, bezArm: true, szorstkosc: 0.93 })
+        : materialPBR("tynk", { kolor: s.kolor, normal: 0.35 }),
       posadzka: materialPBR("parkiet", { szorstkosc: 0.85 }),
       sufit: gladki(0xe9e2d2, 0.92),
     };
@@ -80,13 +87,13 @@ export function zarejestruj(budynek, salaId, material, poziom) {
 
 /* Prostopadłościan z kwadratowymi kaflami na każdej ścianie: gęstość tekstury
    niesie geometria (skalowane UV), więc jeden materiał służy powierzchniom
-   o dowolnych proporcjach. */
-export function bryla(w, h, d, mat) {
+   o dowolnych proporcjach. `kafel` — metry na kafel (domyślnie KAFEL). */
+export function bryla(w, h, d, mat, kafel = KAFEL) {
   const geo = new THREE.BoxGeometry(w, h, d);
   const uv = geo.attributes.uv;
   // kolejność ścian BoxGeometry: +x, −x, +y, −y, +z, −z — po cztery wierzchołki
   [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]].forEach(([a, b], f) => {
-    for (let i = f * 4; i < f * 4 + 4; i++) uv.setXY(i, (uv.getX(i) * a) / KAFEL, (uv.getY(i) * b) / KAFEL);
+    for (let i = f * 4; i < f * 4 + 4; i++) uv.setXY(i, (uv.getX(i) * a) / kafel, (uv.getY(i) * b) / kafel);
   });
   const m = new THREE.Mesh(geo, mat);
   m.receiveShadow = true;
@@ -106,10 +113,17 @@ export function plyta(w, d, mat, kafel = KAFEL) {
 
 /* Połówka muru jednej ściany: odcinki między otworami i nadproża. Lokalnie
    ściana biegnie wzdłuż +X od 0 do `dl`, grubość wzdłuż Z (wyśrodkowana). */
-function polmur(dl, H, otwory, mat) {
+function polmur(dl, H, otwory, mat, kafel) {
   const g = new THREE.Group();
   const odcinek = (u0, u1, y0, y1) => {
-    const m = bryla(u1 - u0, y1 - y0, POLMUR, mat);
+    const m = bryla(u1 - u0, y1 - y0, POLMUR, mat, kafel);
+    /* Faktura biegnie przez całą ścianę, a nie od początku każdego odcinka: oba lica (+z i −z) przesunięte
+       o miejsce odcinka na ścianie i nad podłogą. Bez tego nadproże zaczynało teksturę od nowa i nad każdymi
+       drzwiami stała jaśniejsza kolumna. Na licu −z BoxGeometry odwraca u, więc tam przesunięcie liczy się
+       od drugiego końca ściany. */
+    const uv = m.geometry.attributes.uv;
+    for (let i = 16; i < 20; i++) uv.setXY(i, uv.getX(i) + u0 / kafel, uv.getY(i) + y0 / kafel);
+    for (let i = 20; i < 24; i++) uv.setXY(i, uv.getX(i) + (dl - u1) / kafel, uv.getY(i) + y0 / kafel);
     m.position.set((u0 + u1) / 2, (y0 + y1) / 2, 0);
     m.userData.kolizja = true;
     g.add(m);
@@ -130,7 +144,7 @@ const blisko = (a, b) => Math.abs(a - b) < 1e-6;
 /* Cztery ściany sali z otworami wszystkich drzwi, które jej dotyczą. Środki
    otworów liczone wzdłuż danej ściany — od x0 dla ścian z±, od z0 dla x±.
    Ten sam układ odniesienia ma ramaSciany() w wystroj.js. */
-function sciany(s, drzwi, mat) {
+function sciany(s, drzwi, mat, kafel) {
   const W = s.x1 - s.x0, D = s.z1 - s.z0;
   const otwory = { "z-": [], "z+": [], "x-": [], "x+": [] };
   for (const d of drzwi) {
@@ -140,11 +154,11 @@ function sciany(s, drzwi, mat) {
     if (d.os === "x" && blisko(d.x, s.x0)) otwory["x-"].push(d.z - s.z0);
     if (d.os === "x" && blisko(d.x, s.x1)) otwory["x+"].push(d.z - s.z0);
   }
-  const zMinus = polmur(W, s.H, otwory["z-"], mat); zMinus.position.set(s.x0, 0, s.z0 + POLMUR / 2);
-  const zPlus = polmur(W, s.H, otwory["z+"], mat); zPlus.position.set(s.x0, 0, s.z1 - POLMUR / 2);
+  const zMinus = polmur(W, s.H, otwory["z-"], mat, kafel); zMinus.position.set(s.x0, 0, s.z0 + POLMUR / 2);
+  const zPlus = polmur(W, s.H, otwory["z+"], mat, kafel); zPlus.position.set(s.x0, 0, s.z1 - POLMUR / 2);
   // obrót −π/2 wokół Y: lokalne +X ściany biegnie wzdłuż świata +Z
-  const xMinus = polmur(D, s.H, otwory["x-"], mat); xMinus.position.set(s.x0 + POLMUR / 2, 0, s.z0); xMinus.rotation.y = -Math.PI / 2;
-  const xPlus = polmur(D, s.H, otwory["x+"], mat); xPlus.position.set(s.x1 - POLMUR / 2, 0, s.z0); xPlus.rotation.y = -Math.PI / 2;
+  const xMinus = polmur(D, s.H, otwory["x-"], mat, kafel); xMinus.position.set(s.x0 + POLMUR / 2, 0, s.z0); xMinus.rotation.y = -Math.PI / 2;
+  const xPlus = polmur(D, s.H, otwory["x+"], mat, kafel); xPlus.position.set(s.x1 - POLMUR / 2, 0, s.z0); xPlus.rotation.y = -Math.PI / 2;
   const g = new THREE.Group();
   g.add(zMinus, zPlus, xMinus, xPlus);
   return { grupa: g, otwory };
@@ -195,7 +209,7 @@ export function zbudujBudynek(plan) {
     for (const m of Object.values(mat)) zarejestruj(budynek, s.id, m, PRZEDSWIETLENIE[s.styl]);
     const W = s.x1 - s.x0, D = s.z1 - s.z0, cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2;
 
-    const { grupa: mury, otwory } = sciany(s, plan.drzwi, mat.sciana);
+    const { grupa: mury, otwory } = sciany(s, plan.drzwi, mat.sciana, KAFEL_SCIAN[s.rodzaj] ?? KAFEL);
     budynek.otwory.set(s.id, otwory);
     grupa.add(mury);
 

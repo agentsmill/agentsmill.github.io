@@ -221,8 +221,9 @@ export function zbudujPlan({ ERAS, PROJECTS, autorskie = new Map() }) {
   return { sale, drzwi, kosmos: { x: 0, z, salaId: ostatnia.id }, dlugosc: z - atrium.z0, start: { x: 0, z: -6.5 } };
 }
 
-/* Sala pod punktem (x, z) albo null — punkt w grubości muru nie należy do
-   żadnej. Na wspólnej granicy dwóch sal wygrywa pierwsza z listy. */
+/* Sala pod punktem (x, z) albo null (poza budynkiem). Prostokąt sali sięga
+   osi murów, więc grubość muru dzielą sale po obu stronach — każda ma w nim
+   swoją połówkę. Na wspólnej osi dwóch sal wygrywa pierwsza z listy. */
 export function salaPod(plan, x, z) {
   return plan.sale.find((s) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1) ?? null;
 }

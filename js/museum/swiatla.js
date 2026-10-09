@@ -74,8 +74,11 @@ export function initSwiatla({ plan, budynek, plamy = [], pula = { spot: 12, rect
   /* ── Lustro posadzki nocy ─────────────────────────────────────────── */
   /* Lustro leży 0,5 mm nad płytami posadzek sali bieżącej i następnej sali nocy
      i je zasłania; czarne płyty widać tam, gdzie lustra nie ma (pozostałe sale)
-     oraz po wylaczLustro(). Siłę odbicia wyznacza wyłącznie jego `color`:
-     szary 0x9a9a9a mnoży odbity obraz. */
+     oraz po wylaczLustro(). Siłę odbicia wyznacza wyłącznie jego `color`, ale
+     nie mnożeniem: shader Reflectora miesza odbity obraz z kolorem trybem
+     nakładki (blendOverlay). Przy szarym 0x9a9a9a (liniowo ok. 0,32) cienie
+     odbicia wychodzą ok. 0,65 swojej jasności, jaśniejsze partie mniej
+     przygaszone, a światła ponad 1 (szyldy, progi, ekrany) wręcz wzmocnione. */
   let lustro = null;
   if (rozdzielczoscLustra && plan.sale.some((s) => s.styl === "noc")) {
     lustro = new Reflector(new THREE.PlaneGeometry(1, 1), { textureWidth: rozdzielczoscLustra, textureHeight: rozdzielczoscLustra, color: 0x9a9a9a, clipBias: 0.003 });

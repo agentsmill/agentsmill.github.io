@@ -42,7 +42,8 @@ const GLOSNOSC_FILMU = 0.25, NARASTANIE_FILMU = 2;   // [1], [s]
 
 /* Znak „odtwórz” na plakacie dużego ekranu: widoczny, dopóki wideo nie gra —
    także gdy przeglądarka odrzuci autoodtwarzanie. Mówi gościowi, że ekran
-   jest do kliknięcia (klik podprowadza i przełącza odtwarzanie). */
+   jest do kliknięcia: klik z wnętrza Kina przełącza odtwarzanie na miejscu,
+   klik spoza sali podprowadza gościa i tylko włącza film. */
 function znakOdtwarzania() {
   const tex = plotno(256, 256, (c) => {
     c.fillStyle = "rgba(10, 12, 16, 0.55)"; c.beginPath(); c.arc(128, 128, 116, 0, Math.PI * 2); c.fill();
@@ -183,6 +184,22 @@ function kino(s, budynek, wynik) {
   };
 }
 
+/* Tytuł karty szuflady w najwyżej `ile` wierszach po `max` px (trzeci mieści się jeszcze nad datą): słowo,
+   które nie wejdzie, zaczyna nowy wiersz; czego nie zmieści ostatni, to kończy wielokropek — dawniej
+   trzeci wiersz po prostu znikał. */
+function wierszeKarty(c, tekst, max, ile = 3) {
+  const linie = [];
+  for (const slowo of tekst.split(" ")) {
+    const dalej = linie.length ? `${linie.at(-1)} ${slowo}` : slowo;
+    if (linie.length && c.measureText(dalej).width <= max) linie[linie.length - 1] = dalej;
+    else linie.push(slowo);
+  }
+  if (linie.length <= ile) return linie;
+  let ostatni = linie.slice(ile - 1).join(" ");
+  while (ostatni.length > 1 && c.measureText(`${ostatni}…`).width > max) ostatni = ostatni.slice(0, -1);
+  return [...linie.slice(0, ile - 1), `${ostatni.trimEnd()}…`];
+}
+
 /* Szafa archiwum: szuflada na każdy wpis, z mosiężną gałką i kartą tytułową.
    Kliknięcie wysuwa szufladę i otwiera tabliczkę z wpisem; poprzednio
    wysunięta wraca. */
@@ -207,16 +224,19 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     g.position.set(lico + gl + 0.005, y, z);
     g.rotation.y = Math.PI / 2;                 // przód szuflady (lokalne +Z) w stronę sali (+X)
     const front = bryla(cw - 0.04, rh - 0.04, 0.04, czolo); front.position.z = 0.02; g.add(front);
-    const karta = plotno(256, 128, (c) => {
-      c.fillStyle = "#efe7d6"; c.fillRect(0, 0, 256, 128);
-      c.fillStyle = "#2b241c"; c.font = "600 22px 'Schibsted Grotesk'";
-      const slowa = wpis.title.split(" "); let l = "", n = 0;
-      for (const sl of slowa) { const p = l ? `${l} ${sl}` : sl; if (c.measureText(p).width > 230 && l) { c.fillText(l, 12, 34 + n * 26); n++; l = sl; if (n > 1) break; } else l = p; }
-      if (n < 2 && l) c.fillText(l, 12, 34 + n * 26);
-      c.fillStyle = "#76695a"; c.font = "500 18px 'IBM Plex Mono'"; c.fillText(fmtDate(wpis.date), 12, 112);
+    /* Płótno w proporcjach karty, 800 px na metr w obu osiach: dawne 256 × 128 px na karcie 0,62 × 0,16 m
+       rozciągało litery w poziomie prawie dwukrotnie. Bez rozciągnięcia tytuł byłby z daleka jeszcze
+       drobniejszy, więc pismo urosło z 22 do 26 px — wszystkie tytuły mieszczą się w dwóch wierszach. */
+    const kw = Math.min(0.62, cw - 0.2);
+    const karta = plotno(Math.round(kw * 800), 128, (c) => {
+      const w = c.canvas.width;
+      c.fillStyle = "#efe7d6"; c.fillRect(0, 0, w, 128);
+      c.fillStyle = "#2b241c"; c.font = "600 26px 'Schibsted Grotesk'";
+      wierszeKarty(c, wpis.title, w - 24).forEach((l, n) => c.fillText(l, 12, 33 + n * 29, w - 24));
+      c.fillStyle = "#76695a"; c.font = "500 18px 'IBM Plex Mono'"; c.fillText(fmtDate(wpis.date), 12, 117);
     });
     // papier przygaszony (albedo ok. 0,5): pełna biel w świetle stropu przekraczała próg poświaty i środkowe karty były nieczytelne
-    const kartaM = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(0.62, cw - 0.2), 0.16), new THREE.MeshStandardMaterial({ map: karta, color: 0xbdbdbd, roughness: 0.9 }));
+    const kartaM = new THREE.Mesh(new THREE.PlaneGeometry(kw, 0.16), new THREE.MeshStandardMaterial({ map: karta, color: 0xbdbdbd, roughness: 0.9 }));
     kartaM.position.set(0, rh * 0.12, 0.042);
     g.add(kartaM);
     const galka = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 8), mosiadz);
