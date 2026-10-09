@@ -384,7 +384,7 @@ function postawEksponaty(plan, budynek) {
     else if (b.sciana === "x-") g.rotation.y = Math.PI / 2;
     g.add(ex.group);
     budynek.grupa.add(g);
-    if (kolizja) dodajKolizje(budynek, kolizja, true);
+    if (kolizja) dodajKolizje(budynek, kolizja, true, false);   // nie zasłania: bryła kolizyjna obejmuje rzeźbę (podest do 2,6 m), więc zakryłaby ją i obraz nad podestem
     if (ex.tick) wynik.tickery.push(ex.tick);
 
     const promien = b.rodzaj === "podest" ? 1.7 : b.rodzaj === "cokol" ? 0.6 : 3.0;

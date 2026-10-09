@@ -197,9 +197,13 @@ export function initDzwiek(plan = null) {
   }
 
   /* Serce planowane z wyprzedzeniem ~0,3 s wg zegara performance.now() —
-     tego samego, z którego świeci mosiądz w posadzce, więc biją razem. */
+     tego samego, z którego świeci mosiądz w posadzce, więc biją razem.
+     Tylko przy działającym kontekście: uśpiony (karta w tle, przerwa na iOS) stoi
+     z zegarem, a performance.now() idzie — uderzenia planowane przez ten czas
+     zbierały się na jednej chwili i po wznowieniu grały naraz (szczyt 1,49 wobec
+     zwykłych 0,11). Po wznowieniu plan rusza od bieżącego okresu. */
   function tick() {
-    if (!serce || wyciszony) return;
+    if (!serce || wyciszony || ctx.state !== "running") return;
     const teraz = performance.now() / 1000;
     if (nastepneSerce < teraz - OKRES_SERCA) nastepneSerce = Math.floor(teraz / OKRES_SERCA) * OKRES_SERCA;
     while (nastepneSerce < teraz + 0.3) {

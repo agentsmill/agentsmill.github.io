@@ -154,14 +154,22 @@ function sciany(s, drzwi, mat) {
    oznaczone `userData.kolizja`, albo — przy `wszystko` — każda bryła obiektu
    (np. niewidoczny prostopadłościan ławki podany wprost). Octree w player.js
    buduje się wyłącznie z tej warstwy: gdyby wciągnąć całą scenę, gracz
-   zaklinowałby się na tabliczce albo chmurze punktów. */
-export function dodajKolizje(budynek, obiekt, wszystko = false) {
+   zaklinowałby się na tabliczce albo chmurze punktów.
+   `zaslania`: bryła trafia też do `budynek.zaslony` — muru, przez który nie
+   wolno niczego wskazać ani kliknąć (main.js: zaslonieta). Ławki i podstawy
+   eksponatów podają false: bryła kolizyjna podestu (2,6 m) zasłoniłaby rzeźbę
+   w środku i obraz nad nią, a ławka — podłogę za sobą. Macierz świata liczona
+   od razu: warstwa nie wisi w scenie, więc bez tego do initPlayer() każda
+   kopia stałaby dla promienia w początku układu. */
+export function dodajKolizje(budynek, obiekt, wszystko = false, zaslania = true) {
   obiekt.updateWorldMatrix(true, true);
   obiekt.traverse((o) => {
     if (!o.isMesh || !(wszystko || o.userData.kolizja)) return;
     const k = new THREE.Mesh(o.geometry);
     o.matrixWorld.decompose(k.position, k.quaternion, k.scale);
     budynek.kolizje.add(k);
+    k.updateMatrixWorld();
+    if (zaslania) budynek.zaslony.push(k);
   });
 }
 
@@ -173,6 +181,7 @@ export function zbudujBudynek(plan) {
   kolizje.visible = false;
   const budynek = {
     grupa, kolizje,
+    zaslony: [],                  // bryły kolizji, przez które nie da się wskazać (dodajKolizje) — bez ławek i podstaw
     podlogi: [],                  // płyty posadzek z userData.salaId — cel kliknięć „idź tutaj”
     materialySal: new Map(),      // salaId → funkcje ustawiające przedświetlenie
     otwory: new Map(),            // salaId → środki otworów na każdej ścianie (wystroj.js)

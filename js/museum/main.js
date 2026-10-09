@@ -1,6 +1,9 @@
 /* Muzeum Budowania — spięcie modułów: plan → budynek → wystrój → prace →
    eksponaty → gracz → światła → nawigacja, pętla klatek i obsługa kliknięć.
-   Każdy moduł ma jedną odpowiedzialność; tu tylko kolejność i przewody. */
+   Każdy moduł ma jedną odpowiedzialność. Tu kolejność i przewody, a do tego
+   zasady, które dotyczą kilku modułów naraz i nie mają innego domu: wskazywanie
+   i klik (nigdy przez mur), ekran wejścia i dźwięk, stopnie strażnika
+   wydajności, oszczędzanie klatek w bezruchu i obrazy prac wczytywane salami. */
 import * as THREE from "three";
 import { renderer, scene, camera, composer, gtao, jakosc, dotykowy } from "muzeum/render.js";
 import { zbudujPlan, salaPod, odleglosciSal } from "muzeum/plan.js";
@@ -8,7 +11,7 @@ import { zbudujBudynek } from "muzeum/sale.js";
 import { urzadz } from "muzeum/wystroj.js";
 import { powiesPrace } from "muzeum/zawieszenie.js";
 import { PODSTAWY, postawEksponaty } from "muzeum/exhibits.js";
-import { initPlayer } from "muzeum/player.js";
+import { initPlayer, PROG_KLIKU } from "muzeum/player.js";
 import { initNawigacja } from "muzeum/nawigacja.js";
 import { openPlaque, endFocus, buildList, closeList, hudEra, dismissHint, bindFocusControl, opisSali, otworzWpisArchiwum } from "muzeum/ui.js";
 import { initPerf } from "muzeum/perf.js";
@@ -21,7 +24,20 @@ const loader = document.getElementById("loader");
 const btnTura = document.getElementById("btn-tura");
 const celownik = document.getElementById("celownik");
 const podpis = document.getElementById("podpis");
+const HUD_POD_WEJSCIEM = [document.querySelector(".hud-top"), document.getElementById("minimapa"), document.getElementById("hud-hint")].filter(Boolean);
 const t = (klucz, pl) => (window.__t ? window.__t(klucz, pl) : pl);
+
+/* Podsystemy dodatkowe (dźwięk, sale boczne, światła w pętli): wyjątek w którymś z nich nie może zatrzymać
+   klatki ani reszty zmiany sali. Każdy idzie do konsoli raz — w pętli ten sam leciałby co klatkę. */
+const zgloszone = new Set();
+function bezpiecznie(nazwa, fn) {
+  try { fn(); }
+  catch (err) {
+    if (zgloszone.has(nazwa)) return;
+    zgloszone.add(nazwa);
+    console.error(`muzeum: ${nazwa} —`, err);
+  }
+}
 
 /* Jedno miejsce na komunikaty muzeum (#hud-perf): strażnik wydajności i
    odmowy przycisków. Pamiętany timer — nowy komunikat nie znika przedwcześnie. */
@@ -161,14 +177,14 @@ function trafiaRzezbe(grupa) {
   return trafia;
 }
 
-/* Czy między okiem a trafieniem stoi mur, nadproże albo bok niszy? Sprawdza warstwę kolizji
-   budynku (tę samą, z której gracz buduje Octree). Promień kończy się 5 cm przed trafieniem,
-   żeby nie łapał brył tuż za nim; zasięg wraca do poprzedniej wartości, bo wołający liczy
-   dalej na swoim. */
+/* Czy między okiem a trafieniem stoi mur, nadproże, bok niszy albo szafa? Sprawdza bryły, które
+   zasłaniają (budynek.zaslony: warstwa kolizji bez ławek i podstaw eksponatów — sale.js,
+   dodajKolizje). Promień kończy się 5 cm przed trafieniem, żeby nie łapał brył tuż za nim;
+   zasięg wraca do poprzedniej wartości, bo wołający liczy dalej na swoim. */
 function zaslonieta(trafienie) {
   const zasieg = ray.far;
   ray.far = trafienie.distance - 0.05;
-  const jest = ray.intersectObject(budynek.kolizje, true).length > 0;
+  const jest = ray.intersectObjects(budynek.zaslony, false).length > 0;
   ray.far = zasieg;
   return jest;
 }
@@ -180,31 +196,28 @@ function celuj(e) {
   ray.setFromCamera(pointer, camera);
   ray.far = ZASIEG_PRAC;
   const traf = ray.intersectObjects(interaktywne, false);
-  /* Pośredniki eksponatów (niewidoczne kule i walec toru) są większe od samych rzeźb,
-     więc promień mierzący w obraz za nimi albo w podłogę obok trafiałby najpierw w nie.
-     Pośrednik liczy się tylko, gdy ten sam promień trafia w widoczną bryłę eksponatu
-     (trafiaRzezbe). Gdy nic nie przejdzie, wygrywa podłoga; dopiero bez podłogi —
-     pierwszy pośrednik z brzegu. Trafienie „z daleka” (portal) nigdy nie liczy się przez ścianę. */
-  const wybrane = traf.find((t) => {
-    const u = t.object.userData;
-    if (u.exhibit) return trafiaRzezbe(u.exhibit.group);
-    return !u.zDaleka || !zaslonieta(t);
-  });
+  /* Nic nie liczy się przez mur: każde trafienie — praca, eksponat, szuflada, ekran Kina,
+     portal, punkt podłogi — przechodzi przez zaslonieta(). Pośredniki eksponatów (niewidoczne
+     kule i walec toru) są większe od samych rzeźb, więc promień mierzący w obraz za nimi albo
+     w podłogę obok trafiałby najpierw w nie. Pośrednik liczy się tylko, gdy ten sam promień
+     trafia w widoczną bryłę eksponatu (trafiaRzezbe). Gdy nic nie przejdzie, wygrywa podłoga;
+     dopiero bez podłogi — pierwszy niezasłonięty pośrednik z brzegu. */
+  const wybrane = traf.find((t) => !zaslonieta(t) && (t.object.userData.exhibit ? trafiaRzezbe(t.object.userData.exhibit.group) : true));
   hovered = wybrane ? wybrane.object : null;
   punktPodlogi = null;
   if (!hovered && budynek) {
     ray.far = ZASIEG_PODLOGI;
-    const p = ray.intersectObjects(budynek.podlogi, false)[0];
+    const p = ray.intersectObjects(budynek.podlogi, false).find((h) => !zaslonieta(h));
     /* Portal Kosmosu to drogowskaz na końcu amfilady — widać go z atrium, 140 m dalej, więc
        zasięg prac go nie dotyczy. Liczy się, gdy nic bliższego nie wygrało, ale tylko jeśli
-       żaden mur, nadproże ani bok niszy go nie zasłania (zaslonieta), a bliższy z dwóch
-       wygrywa: portal albo punkt podłogi w zasięgu. Zasięg ustawiany przed każdym rzutem. */
+       nic go nie zasłania, a bliższy z dwóch wygrywa: portal albo punkt podłogi w zasięgu.
+       Zasięg ustawiany przed każdym rzutem. */
     ray.far = Infinity;
     const daleki = ray.intersectObjects(zDaleka, false)[0];
     if (daleki && (!p || daleki.distance < p.distance) && !zaslonieta(daleki)) hovered = daleki.object;
     else if (p) punktPodlogi = p.point;
     else {
-      const bliski = traf.find((t) => !t.object.userData.zDaleka);    // zasłonięty portal odpada także tutaj
+      const bliski = traf.find((t) => !t.object.userData.zDaleka && !zaslonieta(t));
       if (bliski) hovered = bliski.object;
     }
   }
@@ -219,7 +232,9 @@ function celuj(e) {
   podpisz(e);
 }
 
-/* Podpis przy kursorze: co zrobi kliknięcie w pracę — „Podejdź · tytuł”.
+/* Podpis przy kursorze: co zrobi kliknięcie — przy pracy „Podejdź · tytuł”, przy
+   trafieniach sal bocznych ich własny podpis z `userData.podpis` (szuflada Archiwum,
+   ekran Kina, portal Kosmosu — sale-boczne.js).
    Podłogę („idź tutaj”) pokazuje już znacznik. W blokadzie wskaźnika podpis
    stoi pod celownikiem; na dotyku nie ma najechania, więc nie ma podpisu.
    Podczas przejazdu też go nie ma — gość już idzie (w blokadzie celuj() leci co
@@ -230,8 +245,9 @@ function celuj(e) {
 let bylPodpis = "", szerPodpisu = 0, wysPodpisu = 0;
 function schowajPodpis() { podpis.hidden = true; bylPodpis = ""; }
 function podpisz(e) {
-  const p = hovered?.userData.project;
-  const tekst = p && !dotykowy && !nawigacja?.aktywna() && !(focus && hovered === focus.hit) ? `${t("muz.podejdz", "Podejdź")} · ${p.title}` : "";
+  const u = hovered?.userData;
+  const opis = u?.project ? `${t("muz.podejdz", "Podejdź")} · ${u.project.title}` : u?.podpis ?? "";
+  const tekst = opis && !dotykowy && !nawigacja?.aktywna() && !(focus && hovered === focus.hit) ? opis : "";
   if (tekst !== bylPodpis) {
     podpis.textContent = tekst; podpis.hidden = !tekst; bylPodpis = tekst;
     if (tekst) { szerPodpisu = podpis.offsetWidth; wysPodpisu = podpis.offsetHeight; }
@@ -257,20 +273,29 @@ function obsluzKlik(e) {
   } else if (focus) endFocus();
 }
 
-renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; hovered = null; schowajPodpis(); });   // w trakcie przeciągania celuj() stoi — podpis nie może zamarznąć w miejscu wciśnięcia
+/* Klik to lewy przycisk albo palec: prawy otwiera menu kontekstowe, środkowy przewija — żaden nie rusza
+   gościa. W trakcie przeciągania celuj() stoi, a podpis znika — nie może zamarznąć w miejscu wciśnięcia. */
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  downAt = [e.clientX, e.clientY]; hovered = null; schowajPodpis();
+});
 renderer.domElement.addEventListener("pointerup", (e) => {
   if (!downAt) return;
   const dist = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
   downAt = null;
-  if (dist > 8) return;              // przeciągnięcie (rozglądanie), nie klik
+  if (e.button !== 0 || dist > PROG_KLIKU) return;   // inny przycisk albo przeciągnięcie (rozglądanie), nie klik
   obsluzKlik(e);
 });
+/* Wciśnięcie na płótnie puszczone gdzie indziej (nad planem, nagłówkiem) albo przerwany gest: bez tego
+   downAt zostawało i celuj() stało do następnego kliknięcia w płótno — bez najechania, znacznika i podpisu. */
+addEventListener("pointerup", (e) => { if (e.target !== renderer.domElement) downAt = null; });
+addEventListener("pointercancel", () => { downAt = null; });
 renderer.domElement.addEventListener("pointermove", (e) => { if (!downAt) celuj(e); });
 renderer.domElement.addEventListener("pointerleave", () => { znacznik.visible = false; hovered = null; schowajPodpis(); });
 
-/* Obrazy prac. Na niskim poziomie (telefon) salami: wczytane do dwóch przejść
+/* Obrazy prac. Na poziomie średnim i niskim salami: wczytane do dwóch przejść
    od gościa, zwalniane od pięciu — pas pomiędzy chroni przed migotaniem, gdy
-   ktoś krąży przy progu. Wyżej wszystkie od razu, najbliższe najpierw
+   ktoś krąży przy progu. Na wysokim wszystkie od razu, najbliższe najpierw
    (wczytaj() drugi raz nic nie robi, więc kolejne sale nic nie kosztują). */
 function wczytajObrazy(s) {
   const odl = odleglosciSal(plan, s.id);
@@ -283,14 +308,15 @@ function wczytajObrazy(s) {
 
 /* Zmiana sali pod nogami gościa — jedno miejsce, z którego dowiadują się o
    niej wszystkie moduły. aria-live na #hud-era ogłasza każde przypisanie,
-   więc tylko przy zmianie. */
+   więc tylko przy zmianie. Najpierw rdzeń (obrazy, światła, plan w rogu), potem
+   podsystemy dodatkowe, każdy osobno — awaria dźwięku nie zostawi sali bez obrazów. */
 function naZmianeSali(s) {
   hudEra.textContent = opisSali(s);
+  wczytajObrazy(s);
   swiatla?.wejdz(s);
   minimapa?.sala(s.id);
-  boczne?.wejscie(s.id);
-  dzwiek?.ustawSale(s);
-  wczytajObrazy(s);
+  bezpiecznie("sale boczne", () => boczne?.wejscie(s.id));
+  bezpiecznie("dźwięk sali", () => dzwiek?.ustawSale(s));
 }
 
 /* ── Wejście i dźwięk ─────────────────────────────────────────────────────
@@ -335,6 +361,7 @@ function sprobujDzwiek(tak) {
 }
 function wejdz(zDzwiekiem) {
   if (loader.classList.contains("done")) return;   // wejście już było: ukryte przyciski niczego nie zmieniają (Enter na nich)
+  for (const el of HUD_POD_WEJSCIEM) el.inert = false;   // HUD wraca do kolejności Tab (pierwsza klatka go wyłączyła)
   gracz?.wpusc();                                  // od teraz klawisze, dotyk i mysz sterują gościem
   if (zDzwiekiem) sprobujDzwiek(true); else pokazStanDzwieku();
   loader.classList.add("done");
@@ -376,7 +403,7 @@ const wzrok = new THREE.Vector3();
 let firstFrame = true;
 function petla(teraz = performance.now()) {
   requestAnimationFrame(petla);
-  dzwiek?.tick();                      // serce planowane 0,3 s naprzód — co wywołanie rAF, także w klatce pominiętej
+  if (dzwiek) bezpiecznie("serce", dzwiek.tick);   // serce planowane 0,3 s naprzód — co wywołanie rAF, także w klatce pominiętej
   const odstep = odstepKlatek(teraz);
   if (odstep && teraz - ostatniaKlatka < odstep * 1000 - 4) return;   // klatka pominięta — gość stoi
   ostatniaKlatka = teraz;
@@ -402,11 +429,14 @@ function petla(teraz = performance.now()) {
   for (const fn of tickery) {
     try { fn(czas, dtAnimacji); } catch (err) { console.error("tick error:", err); }
   }
-  swiatla?.aktualizuj(dtAnimacji);
+  if (swiatla) bezpiecznie("światła", () => swiatla.aktualizuj(dtAnimacji));
   composer.render();
   if (firstFrame) {
     firstFrame = false;
     loader.classList.add("gotowy");             // ekran ładowania → ekran wejścia (patrz wejdz())
+    /* HUD pod ekranem wejścia znika dla klawiatury: Tab + Enter włączałby pod zasłoną wycieczkę albo dźwięk.
+       Dopiero tutaj, nie wcześniej — przy zawieszonym ładowaniu „← Karta budowania” to jedyne wyjście. */
+    for (const el of HUD_POD_WEJSCIEM) el.inert = true;
     document.getElementById("wejdz-dzwiek").focus({ preventScroll: true });
     window.__mzOtwarte?.();
   }
@@ -439,7 +469,7 @@ function zbudujMuzeum() {
   interaktywne.push(...eksponaty.interaktywne);
   salaGramofonu = interaktywne.find((h) => h.userData.exhibit && h.userData.project?.id === "akordy-zmierzchu")?.userData.salaId ?? null;   // dla odstepKlatek()
   tickery.push(...eksponaty.tickery);
-  boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum });   // też przed graczem: kolizja szafy
+  boczne = urzadzSaleBoczne({ plan, budynek, archiwum: ARCHIVE, otworzWpis: otworzWpisArchiwum, zamknijTabliczke: endFocus });   // też przed graczem: kolizja szafy
   interaktywne.push(...boczne.interaktywne);
   zDaleka.push(...interaktywne.filter((h) => h.userData.zDaleka));
   tickery.push(...boczne.tickery);
@@ -448,7 +478,7 @@ function zbudujMuzeum() {
 
   gracz = initPlayer(budynek.kolizje);         // po wszystkich kolizjach — Octree buduje się raz
   gracz.teleportuj(plan.start.x, plan.start.z);
-  gracz.naKrok(() => dzwiek?.krok());
+  gracz.naKrok(() => { if (dzwiek) bezpiecznie("kroki", dzwiek.krok); });
   swiatla = initSwiatla({ plan, budynek, plamy: prace.plamy, pula: jakosc.pula, lustro: jakosc.lustro, cienie: jakosc.cienie });
   nawigacja = initNawigacja({ plan, gracz, zaslona: document.getElementById("zaslona") });
   minimapa = initMinimapa({

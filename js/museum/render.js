@@ -47,10 +47,12 @@ const dotykowy = matchMedia("(pointer: coarse)").matches;
    względem pełnej: poniżej 1/255 jasności pod ławką i w narożniku); 8 próbek
    zamiast 16 oszczędzało ledwie 4 %, więc wszędzie, gdzie jest GTAO, jest 16.
    Prostokątów zawsze 4: sala nocy ma ich tyle (podświetlenia ścian i progu),
-   a pula przydziela je całymi salami — mniejsza zostawiłaby noc bez świateł. */
+   a pula przydziela je całymi salami — mniejsza zostawiłaby noc bez świateł.
+   `leniwe`: obrazy prac wczytywane salami (main.js: wczytajObrazy) — na średnim
+   i niskim, jak chce specyfikacja; wysoki wczytuje wszystko od startu. */
 const POZIOMY = {
   wysoki: { dpr: 1.5, gtao: true, lustro: 1024, cienie: "pelne", pula: { spot: 12, rect: 4 }, leniwe: false },
-  sredni: { dpr: 1.25, gtao: true, lustro: 512, cienie: "slonce", pula: { spot: 8, rect: 4 }, leniwe: false },
+  sredni: { dpr: 1.25, gtao: true, lustro: 512, cienie: "slonce", pula: { spot: 8, rect: 4 }, leniwe: true },
   niski: { dpr: 1.25, gtao: false, lustro: 0, cienie: "brak", pula: { spot: 6, rect: 4 }, leniwe: true },
 };
 const wymuszony = new URLSearchParams(location.search).get("jakosc");

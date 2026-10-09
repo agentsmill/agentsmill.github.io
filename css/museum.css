@@ -74,12 +74,14 @@ a { color: var(--pulse); }
    transformem jest CZYSTO wizualne: układ nadal liczył szerokość od połowy
    ekranu w prawo, więc podpowiedź miała do dyspozycji 195 px z 390 i łamała się
    na pięć wierszy. Teraz akapit zajmuje całą szerokość, a wyśrodkowuje go
-   text-align. */
+   text-align. Niczego nie obsługuje, a leży nad pasem podłogi najbliżej gościa,
+   więc nie łapie wskaźnika: klik w ten pas (także po zgaśnięciu, .gone) idzie do
+   płótna, nie w akapit. */
 .hud-hint {
   position: fixed; bottom: 1.1rem; left: 0; right: 0;
   z-index: 30; font-family: var(--font-mono); font-size: 0.72rem;
   letter-spacing: 0.08em; color: var(--ink-faint); text-align: center;
-  padding: 0 1.2rem; transition: opacity 0.8s ease;
+  padding: 0 1.2rem; transition: opacity 0.8s ease; pointer-events: none;
 }
 .hud-hint.gone { opacity: 0; }
 /* Na jasnym parkiecie pałacu, w bieli i u Leona szary napis ginął — pigułka z tłem

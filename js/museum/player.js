@@ -30,7 +30,7 @@ const DLUGOSC_KROKU = 0.75;      // [m] — krok w marszu; powyżej PREDKOSC wyd
 const MARTWA_STREFA = 0.15;      // joystick
 const CZULOSC = 0.0032;          // [rad/px] — przeciąganie myszą i palcem
 const MAX_POCHYLENIE = 1.15;     // [rad] ok. 66° w górę i w dół
-const PROG_KLIKU = 8;            // [px] — ruch do tego progu od wciśnięcia to klik z drżeniem ręki, nie przeciąganie (ten sam próg ma main.js: `dist > 8`)
+export const PROG_KLIKU = 8;     // [px] — ruch do tego progu od wciśnięcia to klik z drżeniem ręki, nie przeciąganie (main.js bierze go stąd)
 /* Górny limit kroku całkowania. Przy 0,05 s i biegu (8 m/s) kapsuła przesuwa
    się o 0,4 m na klatkę, a przeskok przez mur 0,4 m wymaga ponad 1,1 m (mur +
    dwa promienie) — zapas jest. Dłuższa klatka (karta w tle) zjadłaby ten
@@ -131,8 +131,11 @@ export function initPlayer(kolizje) {
     klawisze[e.code] = true;
     /* Pierwszy klawisz ruchu wchodzi w tryb gry: mysz rozgląda się bez
        przytrzymania. Klik zostaje dla „idź tutaj”. keydown jest gestem
-       użytkownika, więc przeglądarka zgadza się na blokadę. */
-    if (KLAWISZE_RUCHU.has(e.code) && !controls.isLocked) {
+       użytkownika, więc przeglądarka zgadza się na blokadę. Tylko świeże
+       wciśnięcie, nie powtórzenie przytrzymanego klawisza: przy portalu Kosmosu
+       muzeum samo zwalnia blokadę (sale-boczne.js), żeby przycisk przejścia
+       dało się kliknąć — trzymane W nie może jej od razu założyć z powrotem. */
+    if (KLAWISZE_RUCHU.has(e.code) && !controls.isLocked && !e.repeat) {
       renderer.domElement.requestPointerLock?.()?.catch?.(() => {});   // odmowa (np. Esc w trakcie) jest zwyczajna — zostaje tryb myszy
     }
   });
@@ -163,7 +166,19 @@ export function initPlayer(kolizje) {
     if (dx || dy) { rozejrzyj(dx, dy); aktywnosc = performance.now(); }
   });
   addEventListener("pointerup", () => { przeciaganie = null; });
-  controls.addEventListener("change", () => { aktywnosc = performance.now(); });   // mysz w blokadzie
+  /* Mysz w blokadzie wskaźnika: ta sama martwa strefa co przy przeciąganiu. Ruch sumowany od kliknięcia
+     (wciśnięcie i puszczenie zerują sumę — przejazd rusza w chwili puszczenia) do PROG_KLIKU px to drżenie
+     ręki, nie wejście gościa — przejazd, który klik właśnie uruchomił, jedzie dalej. Świadome rozejrzenie
+     się oddaje gościowi ster. */
+  let ruchWBlokadzie = 0;
+  const zeruj = () => { ruchWBlokadzie = 0; };
+  renderer.domElement.addEventListener("pointerdown", zeruj);
+  renderer.domElement.addEventListener("pointerup", zeruj);
+  document.addEventListener("mousemove", (e) => {
+    if (!controls.isLocked) return;
+    ruchWBlokadzie += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0);
+    if (ruchWBlokadzie > PROG_KLIKU) aktywnosc = performance.now();
+  });
 
   /* Klawisze i joystick, które w tej klatce mają prawo ruszyć graczem.
      KRYTYCZNE: dotyk wpisuje TYLKO aktywne (true) klucze — scalenie niżej to

@@ -5,8 +5,9 @@
    liczą się jak przy chodzeniu. Łagodny start i hamowanie przed celem;
    wzrok podąża za kierunkiem ruchu, a pod koniec drogi do pracy — już ku
    niej. Każde czynne wejście gościa (klawisz, joystick, przeciągnięcie, mysz
-   w blokadzie, palec) NOWSZE niż start przejazdu przerywa go i oddaje mu ster;
-   drżenie ręki sprzed kliknięcia, które przejazd uruchomiło, się nie liczy. */
+   w blokadzie ponad próg drżenia, palec) NOWSZE niż start przejazdu przerywa go
+   i oddaje mu ster; drżenie ręki przy kliknięciu, które przejazd uruchomiło, się
+   nie liczy (player.js: PROG_KLIKU). */
 
 import * as THREE from "three";
 import { camera, reduceMotion } from "muzeum/render.js";

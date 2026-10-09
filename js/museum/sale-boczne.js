@@ -15,8 +15,10 @@
    tabliczkę i przycisk dało się kliknąć; ekran Kina tego nie ma, bo mysz ma
    tam dalej rozglądać.
    `zDaleka: true` — trafienie liczy się poza zasięgiem prac (portal widać z
-   całej amfilady), ale tylko niezasłonięte murem: main.js celuj() sprawdza
-   to promieniem po warstwie kolizji budynku. */
+   całej amfilady). Przez mur nie liczy się żadne trafienie: main.js celuj()
+   sprawdza to promieniem po bryłach, które zasłaniają (budynek.zaslony).
+   `podpis` — napis przy kursorze, gdy gość wskazuje trafienie (main.js:
+   podpisz); prace mają tam „Podejdź · tytuł” z danych projektu. */
 
 import * as THREE from "three";
 import { POLMUR } from "muzeum/plan.js";
@@ -165,7 +167,7 @@ function kino(s, budynek, wynik) {
   const traf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.8, 6.6), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(xEkranu - 0.15, 2.35, cz);
   traf.userData = {
-    salaId: s.id, wMiejscu: true,
+    salaId: s.id, wMiejscu: true, podpis: t("wideo.showreel", "Showreel"),
     // z wnętrza sali przełącza; kto przyszedł z zewnątrz, ma wideo włączone (wejście już je uruchomiło, play jest idempotentne)
     akcja: ({ zSali } = {}) => (zSali === s.id ? duzy.przelacz() : duzy.graj()),
     // na osi ekranu, przed pierwszą ławką (x 11,12–11,68): prosta droga z drzwi jest wolna, a widok wycelowany w środek ekranu
@@ -226,7 +228,7 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
     const traf = new THREE.Mesh(new THREE.BoxGeometry(0.2, rh, cw), new THREE.MeshBasicMaterial({ visible: false }));
     traf.position.set(lico + gl + 0.1, y, z);
     traf.userData = {
-      salaId: s.id, odblokuj: true,
+      salaId: s.id, odblokuj: true, podpis: `${t("muz.podejdz", "Podejdź")} · ${wpis.title}`,
       akcja: () => {
         if (wysunieta && wysunieta !== sz) wysunieta.cel = wysunieta.baza;
         sz.cel = sz.baza + 0.28;
@@ -249,7 +251,7 @@ function archiwum(s, budynek, wynik, wpisy, otworzWpis) {
    Portal to drogowskaz na końcu amfilady, więc klika się go z każdej odległości
    (`zDaleka`, patrz main.js celuj()) — ale nie przez ściany. Zwraca trafienie:
    plan w rogu też prowadzi do portalu (main.js naKosmos). */
-function kosmos(plan, budynek, wynik) {
+function kosmos(plan, budynek, wynik, zamknijTabliczke) {
   const { x, z } = plan.kosmos;
   const przycisk = document.getElementById("kosmos-wejscie");
   const zaslona = document.getElementById("zaslona");
@@ -259,12 +261,22 @@ function kosmos(plan, budynek, wynik) {
   });
   // „Wstecz” z kosmos.html może przywrócić muzeum z pamięci podręcznej stron (bfcache) razem z podniesioną zasłoną
   addEventListener("pageshow", (e) => { if (e.persisted) zaslona?.classList.remove("widoczna"); });
+  /* Pojawiający się przycisk ma dać się kliknąć od razu: tryb klawiatury zwalnia blokadę wskaźnika (inaczej
+     nie ma kursora), a otwarta tabliczka (z-index 40, na telefonie cała szerokość) zamyka się — zasłaniała
+     przycisk (35). Tylko przy pojawieniu się: kto potem sam wróci do blokady, ten w niej zostaje. */
   let pokazany = false;
-  const pokaz = (tak) => { if (przycisk && tak !== pokazany) { pokazany = tak; przycisk.hidden = !tak; } };
+  const pokaz = (tak) => {
+    if (!przycisk || tak === pokazany) return;
+    pokazany = tak;
+    przycisk.hidden = !tak;
+    if (!tak) return;
+    document.exitPointerLock?.();
+    zamknijTabliczke();
+  };
   const traf = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.4), new THREE.MeshBasicMaterial({ visible: false }));
   traf.position.set(x, 2, z + 0.4);
   traf.userData = {
-    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true, zDaleka: true,
+    salaId: plan.kosmos.salaId, akcja: () => pokaz(true), odblokuj: true, zDaleka: true, podpis: t("muz.kosmos", "Wejdź do Kosmosu →"),
     widok: { pozycja: new THREE.Vector3(x, 1.65, z - 2.4), cel: new THREE.Vector3(x, 1.9, z + 1.8) },
   };
   budynek.grupa.add(traf);
@@ -273,14 +285,16 @@ function kosmos(plan, budynek, wynik) {
   return traf;
 }
 
-export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWpis = () => {} }) {
+/* `zamknijTabliczke` — main.js podaje endFocus z ui.js: portal zamyka nią tabliczkę, która zasłaniałaby
+   pojawiający się przycisk przejścia do Kosmosu. */
+export function urzadzSaleBoczne({ plan, budynek, archiwum: wpisy = [], otworzWpis = () => {}, zamknijTabliczke = () => {} }) {
   const wynik = { interaktywne: [], tickery: [] };
   let sterKina = null;
   for (const s of plan.sale) {
     if (s.rodzaj === "kino") sterKina = kino(s, budynek, wynik);
     if (s.rodzaj === "archiwum") archiwum(s, budynek, wynik, wpisy, otworzWpis);
   }
-  const portal = kosmos(plan, budynek, wynik);
+  const portal = kosmos(plan, budynek, wynik, zamknijTabliczke);
   let wKinie = false;
   /* Karta w tle: filmy Kina stają, także wyciszone ujęcia z GB10 (nie dekodują się w ukryciu), a po powrocie
      wchodzą od nowa — z narastaniem dźwięku. Tylko dla gościa, który jest w Kinie. */

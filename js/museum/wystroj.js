@@ -310,7 +310,7 @@ function lawki(plan, budynek) {
     budynek.grupa.add(g);
     const k = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.5, 1.95));   // jedna bryła kolizyjna na całą ławkę
     k.position.set(l.x, 0.25, l.z);
-    dodajKolizje(budynek, k, true);
+    dodajKolizje(budynek, k, true, false);   // ławka nie zasłania wskazywania: podłogę za nią da się kliknąć
   }
 }
 
