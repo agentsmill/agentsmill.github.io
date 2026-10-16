@@ -128,9 +128,26 @@ test("wycieczka: wszystkie wyróżnione, w kolejności dat", () => {
   for (let i = 1; i < w.length; i++) assert.ok(w[i - 1].projekt.date <= w[i].projekt.date);
 });
 
-// Budżet spaceru ze specyfikacji, nie błąd danych: od wejścia do drzwi Kosmosu 120–170 m.
-test("amfilada krótsza niż dziś: od wejścia do drzwi Kosmosu 120–170 m", () => {
-  assert.ok(plan.dlugosc > 120 && plan.dlugosc < 170, `${plan.dlugosc} m`);
+/* Budżet spaceru: ile metrów wolno amfiladzie od wejścia do drzwi Kosmosu.
+   Specyfikacja z 7 X dała sztywne 120–170 m, kiedy w salach wisiały 52 prace (153 m).
+   Sala jest tak długa, ile ma prac, więc każda aktualizacja portfolio wydłuża spacer:
+     52 prace → 153 m (30 IX) · 62 → 174 m (16 X) · 72 → ~193 m · 92 → ~233 m.
+   Decyzja 16 X: limit rośnie z liczbą prac, więc test pilnuje gęstości wieszania,
+   a twardy sufit zatrzymuje spacer, zanim znów zrobi się z niego korytarz (dawny miał
+   354 m). Zwraca [min, max] w metrach. */
+function budzetSpaceru(praceWSalach) {
+  const MIN = 120;         // dolna granica ze specyfikacji: amfilada to nie przedpokój
+  const STALA = 45;        // oś bez prac: atrium, kino, archiwum i przejścia (dziś ~44 m)
+  const NA_PRACE = 2.3;    // metry osi na pracę; dziś wychodzi ~2,1 m, reszta to zapas na podział sal
+  const SUFIT = 250;       // po nim decyzja (nowa epoka albo ciaśniejsze wieszanie), nie wyższy sufit
+  return [MIN, Math.min(SUFIT, STALA + NA_PRACE * praceWSalach)];
+}
+
+test("amfilada w budżecie spaceru: od wejścia do drzwi Kosmosu", () => {
+  const praceWSalach = osiowe.reduce((n, s) => n + (s.prace?.length ?? 0), 0);
+  const [min, max] = budzetSpaceru(praceWSalach);
+  assert.ok(plan.dlugosc > min && plan.dlugosc < max,
+    `${plan.dlugosc} m przy ${praceWSalach} pracach, budżet ${min}–${max} m`);
   assert.equal(plan.kosmos.z, osiowe.at(-1).z1);
 });
 

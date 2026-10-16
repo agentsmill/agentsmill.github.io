@@ -309,6 +309,21 @@ section > h2::before {
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
 .fcard .card-links { margin-top: auto; }
+/* Kafel, który zostałby sam w rzędzie (kiedy — liczy main.js): cały rząd, obraz z lewej
+   przez całą wysokość, tekst w czterech wierszach z prawej; ostatni wiersz rośnie,
+   więc odnośniki siedzą na dole jak w zwykłym kafelku. */
+.fcard.szeroka {
+  grid-column: 1 / -1;
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-rows: auto auto auto 1fr; column-gap: 1.8rem; align-content: start;
+}
+.fcard.szeroka > .shot {
+  grid-column: 1; grid-row: 1 / -1; align-self: stretch;
+  margin: -1.3rem 0 -1.15rem -1.3rem; border-radius: 9px 0 0 9px;
+  border-bottom: 0; border-right: 1px solid var(--line);
+}
+.fcard.szeroka > :not(.shot) { grid-column: 2; }
+.fcard.szeroka p.fdesc { max-width: 60ch; }
 .card-links { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 0.2rem; }
 .card-links a {
   font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.05em;
@@ -631,6 +646,12 @@ section > h2::before {
 @media (max-width: 640px) {
   .featured-grid { grid-template-columns: minmax(0, 1fr); }
   .fcard, .fcard.duza, .fcard[data-miejsce="2"], .fcard[data-miejsce="3"] { grid-column: auto; }
+  /* Jedna kolumna: szeroki kafel wraca do zwykłego układu, obraz nad tekstem. */
+  .fcard.szeroka { display: flex; }
+  .fcard.szeroka > .shot {
+    margin: -1.3rem -1.3rem 0.3rem; border-radius: 9px 9px 0 0;
+    border-right: 0; border-bottom: 1px solid var(--line);
+  }
 }
 @media (max-width: 720px) {
   /* Dziewięć odnośników układało się w kolumnę i lepki pasek miał 264 px — trzecią

@@ -338,3 +338,17 @@ energii; dotknięcia z drżeniem), powrót z Kosmosu przyciskiem Wstecz w Chrome
 zasłony); na słuch: serce na głośnikach laptopa, ton sal białych, poziom showreelu; pierwszy kadr
 z atrium (sala I oświetlona z wyprzedzeniem, nie żywą lampą — pula prostokątów zajęta przez Kino
 i Archiwum).
+
+## Zmiana 16 X 2026: budżet spaceru rośnie z portfolio
+
+Aktualizacja karty z 16 X dołożyła 10 prac do epoki 6 (rozszerzonej do VII–X 2026). Epoka
+podzieliła się na trzy sale (e6a–c), a amfilada urosła ze 153 m przy 52 pracach w salach do
+174 m przy 62 i przekroczyła sztywne 120–170 m z tej specyfikacji. To nie błąd danych: sala
+jest tak długa, ile ma prac, więc każda aktualizacja wydłuża spacer o ok. 2 m na pracę.
+
+Decyzja właściciela: budżet rośnie z liczbą prac, ale ma twardy sufit. Test
+(`budzetSpaceru()` w `tests/plan.test.mjs`) wymaga długości powyżej 120 m i poniżej
+min(250 m, 45 m + 2,3 m × liczba prac w salach). Dziś to 174 m przy limicie 187,6 m. Symulacja
+z dodawanymi pracami: limit wystarcza do ok. 95 prac w salach (≈ 234 m), przy ok. 102 pracach
+(≈ 254 m) test pęka. Wtedy zamiast podnosić sufit trzeba zdecydować o nowej epoce albo
+ciaśniejszym wieszaniu.

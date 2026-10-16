@@ -43,9 +43,9 @@ const ERAS = [
     lead: "Modele wychodzą co tydzień, a projekty co kilka dni: hackathon Kaggle, gra dla Leona, klon Tibii, sztuka generatywna i ponad 250 gwiazdek na GitHubie."
   },
   {
-    id: 6, range: "VII–IX 2026", title: "Studio jednoosobowe", plansza: "epoka-6.webp",
-    rhythm: "27 projektów w 3 miesiące",
-    lead: "Claude Code, Codex i Kimi CLI pracują równolegle. Powstają płacące platformy, gra szykowana na Steam, roboty i ta strona — a po lipcowym szczycie trenażer do LEK-u, gra o grzybach dla Leona, mapa nalotów na Ukrainę i symulacja AI dla zarządu."
+    id: 6, range: "VII–X 2026", title: "Studio jednoosobowe", plansza: "epoka-6.webp",
+    rhythm: "40 projektów w 4 miesiące",
+    lead: "Claude Code, Codex i Kimi CLI pracują równolegle. Powstają płacące platformy, gra szykowana na Steam, roboty i ta strona — po lipcowym szczycie trenażer do LEK-u, gra o grzybach dla Leona i mapa nalotów na Ukrainę, a w październiku farma wiatrowa w WebGPU, filmy budowane z kodu w Blenderze i forum, na którym piszą agenci."
   },
 ];
 
@@ -437,9 +437,72 @@ const PROJECTS = [
     links: { live: "https://agentsmill.github.io/dzwignia/", repo: "https://github.com/agentsmill/dzwignia" }
   },
   {
+    id: "jev-pokemon", title: "Jev × Pokémon", date: "2026-09", era: 6,
+    cat: ["aiml", "gry"],
+    desc: "Model Jev od TypeSafe gra w Pokémon FireRed: lokalny harness podaje mu stan gry i wykonuje wybrany przycisk w emulatorze, a panel pozwala patrzeć na ekran, zatrzymać agenta, przejść jeden krok, przejąć pad i pobrać dziennik decyzji. Jev przeszedł intro i tworzenie postaci, a sesje wznawiają się od zapisanego punktu. Prototyp: model potrafi się zapętlić i nie ma gwarancji, że skończy grę.",
+    tech: ["Python", "mGBA", "PyBoy", "Jev"], access: "eksperyment lokalny", links: {}
+  },
+  {
+    id: "market-forecasts", title: "MarketForecasts", date: "2026-09", era: 6,
+    cat: ["aiml"],
+    desc: "Dzień po premierze TimesFM 3.0: benchmark walk-forward na 16 instrumentach — akcje, surowce, waluty i bitcoin — oraz na tygodniowych zapasach gazu z EIA, w sumie ponad 92 tysiące prognoz zero-shot. Na dziennym kierunku cen żaden model nie pobił strategii „zawsze long”. Razem ze StockCastem i Latent Weather spięty w jedno podsumowanie z wnioskami, z których pierwszy brzmi: prognoza to jeszcze nie przewaga.",
+    tech: ["TimesFM 3.0", "Chronos-2", "LightGBM"], access: "badanie lokalne", links: {}
+  },
+  {
+    id: "windfarm-lab", title: "Windfarm Lab", date: "2026-10", era: 6, featured: 13,
+    cat: ["produkty", "sztuka"],
+    desc: "Laboratorium farmy wiatrowej w przeglądarce: zmieniasz wiatr albo układ turbin i od razu widzisz ślady aerodynamiczne, utraconą moc i roczną produkcję energii. 16 prawdziwych modeli turbin w skali, farma Horns Rev 1, dwa modele śladu i róże wiatrów z Bałtyku i Polski, a obok symulacja CFD liczona na żywo na karcie graficznej. Wartości szacowane mają znak „~”, a dopisek ?selftest w adresie sprawdza, czy GPU liczy to samo co kod referencyjny.",
+    tech: ["WebGPU", "Svelte", "lattice Boltzmann"],
+    links: { live: "https://agentsmill.github.io/windfarm-lab/", repo: "https://github.com/agentsmill/windfarm-lab" }
+  },
+  {
+    id: "reaktor-z-klockow", title: "Reaktor z klocków", date: "2026-10", era: 6,
+    cat: ["sztuka"],
+    desc: "Dwuipółminutowy film edukacyjny o małym reaktorze modułowym BWRX-300, który ma powstać w Polsce. Cała opowieść to diorama z klocków: od rozszczepienia uranu, przez wrzącą wodę i turbinę, po pasywne bezpieczeństwo. Sceny powstały w Blenderze, a montaż, napisy i animacje zsynchronizowane ze słowami lektora — w Remotion. Głos i muzyka z AI, źródła faktów na końcu filmu.",
+    tech: ["Blender", "Remotion", "ElevenLabs"],
+    links: { live: "https://github.com/agentsmill/reaktor-z-klockow/releases/latest", repo: "https://github.com/agentsmill/reaktor-z-klockow" }
+  },
+  {
+    id: "cialo-miasta", title: "Ciało miasta — Zamość", date: "2026-10", era: 6,
+    cat: ["sztuka"],
+    desc: "Trzyminutowy film o Zamościu jako żywym ciele: 445 lat historii niesie złota linia pulsu i jedna melodia przearanżowana na kolejne epoki — od kontraktu z 1578 roku, przez Rynek i twierdzę, po pamięć wojny. Ratusz z wachlarzowymi schodami, kamienice ormiańskie i Roztocze o świcie zbudowane są w Blenderze wyłącznie z kodu, w sześciu stylach. Do tego wersje pionowe na 60, 30 i 15 sekund.",
+    tech: ["Blender", "Remotion", "grafika proceduralna"], access: "w produkcji", links: {}
+  },
+  {
+    id: "zabawki-3d", title: "Zabawki Montessori do druku 3D", date: "2026-10", era: 6,
+    cat: ["produkty", "sztuka"],
+    desc: "Trzy koncepcje zabawek, które rosną z dzieckiem. Każdą część generuje kod w Blenderze, a drukuje się bez podpór: od deski z warzywami dla trzylatka, przez kuchenkę, której pokrętła drukują się od razu w obudowie, z imieniem dziecka, po zestaw dla sześciolatka, który sam nawija cewki i składa latarkę-prądnicę oraz silnik z kontaktronem. Elektryczność bez elektroniki.",
+    tech: ["Blender", "Python", "druk 3D"], access: "repo prywatne", links: {}
+  },
+  {
+    id: "myciv", title: "MyCiv", date: "2026-10", era: 6,
+    cat: ["gry"],
+    desc: "City builder, w którym nigdy nie stawiasz domu. Gracz rysuje szkielet osady, maluje przeznaczenie miejsc i ustala reguły wzrostu w duchu „Języka wzorców” Christophera Alexandra, a osada rośnie sama: wydeptuje skróty, stawia budy, gdy brakuje mieszkań, i pamięta swoje epoki. Symulacja to czysty C# z testami, niezależny od Unity. AI tylko tłumaczy na brzegach — gra ma bawić także bez niej.",
+    tech: ["Unity 6", "C#", "NUnit"], access: "w produkcji", links: {}
+  },
+  {
+    id: "tydzien-z-gemini", title: "Tydzień z Gemini", date: "2026-10", era: 6,
+    cat: ["gry"],
+    desc: "Gra przeglądarkowa dla uczestników warsztatów Gemini Enterprise: jeden dzień w grze na jeden warsztat, w widoku telefonu albo komputera. Dzień 1 to dziewięć misji o promptach i kontroli jakości, dzień 2 — dziesięć misji w symulowanym Gemini Enterprise, z rozgrzewką i rundą z bossem. Każdy dzień kończy się kartami promptów do skopiowania. Firmy, ludzie i liczby w grze są zmyślone.",
+    tech: ["vanilla JS", "szyfrowana treść", "GitHub Pages"], access: "wejście na hasło",
+    links: { live: "https://agentsmill.github.io/tydzien-z-gemini/", repo: "https://github.com/agentsmill/tydzien-z-gemini" }
+  },
+  {
+    id: "flipper-operator", title: "Flipper Operator", date: "2026-10", era: 6,
+    cat: ["robotyka", "aiml"],
+    desc: "Czat na iPhonie, przez który lokalny model obsługuje Flippera Zero: Qwen z widzeniem działa na domowym GX10, a telefon łączy się z urządzeniem przez Bluetooth. Każde zadanie zaczyna się w trybie odczytu — zdjęcia tabliczek, odczyty, ekran — a sterowanie włącza się osobno dla każdego zadania. Kroki widać w panelu i w każdej chwili można je przerwać. Do tego własny firmware dla modułu ESP32-C3.",
+    tech: ["Qwen", "FastAPI", "BLE", "ESP32"], access: "działa lokalnie", links: {}
+  },
+  {
+    id: "phpbotbot", title: "PHPBotBot", date: "2026-10", era: 6,
+    cat: ["produkty", "aiml"],
+    desc: "Polskie forum, na którym piszą ludzie i agenci AI. Wygląda i „czuje się” jak phpBB2 modified by Przemo z lat 2004–2012, ale działa na nowym silniku. Agenci mają własne konta, rejestrują się przez API, a człowiek-właściciel potwierdza każdego z nich; ich posty są widocznie podpisane, a strefy forum decydują, kto gdzie pisze. Wspólny projekt Mat&Bart.",
+    tech: ["PHP 8", "Laravel 13", "API dla agentów"], access: "w produkcji", links: {}
+  },
+  {
     id: "omniportfolio", title: "Omniportfolio", date: "2026-08", era: 6, meta: true, cover: true,
     cat: ["sztuka"],
-    desc: "Ta strona, a obok niej muzeum i Kosmos. Pierwszą wersję zbudował Claude Fable 5 z 65 repozytoriów i historii sesji pracy (4 VIII 2026), aktualizację z 30 IX — już z 88 repozytoriów — Claude Opus 5.5. Kardiogram to prawdziwe dane.",
+    desc: "Ta strona, a obok niej muzeum i Kosmos. Pierwszą wersję zbudował Claude Fable 5 z 65 repozytoriów i historii sesji pracy (4 VIII 2026), aktualizacje z 30 IX (88 repozytoriów) i 16 X (101) — Claude Opus 5.5. Kardiogram to prawdziwe dane.",
     tech: ["Claude Fable 5", "Claude Opus 5.5", "Three.js", "vanilla JS"],
     links: { live: "https://agentsmill.github.io/museum.html", repo: "https://github.com/agentsmill/agentsmill.github.io" }
   },
@@ -483,7 +546,7 @@ const LINEAGES = [
   {
     id: "energia",
     title: "Od gry o OZE do produktu energetycznego",
-    note: "Najdłuższa linia: 16 miesięcy od pierwszego repo do asystenta, który liczy prawdziwe rachunki.",
+    note: "Najdłuższa linia: 19 miesięcy od pierwszego repo, przez asystenta, który liczy prawdziwe rachunki, po farmę wiatrową liczoną na karcie graficznej.",
     chain: [
       { title: "OZE Developer Manager", date: "2025-03", pid: "oze-developer-manager" },
       { title: "GreenSolver ×4", date: "2025-07", pid: "greensolver" },
@@ -491,6 +554,7 @@ const LINEAGES = [
       { title: "FlexMarket", date: "2026-04", pid: "flexmarket" },
       { title: "Aule Energy", date: "2026-04", pid: "aule-v2" },
       { title: "Silnik ROI BESS", date: "2026-06", pid: "silnik-bess" },
+      { title: "Windfarm Lab", date: "2026-10", pid: "windfarm-lab" },
     ],
   },
   {
@@ -517,11 +581,12 @@ const LINEAGES = [
   {
     id: "pokemon",
     title: "Pokémon jako poligon AI",
-    note: "Od sklepu, przez silnik decyzyjny na Kaggle, po system percepcji ekranu i modelowania przeciwnika.",
+    note: "Od sklepu, przez silnik decyzyjny na Kaggle i system percepcji ekranu z modelowaniem przeciwnika, po agenta, który sam gra w FireRed.",
     chain: [
       { title: "Pokemate TCG Hub", date: "2026-02", pid: "pokemate-hub" },
       { title: "Pokemate (Kaggle)", date: "2026-06", pid: "pokemate-engine" },
       { title: "PokeSolver", date: "2026-07", pid: "pokesolver" },
+      { title: "Jev × Pokémon", date: "2026-09", pid: "jev-pokemon" },
     ],
   },
   {
@@ -572,7 +637,7 @@ const THREADS = [
   {
     id: "lokalnie", label: "Model działa lokalnie",
     note: "Powracająca zasada: inferencja na urządzeniu, bez chmury. Apple Neural Engine, WebGPU, Raspberry Pi, Unity.",
-    items: ["NaszWhisper", "LastBox", "Token Golf", "PETENT", "Mansa Musa", "Bielik"],
+    items: ["NaszWhisper", "LastBox", "Token Golf", "PETENT", "Mansa Musa", "Bielik", "Flipper Operator"],
   },
   {
     id: "mcp", label: "Agent z narzędziami (MCP)",
@@ -582,16 +647,20 @@ const THREADS = [
   {
     id: "uczciwie", label: "Policz to uczciwie",
     note: "Ani liczba, ani odpowiedź nie wychodzi z jednego modelu na słowo: liczy deterministyczny silnik, podaje źródło albo sprawdzają dwa niezależne modele z arbitrem — a to, co niepewne, dostaje etykietę.",
-    items: ["Aule Energy", "Silnik ROI BESS", "GreenSolver", "StockCast", "Bilans tokenów Polski", "Trener LEK", "Naloty na Ukrainę"],
+    items: ["Aule Energy", "Silnik ROI BESS", "GreenSolver", "StockCast", "Bilans tokenów Polski", "Trener LEK", "Naloty na Ukrainę", "MarketForecasts"],
   },
   {
     id: "wyjasnic", label: "Wyjaśnić, jak to działa",
     note: "Sztuka i edukacja jako to samo zadanie: pokazać wnętrze maszyny, nie tylko jej wynik.",
-    items: ["Anatomy of a Thought", "The Residual Stream", "Mistrz Promptów", "Polska Szkoła Claude", "Token Drag Race"],
+    items: ["Anatomy of a Thought", "The Residual Stream", "Mistrz Promptów", "Polska Szkoła Claude", "Token Drag Race", "Reaktor z klocków", "Windfarm Lab"],
   },
 ];
 
-// Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → IX 2026).
+// Kardiogram hero: liczba projektów/mies. (GitHub + lokalne, III 2025 → X 2026).
+// Projekt = własne repozytorium albo karta na stronie; dokumenty, biznesplany i skrypty
+// osobiste się nie liczą. 16 X doliczone lokalne repo, których przegląd z 30 IX
+// (tylko GitHub) nie widział: VIII Kontra i 22community, IX Jev × Pokémon,
+// MarketForecasts i CRU.
 // Liczy się miesiąc pierwszego commitu. Miesiąc zamyka się dopiero po jego końcu —
 // wpis bieżącego miesiąca to stan na dzień aktualizacji.
 const HEARTBEAT = [
@@ -599,8 +668,8 @@ const HEARTBEAT = [
   { m: "VII 25", n: 4 }, { m: "VIII 25", n: 8 }, { m: "IX 25", n: 1 }, { m: "X 25", n: 0 },
   { m: "XI 25", n: 1 }, { m: "XII 25", n: 1 }, { m: "I 26", n: 5 }, { m: "II 26", n: 1 },
   { m: "III 26", n: 3 }, { m: "IV 26", n: 8 }, { m: "V 26", n: 4 }, { m: "VI 26", n: 20 },
-  { m: "VII 26", n: 17 }, { m: "VIII 26", n: 4 },
-  { m: "IX 26", n: 6 },
+  { m: "VII 26", n: 17 }, { m: "VIII 26", n: 6 },
+  { m: "IX 26", n: 9 }, { m: "X 26", n: 8 },
 ];
 
 const CATEGORIES = {

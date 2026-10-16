@@ -188,8 +188,8 @@
 
     "footer.meta":
       "This page was built by AI as well — Claude Fable 5, in a single session, on 4 August 2026; " +
-      "the 30 September update was done by Claude Opus 5.5. Dates and numbers come from the " +
-      "GitHub API and local repositories; links checked on 30 IX 2026. The cardiogram is real data.",
+      "the updates of 30 September and 16 October were done by Claude Opus 5.5. Dates and numbers come " +
+      "from the GitHub API and local repositories; links checked on 16 X 2026. The cardiogram is real data.",
 
     "muz.laduje": "Opening the museum…",
     "muz.powrot": " Building record",
@@ -251,8 +251,8 @@
          lead: "Fewer repositories, more thinking. The Aule Energy prototype, a new Mac and the beginning of local session history — foundations for 2026." },
     5: { title: "The year of agents", rhythm: "25+ projects in 4 months",
          lead: "Models ship weekly and projects every few days: a Kaggle hackathon, a game for Leon, a Tibia clone, generative art and more than 250 stars on GitHub." },
-    6: { title: "A one-person studio", rhythm: "27 projects in 3 months",
-         lead: "Claude Code, Codex and Kimi CLI run in parallel. Paying platforms appear, a game headed for Steam, robots and this site — and after the July peak, a trainer for the medical licensing exam, a mushroom game for Leon, a map of the air strikes on Ukraine and an AI simulation for boards." },
+    6: { title: "A one-person studio", rhythm: "40 projects in 4 months",
+         lead: "Claude Code, Codex and Kimi CLI run in parallel. Paying platforms appear, a game headed for Steam, robots and this site — after the July peak, a trainer for the medical licensing exam, a mushroom game for Leon and a map of the air strikes on Ukraine, and in October a wind farm in WebGPU, films built from code in Blender and a forum where agents post." },
   };
 
   const KATEGORIE = {
@@ -275,13 +275,13 @@
   /* Rodziny po id; `kroki` tłumaczy tytuły ogniw po polskiej nazwie. */
   const RODZINY = {
     energia: { title: "From a renewable-energy game to an energy product",
-      note: "The longest line: 16 months from the first repo to an assistant that calculates real bills." },
+      note: "The longest line: 19 months from the first repo, through an assistant that calculates real bills, to a wind farm computed on the graphics card." },
     agenty: { title: "Agents that became a game",
       note: "A visualisation of my own AI sessions grew into a game about designing agent systems — which in turn budded into a platformer with a model running in the browser." },
     prompty: { title: "Three takes on one idea",
       note: "Prompt Master went through three complete rewrites in three weeks. Learning to iterate on a living organism." },
     pokemon: { title: "Pokémon as an AI proving ground",
-      note: "From a shop, through a decision engine on Kaggle, to a system that reads the screen and models the opponent." },
+      note: "From a shop, through a decision engine on Kaggle and a system that reads the screen and models the opponent, to an agent that plays FireRed on its own." },
     roboty: { title: "One robot, three personalities",
       note: "A Reachy Mini named Richie got an observer brain, a voice companion for Leon and a stoic mentor for grown-ups." },
     postac: { title: "The model as a character you talk to",
@@ -325,6 +325,7 @@
     "Polska Szkoła Claude": "The Polish Claude School",
     "Trener LEK": "LEK Trainer",
     "Naloty na Ukrainę": "Air strikes on Ukraine",
+    "Reaktor z klocków": "A Reactor Made of Bricks",
   };
 
   /* Archiwum po tytule: nowy tytuł (tylko gdy polski) i notka. */
@@ -373,11 +374,15 @@
     "eksperyment badawczy · repo prywatne": "research experiment · private repo",
     "badanie lokalne": "local research",
     "kod zamknięty": "closed source",
+    "wejście na hasło": "password-gated",
   };
   const TAGI = {
     "zero zależności": "zero dependencies",
     "jeden plik HTML": "single HTML file",
     "grafika proceduralna": "procedural graphics",
+    "szyfrowana treść": "encrypted content",
+    "druk 3D": "3D printing",
+    "API dla agentów": "agent API",
   };
 
   /* ── Projekty. Nazwy własne zostają; tłumaczy się opis i tytuły opisowe. ── */
@@ -435,8 +440,18 @@
     "naloty-ukraina": { title: "Air strikes on Ukraine 2022–2026", desc: "A 3D map of Russia’s air campaign against Ukraine since 24 February 2022, built around one question: how much of it reaches the west of the country. Every layer states its scale and source, and since August 2026 the numbers update themselves daily from the Ukrainian Air Force’s morning reports." },
     "wiewiorka-leona": { title: "Leon’s Squirrel", desc: "A 3D game for children aged 4–7: a squirrel crosses a forest maze collecting porcini, while the fly agaric, the death cap and the look-alike bitter bolete have to be recognised by eye — the mushrooms carry no markers. A mistake ends in a sneeze and an atlas with a real photograph, never a game-over screen. Every model and sound is generated in code." },
     "dzwignia": { title: "Dźwignia — the AI leverage game", desc: "An AI-transformation simulation for boards, built for an executive workshop: each participant runs their own division for eight quarters inside one shared company — a second brain, automations, pilots, the IT queue and regulatory risk. A projector board with a QR code and a live shared ranking." },
+    "jev-pokemon": { desc: "TypeSafe’s Jev model plays Pokémon FireRed: a local harness hands it the game state and presses the chosen button in the emulator, while a dashboard lets you watch the screen, pause the agent, take a single step, grab the controller and download the decision log. Jev got through the intro and character creation, and sessions resume from a saved point. A prototype: the model can loop, and there is no guarantee it will finish the game." },
+    "market-forecasts": { desc: "The day after TimesFM 3.0 came out: a walk-forward benchmark on 16 instruments — stocks, commodities, currencies and bitcoin — and on weekly EIA gas storage, more than 92,000 zero-shot forecasts in all. On daily price direction no model beat simply staying long. Together with StockCast and Latent Weather it is bound into one write-up of lessons, the first of which reads: a forecast is not yet an edge." },
+    "windfarm-lab": { desc: "A wind-farm lab in the browser: change the wind or the turbine layout and see the wakes, the lost power and the annual energy at once. 16 real turbine models at scale, the Horns Rev 1 farm, two wake models and wind roses from the Baltic and Poland, with a CFD simulation running live on the graphics card alongside. Estimated values carry a “~”, and adding ?selftest to the address checks that the GPU computes the same numbers as the reference code." },
+    "reaktor-z-klockow": { title: "A Reactor Made of Bricks", desc: "A two-and-a-half-minute educational film about the BWRX-300 small modular reactor planned for Poland. The whole story is a toy-brick diorama: from uranium fission, through boiling water and the turbine, to passive safety. The scenes were made in Blender; the edit, captions and animations synced to the narrator’s words in Remotion. AI voice and music, sources at the end of the film." },
+    "cialo-miasta": { title: "The Body of a City — Zamość", desc: "A three-minute film about Zamość as a living body: 445 years of history carried by a gold pulse line and one melody re-orchestrated for each era — from the 1578 contract, through the market square and the fortress, to the memory of the war. The town hall with its fan stairs, the Armenian houses and Roztocze at dawn are built in Blender from code alone, in six looks. Plus vertical cuts of 60, 30 and 15 seconds." },
+    "zabawki-3d": { title: "3D-printable Montessori toys", desc: "Three toy concepts that grow with the child. Every part is generated by code in Blender and prints without supports: from a vegetable board for a three-year-old, through a stove whose knobs print in place inside it and carry the child’s name, to a set in which a six-year-old winds the coils and assembles a dynamo flashlight and a reed-switch motor. Electricity without electronics." },
+    "myciv": { desc: "A city builder where you never place a house. The player draws the skeleton of a settlement, paints what each place is for and sets the rules of growth in the spirit of Christopher Alexander’s “A Pattern Language”, and the settlement grows by itself: it wears desire paths, puts up shacks when housing runs short and remembers its eras. The simulation is plain, tested C#, independent of Unity. AI only translates at the edges — the game has to be fun without it." },
+    "tydzien-z-gemini": { title: "A Week with Gemini", desc: "A browser game for participants of Gemini Enterprise workshops: one in-game day per workshop, in a phone or a computer view. Day 1 is nine missions on prompts and quality checks, day 2 ten missions in a simulated Gemini Enterprise, with a warm-up and a boss round. Each day ends with prompt cards ready to copy. The companies, people and numbers in the game are made up." },
+    "flipper-operator": { desc: "A chat on the iPhone through which a local model operates a Flipper Zero: a vision-capable Qwen runs on a GX10 at home, and the phone talks to the device over Bluetooth. Every task starts in read-only mode — photos of nameplates, readings, the screen — and control is switched on separately for each task. Every step is visible in a panel and can be stopped at any moment. Plus custom firmware for an ESP32-C3 module." },
+    "phpbotbot": { desc: "A Polish forum where both people and AI agents post. It looks and feels like phpBB2 modified by Przemo from 2004–2012, but runs on a new engine. Agents have their own accounts and register through an API, a human owner confirms each one, their posts are visibly signed, and forum zones decide who can post where. A joint project by Mat&Bart." },
     "ai-video-portfolio": { title: "AI video and image portfolio", desc: "A sister site: AI video and image production for small and medium clients — showreel, UGC clip, unit costs and regulatory risks." },
-    "omniportfolio": { desc: "This page, with the museum and the Cosmos beside it. The first version was built by Claude Fable 5 from 65 repositories and the history of working sessions (4 VIII 2026); the 30 IX update — from 88 repositories by then — by Claude Opus 5.5. The cardiogram is real data." },
+    "omniportfolio": { desc: "This page, with the museum and the Cosmos beside it. The first version was built by Claude Fable 5 from 65 repositories and the history of working sessions (4 VIII 2026); the updates of 30 IX (88 repositories) and 16 X (101) by Claude Opus 5.5. The cardiogram is real data." },
   };
 
   /* ── Nadpisanie danych PRZED main.js ─────────────────────────────────── */

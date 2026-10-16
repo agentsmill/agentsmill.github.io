@@ -246,8 +246,16 @@
       "komercyjnie, albo ma najwięcej pracy pod spodem, albo jest po prostu najciekawsze. " +
       "Reszta czeka na osi czasu i w spisie niżej."), { n: WYROZNIONE.length });
 
+    /* Ostatni kafel, który zostałby sam w rzędzie, dostaje cały rząd (obraz z lewej,
+       tekst z prawej). Duże kafle mają 4 kolumny, zwykłe 2: przy sześciu kolumnach
+       sierota zostaje, gdy n % 3 === 1, a przy czterech (≤ 980 px, trzeci duży ma tam
+       2 kolumny) — gdy n jest nieparzyste. Oba warunki naraz to n % 6 === 1 (13, 19…);
+       inne liczby zostawiają w ostatnim rzędzie dwa kafle albo lukę tylko na jednej szerokości. */
+    const n = WYROZNIONE.length;
+    const szeroka = (p) => (n % 6 === 1 && p === WYROZNIONE[n - 1] ? " szeroka" : "");
+
     /* Miejsca 1–3 to duże kafle bento: hierarchia z danych, nie z pozycji w DOM. */
-    grid.innerHTML = WYROZNIONE.map((p) => `<article class="fcard reveal${p.featured <= 3 ? " duza" : ""}" style="--cat:${catColor(p)}" data-id="${p.id}" data-miejsce="${p.featured}">
+    grid.innerHTML = WYROZNIONE.map((p) => `<article class="fcard reveal${p.featured <= 3 ? " duza" : ""}${szeroka(p)}" style="--cat:${catColor(p)}" data-id="${p.id}" data-miejsce="${p.featured}">
         ${obrazHTML(p, "shot") || tablicaHTML(p)}
         <div class="fdate"><span class="fdate-data">${fmtDate(p.date)}</span> · ${p.cat.map((c) => `<span class="fdate-kat">${CATEGORIES[c].label}</span>`).join(" · ")}</div>
         <h3>${p.title}</h3>
